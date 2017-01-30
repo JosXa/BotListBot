@@ -1,5 +1,7 @@
 import datetime
 
+from playhouse.sqlite_ext import JSONField
+
 import const
 import util
 from model.category import Category
@@ -11,7 +13,7 @@ from model.country import Country
 
 class Bot(BaseModel):
     id = PrimaryKeyField()
-    category = ForeignKeyField(Category)
+    category = ForeignKeyField(Category, null=True)
     name = CharField(null=True)
     username = CharField(unique=True)
     description = TextField(null=True)
@@ -20,6 +22,9 @@ class Bot(BaseModel):
     inlinequeries = BooleanField(default=False)
     official = BooleanField(default=False)
     extra = CharField(null=True)
+
+    approved = BooleanField(default=True)
+    submitted_by = JSONField(null=True)
 
     @property
     def is_new(self):

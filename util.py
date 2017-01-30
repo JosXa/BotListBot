@@ -1,19 +1,28 @@
 import json
 import logging
-import time
 import re
 from collections import OrderedDict
+from functools import wraps
 from pprint import pprint
 from typing import List, Dict
 
-from telegram.error import BadRequest
-
+import const
 from custemoji import Emoji
-from telegram import ChatAction, ReplyKeyboardHide, InlineKeyboardButton
+from telegram import ChatAction, ReplyKeyboardHide
 from telegram import ParseMode
-from math import radians, cos, sin, asin, sqrt
-
 import time
+
+
+def restricted(func):
+    @wraps(func)
+    def wrapped(bot, update, *args, **kwargs):
+        chat_id = cid_from_update(update)
+        if chat_id not in const.ADMINS:
+            print("Unauthorized access denied for {}.".format(chat_id))
+            return
+        return func(bot, update, *args, **kwargs)
+
+    return wrapped
 
 
 def timeit(method):
@@ -46,7 +55,12 @@ def build_menu(buttons: List,
     return menu
 
 
-def chat_id_from_update(update):
+def cid_from_update(update):
+    """
+    Extract the chat id from update
+    :param update: `telegram.Update`
+    :return: chat_id extracted from the update
+    """
     chat_id = None
     try:
         chat_id = update.message.from_user.id
@@ -91,52 +105,6 @@ def is_inline_message(update):
         return False
 
 
-def parse_markdown_from_update(update):
-    entities = parse_entities_from_update(update)
-    text = message_text_from_update(update)
-    pprint(entities)
-
-    for e in entities:
-        # True if type was bold, italic or code (because other values are possible)
-        modified = None
-        pos = e.offset
-        length = e.length
-
-        # TODO: buggy!
-        # if e.type == "text_link":
-        #     text = "{}[{}]({}){}".format(text[:pos], text[pos:pos + length], e.url, text[pos + length])
-        #     modified = 4
-        if e.type == "bold":
-            text = text[:pos] + '*' + text[pos:pos + length] + '*' + text[pos + length:]
-            modified = 2
-        if e.type == "italic":
-            text = text[:pos] + '_' + text[pos:pos + length] + '_' + text[pos + length:]
-            modified = 2
-        if e.type == "code":
-            text = text[:pos] + '`' + text[pos:pos + length] + '`' + text[pos + length:]
-            modified = 2
-        if e.type == "pre":
-            text = text[:pos] + '```\n' + text[pos:pos + length] + '\n```' + text[pos + length:]
-            modified = 6
-
-        # update offsets of all entities to the right
-        if modified:
-            for other in entities:
-                if other.offset > pos:
-                    other.offset += modified
-    return text
-
-
-def parse_entities_from_update(update):
-    try:
-        return update.message.parse_entities()
-    except (NameError, AttributeError):
-        try:
-            return update.callback_query.message.parse_entities()
-        except (NameError, AttributeError):
-            return None
-
-
 def message_text_from_update(update):
     try:
         return update.message.text
@@ -147,7 +115,7 @@ def message_text_from_update(update):
             return None
 
 
-def message_id_from_update(update):
+def mid_from_update(update):
     try:
         return update.callback_query.message.message_id
     except (NameError, AttributeError):
@@ -170,7 +138,7 @@ def callback_str_from_dict(d):
 
 
 def wait(bot, update, t=1.8):
-    chat_id = chat_id_from_update(update)
+    chat_id = cid_from_update(update)
     bot.sendChatAction(chat_id, ChatAction.TYPING)
     time.sleep(t)
 
@@ -187,11 +155,9 @@ def order_dict_lexi(d):
 
 def send_or_edit_md_message(bot, chat_id, text, to_edit=None, **kwargs):
     if to_edit:
-        try:
-            return bot.editMessageText(text, chat_id=chat_id, message_id=to_edit, parse_mode=ParseMode.MARKDOWN, **kwargs)
-        except BadRequest:
-            pass
-    # else
+        return bot.editMessageText(text, chat_id=chat_id, message_id=to_edit, parse_mode=ParseMode.MARKDOWN,
+                                   **kwargs)
+
     return send_md_message(bot, chat_id, text=text, **kwargs)
 
 

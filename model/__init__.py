@@ -2,12 +2,14 @@ from model.bot import Bot
 from model.category import Category
 from model.channel import Channel
 from model.country import Country
+from model.user import User
 
 if __name__ == "__main__":
-    Category.create_table()
-    Bot.create_table()
-    Country.create_table()
-    Channel.create_table()
+    Category.create_table(fail_silently=True)
+    Bot.create_table(fail_silently=True)
+    Country.create_table(fail_silently=True)
+    Channel.create_table(fail_silently=True)
+    User.create_table(fail_silently=True)
 
     Country.insert_many([
         {'name': 'Italy', 'emoji': '🇮🇹'},

@@ -13,4 +13,4 @@
 ⬆️Pulse arriba sobre una categoría para ir a esa sección de la lista ⬆️
 
                     `•` @botlist `•`
-                     `{}`
+                    `{}`

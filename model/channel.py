@@ -4,7 +4,6 @@ from model.basemodel import BaseModel
 
 
 class Channel(BaseModel):
-    last_message_id = IntegerField(null=True)
     chat_id = IntegerField()
     username = CharField()
 
