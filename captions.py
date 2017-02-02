@@ -10,3 +10,6 @@ EDIT_BOT = "🛠 Edit Bot"
 SEND_BOTLIST = "☑ Update BotList"
 BACK = "{} Back".format(Emoji.BACK_WITH_LEFTWARDS_ARROW_ABOVE)
 APPROVE_BOTS = "Approve Bots"
+SEND_CONFIG_FILES = "Config files"
+FIND_OFFLINE = "Find offline bots"
+APPROVE_SUGGESTIONS = "Approve Suggestions"

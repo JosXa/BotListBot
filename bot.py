@@ -11,11 +11,12 @@ from pprint import pprint
 from uuid import uuid4
 
 import emoji
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram import InlineQueryResultArticle
 from telegram import InputTextMessageContent
 from telegram import ParseMode
-from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram import Update
+from telegram.ext import CallbackQueryHandler
 from telegram.ext import MessageHandler, \
     Filters, RegexHandler, InlineQueryHandler, ConversationHandler
 from telegram.ext import Updater, CommandHandler
@@ -25,18 +26,26 @@ import const
 import helpers
 import util
 from components import admin
+from components import botproperties
+from components.admin import edit_bot_category
 from const import BotStates, CallbackActions, CallbackStates
 from jsoncallbackhandler import JSONCallbackHandler
 from model import Category, Bot, Country, Channel
+from model.suggestion import Suggestion
 from model.user import User
 from util import restricted
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
 
+"""
+TODO:
+- add /credits for people who have a lot of bot submissions
+- if inline query yields no category result, try to find a BOT **like that query and send the corresponding category
+"""
+
 
 def start(bot, update, args):
-    print("/start")
     tg_user = update.message.from_user
     chat_id = tg_user.id
 
@@ -64,7 +73,10 @@ def restart(bot, update):
     os.execl(sys.executable, sys.executable, *sys.argv)
 
 
-def select_category(bot, update, callback_action=CallbackActions.CATEGORY_SELECTED):
+def select_category(bot, update, callback_action=None):
+    if callback_action is None:
+        # set default
+        callback_action = CallbackActions.SELECT_BOT_FROM_CATEGORY
     chat_id = util.cid_from_update(update)
     categories = Category.select().order_by(Category.name.asc()).execute()
 
@@ -72,24 +84,10 @@ def select_category(bot, update, callback_action=CallbackActions.CATEGORY_SELECT
         '{}{}'.format(emoji.emojize(c.emojis, use_aliases=True), c.name),
         callback_data=util.callback_for_action(
             callback_action, {'id': c.id})) for c in categories], 2)
-    util.send_or_edit_md_message(bot, chat_id, util.action_hint("Please select a category"),
-                                 to_edit=util.mid_from_update(update),
-                                 reply_markup=InlineKeyboardMarkup(buttons))
-    return CallbackStates.SELECTING_CATEGORY
-
-
-def edit_bot_category(bot, update, for_bot, callback_action=CallbackActions.EDIT_BOT_CAT_SELECTED):
-    chat_id = util.cid_from_update(update)
-    categories = Category.select().order_by(Category.name.asc()).execute()
-
-    buttons = util.build_menu([InlineKeyboardButton(
-        '{}{}'.format(emoji.emojize(c.emojis, use_aliases=True), c.name),
-        callback_data=util.callback_for_action(
-            callback_action, {'cid': c.id, 'bid': for_bot.id})) for c in categories], 2)
-    return util.send_or_edit_md_message(bot, chat_id, util.action_hint("Please select a category" +
-                                                                       (" for {}".format(for_bot) if for_bot else '')),
-                                        to_edit=util.mid_from_update(update),
-                                        reply_markup=InlineKeyboardMarkup(buttons))
+    msg = util.send_or_edit_md_message(bot, chat_id, util.action_hint("Please select a category"),
+                                       to_edit=util.mid_from_update(update),
+                                       reply_markup=InlineKeyboardMarkup(buttons))
+    # return msg
 
 
 def inlinequery(bot, update):
@@ -111,7 +109,6 @@ def inlinequery(bot, update):
         bots_with_description = [b for b in bot_list if b.description is not None]
 
         txt = const.PROMOTION_MESSAGE + '\n\n'
-        print(str(c))
         txt += "There are *{}* bots in the category *{}*:\n\n".format(len(bot_list), str(c))
         txt += '\n'.join([str(b) for b in bot_list])
         results_list.append(InlineQueryResultArticle(
@@ -130,13 +127,16 @@ def error(bot, update, error):
 
 def help(bot, update):
     chat_id = util.cid_from_update(update)
-    util.send_md_message(bot, chat_id, "*The BotListBot is currently in development*. You can use it, but please do not complain about bugs for the time being. Be patient, and thank you!")
+    util.send_md_message(bot, chat_id,
+                         "*The BotListBot is currently in development*. You can use it, but please do not complain about bugs for the time being. Be patient, and thank you!")
     update.message.reply_text(const.HELP_MESSAGE, parse_mode=ParseMode.MARKDOWN)
-    update.message.reply_text('Available commands:\n' + helpers.get_commands(), parse_mode=ParseMode.MARKDOWN)
+    update.message.reply_text('Available commands:\n' + const.COMMANDS, parse_mode=ParseMode.MARKDOWN)
 
 
 def new_channel_post(bot, update, photo=None):
     post = update.channel_post
+    if post.chat.username != const.SELF_CHANNEL_USERNAME:
+        return
     pprint(update.channel_post.to_dict())
     text = post.text
 
@@ -172,7 +172,7 @@ def new_channel_post(bot, update, photo=None):
             cat.save()
 
             # get the bots in that category
-            bots = re.findall(r'^(@\w+)( \W+)?$', text, re.MULTILINE)
+            bots = re.findall(r'^(@\w+)( .+)?$', text, re.MULTILINE)
             languages = Country.select().execute()
             for b in bots:
                 username = b[0]
@@ -183,6 +183,10 @@ def new_channel_post(bot, update, photo=None):
 
                 new_bot.inlinequeries = "🔎" in b[1]
                 new_bot.official = "🔹" in b[1]
+
+                extra = re.findall(r'(\[.*\])', b[1])
+                if extra:
+                    new_bot.extra = extra[0]
 
                 # find language
                 for lang in languages:
@@ -213,30 +217,86 @@ def photo_handler(bot, update):
 
 
 def plaintext(bot, update):
-    print("Plaintext received: {}".format(update.message.text))
     if update.channel_post:
         return new_channel_post(bot, update)
 
+        # print("Plaintext received: {}".format(update.message.text))
 
-def new_bot_submission(bot, update: Update):
-    text = update.message.text
-    user = update.message.from_user
+
+def notify_bot_offline(bot, update, args=None):
+    tg_user = update.message.from_user
+    user = User.from_telegram_object(tg_user)
+    if args:
+        text = ' '.join(args)
+    else:
+        text = update.message.text
+        command_no_args = len(re.findall(r'^/submit\s*$', text)) > 0
+        if command_no_args:
+            update.message.reply_text(
+                util.action_hint("Please use this command with an argument. For example:\n\n/offline @mybot"))
+            return
+
+    # `#offline` is already checked by handler
+    try:
+        username = re.match(const.BOT_REGEX, text).groups()[0]
+    except AttributeError:
+        if args:
+            update.message.reply_text(util.failure("Sorry, but you didn't send me a bot `@username`."), quote=True,
+                                      parse_mode=ParseMode.MARKDOWN)
+        else:
+            # no bot username, ignore update
+            pass
+        return
+
+    try:
+        offline_bot = Bot.get(Bot.username ** username)
+        try:
+            Suggestion.get(action="offline", subject=offline_bot)
+        except Suggestion.DoesNotExist:
+            suggestion = Suggestion(user=user, action="offline", date=datetime.date.today(), subject=offline_bot)
+            suggestion.save()
+        update.message.reply_text(util.success("Thank you! We will review your suggestion and set the bot offline."))
+    except Bot.DoesNotExist:
+        update.message.reply_text(util.action_hint("The bot you sent me is not in the @botlist."))
+
+
+def new_bot_submission(bot, update, args=None):
+    tg_user = update.message.from_user
+    user = User.from_telegram_object(tg_user)
+    if args:
+        text = ' '.join(args)
+    else:
+        text = update.message.text
+        command_no_args = len(re.findall(r'^/submit\s*$', text)) > 0
+        if command_no_args:
+            update.message.reply_text(util.action_hint(
+                "Please use this command with an argument. For example:\n\n/submit @mybot 🔎"))
+            return
 
     # `#new` is already checked by handler
     try:
-        username = re.match(r'.*(@[a-zA-Z0-9_\-]*).*', text).groups()[0]
+        username = re.match(const.BOT_REGEX, text).groups()[0]
     except AttributeError:
+        if args:
+            update.message.reply_text(util.failure("Sorry, but you didn't send me a bot `@username`."), quote=True,
+                                      parse_mode=ParseMode.MARKDOWN)
         # no bot username, ignore update
         return
+
+    log.info("New bot submission: " + text)
 
     languages = Country.select().execute()
     try:
         new_bot = Bot.get(username=username)
-        update.message.reply_text(
-            util.action_hint("{} was already submitted. Please have patience...".format(username)))
+        if new_bot.approved:
+            update.message.reply_text(
+                util.action_hint("Sorry fool, but {} is already in the @botlist 😉".format(username)))
+        else:
+            update.message.reply_text(
+                util.action_hint("{} has already been submitted. Please have patience...".format(username)))
         return
     except Bot.DoesNotExist:
-        new_bot = Bot(approved=False, username=username, submitted_by=user.to_json())
+        new_bot = Bot(approved=False, username=username, submitted_by=user)
 
     new_bot.inlinequeries = "🔎" in text
     new_bot.official = "🔹" in text
@@ -252,7 +312,8 @@ def new_bot_submission(bot, update: Update):
     # new_bot.category = cat
 
     new_bot.save()
-    update.message.reply_text(util.success("You submitted {} for approval.".format(new_bot)))
+    update.message.reply_text(util.success("You submitted {} for approval.".format(new_bot)),
+                              parse_mode=ParseMode.MARKDOWN)
 
 
 def select_bot_from_category(bot, update, category=None):
@@ -267,25 +328,30 @@ def select_bot_from_category(bot, update, category=None):
     menu = util.build_menu(buttons, 2)
     menu.insert(0, [
         InlineKeyboardButton(captions.BACK, callback_data=util.callback_for_action(
-            CallbackActions.BACK, {'id': category.id}
+            CallbackActions.SELECT_CATEGORY
         )),
         InlineKeyboardButton("Share", switch_inline_query=category.name)
     ])
     txt = "There are *{}* bots in the category *{}*:\n\n".format(len(bot_list), str(category))
-    txt += '\n'.join([str(b) for b in bot_list])
+
+    if chat_id in const.ADMINS:
+        # append edit buttons
+        txt += '\n'.join(["{} — /edit{}".format(b, b.id) for b in bot_list])
+    else:
+        txt += '\n'.join([str(b) for b in bot_list])
+
     if len(bots_with_description) > 0:
         txt += "\n\n" + util.action_hint("Press a button below to get a detailed description.")
     util.send_or_edit_md_message(bot, chat_id,
                                  txt,
                                  to_edit=util.mid_from_update(update), reply_markup=InlineKeyboardMarkup(menu))
-    return CallbackStates.SELECTING_BOT
 
 
 def send_bot_details(bot, update, item: Bot):
     chat_id = util.cid_from_update(update)
     reply_markup = InlineKeyboardMarkup([[
         InlineKeyboardButton(captions.BACK, callback_data=util.callback_for_action(
-            CallbackActions.BACK, {'id': item.category.id}
+            CallbackActions.SELECT_BOT_FROM_CATEGORY, {'id': item.category.id}
         ))
     ]])
     util.send_or_edit_md_message(bot, chat_id,
@@ -297,41 +363,114 @@ def send_bot_details(bot, update, item: Bot):
     return CallbackStates.SHOWING_BOT_DETAILS
 
 
+# def category_permalink(bot, update, category):
+#     import urllib.parse
+#     link = "http://telegram.me/{}/{}".format(urllib.parse.quote_plus(const.SELF_CHANNEL_USERNAME), category.current_message_id)
+#     link = "http://google.com"
+#     bot.answerCallbackQuery(update.callback_query.id, url=link)
+
+
 def callback_router(bot, update, chat_data):
-    print("WTF!!!")
     obj = json.loads(str(update.callback_query.data))
     if 'a' in obj:
         action = obj['a']
 
-        if action == CallbackActions.SELECT_BOT_IN_CATEGORY:
+        # BASIC QUERYING
+        if action == CallbackActions.SELECT_CATEGORY:
+            select_category(bot, update)
+        if action == CallbackActions.SELECT_BOT_FROM_CATEGORY:
             category = Category.get(id=obj['id'])
             select_bot_from_category(bot, update, category)
         if action == CallbackActions.SEND_BOT_DETAILS:
             item = Bot.get(id=obj['id'])
             send_bot_details(bot, update, item)
-        if action == CallbackActions.ADD_BOT_SELECT_CAT:
-            category = Category.get(id=obj['id'])
-            admin.add_bot(bot, update, chat_data, category)
-        if action == CallbackActions.EDIT_BOT_SELECT_CAT:
-            select_category(bot, update, CallbackActions.EDIT_BOT_CAT_SELECTED)
-        if action == CallbackActions.SELECT_CATEGORY:
-            select_category(bot, update)
-        if action == CallbackActions.EDIT_BOT_CAT_SELECTED:
-            category = Category.get(id=obj['id'])
-            select_bot_from_category(bot, update, category, CallbackActions.EDIT_BOT_SELECT_BOT)
-        if action == CallbackActions.EDIT_BOT_SELECT_BOT:
-            bot = Bot.get(id=obj['id'])
-            admin.edit_bot(bot, update, chat_data, bot_to_edit=bot)
+        # if action == CallbackActions.PERMALINK:
+        #     category = Category.get(id=obj['cid'])
+        #     category_permalink(bot, update, category)
+        # SEND BOTLIST
         if action == CallbackActions.SEND_BOTLIST:
             admin.send_botlist(bot, update, chat_data)
         if action == CallbackActions.RESEND_BOTLIST:
             admin.send_botlist(bot, update, chat_data, resend=True)
+        # ACCEPT/REJECT BOT SUBMISSIONS
         if action == CallbackActions.ACCEPT_BOT:
             to_accept = Bot.get(id=obj['id'])
-            edit_bot_category(bot, update, to_accept, CallbackActions.ACCEPT_BOT_CAT_SELECTED)
-        if action == CallbackActions.ACCEPT_BOT_CAT_SELECTED:
-            to_accept = Bot.get(id=obj['id'])
-            edit_bot_category(bot, update, to_accept, CallbackActions.ACCEPT_BOT_CAT_SELECTED)
+            edit_bot_category(bot, update, to_accept, CallbackActions.BOT_ACCEPTED)
+        if action == CallbackActions.REJECT_BOT:
+            to_reject = Bot.get(id=obj['id'])
+            to_reject.delete_instance()
+            admin.approve_bots(bot, update)
+        if action == CallbackActions.BOT_ACCEPTED:
+            to_accept = Bot.get(id=obj['bid'])
+            category = Category.get(id=obj['cid'])
+            admin.accept_bot_submission(bot, update, to_accept, category)
+        # ADD BOT
+        if action == CallbackActions.ADD_BOT_SELECT_CAT:
+            category = Category.get(id=obj['id'])
+            admin.add_bot(bot, update, chat_data, category)
+        # EDIT BOT
+        if action == CallbackActions.EDIT_BOT:
+            to_edit = Bot.get(id=obj['id'])
+            admin.edit_bot(bot, update, chat_data, to_edit)
+        if action == CallbackActions.EDIT_BOT_SELECT_CAT:
+            to_edit = Bot.get(id=obj['id'])
+            edit_bot_category(bot, update, to_edit)
+        if action == CallbackActions.EDIT_BOT_CAT_SELECTED:
+            to_edit = Bot.get(id=obj['bid'])
+            to_edit.category = Category.get(id=obj['cid'])
+            to_edit.save()
+            admin.edit_bot(bot, update, chat_data, to_edit)
+        if action == CallbackActions.EDIT_BOT_COUNTRY:
+            to_edit = Bot.get(id=obj['id'])
+            botproperties.set_country(bot, update, to_edit)
+        if action == CallbackActions.SET_COUNTRY:
+            to_edit = Bot.get(id=obj['bid'])
+            if obj['cid'] == 'None':
+                country = None
+            else:
+                country = Country.get(id=obj['cid'])
+            to_edit.country = country
+            to_edit.save()
+            admin.edit_bot(bot, update, chat_data, to_edit)
+        if action == CallbackActions.EDIT_BOT_DESCRIPTION:
+            to_edit = Bot.get(id=obj['id'])
+            return botproperties.set_description(bot, update, chat_data, to_edit)
+        if action == CallbackActions.EDIT_BOT_EXTRA:
+            to_edit = Bot.get(id=obj['id'])
+            return botproperties.set_extra(bot, update, chat_data, to_edit)
+        if action == CallbackActions.EDIT_BOT_NAME:
+            to_edit = Bot.get(id=obj['id'])
+            return botproperties.set_name(bot, update, chat_data, to_edit)
+        if action == CallbackActions.EDIT_BOT_USERNAME:
+            to_edit = Bot.get(id=obj['id'])
+            return botproperties.set_username(bot, update, chat_data, to_edit)
+        if action == CallbackActions.EDIT_BOT_INLINEQUERIES:
+            to_edit = Bot.get(id=obj['id'])
+            botproperties.toggle_inlinequeries(bot, update, to_edit)
+            admin.edit_bot(bot, update, chat_data, to_edit)
+        if action == CallbackActions.EDIT_BOT_OFFICIAL:
+            to_edit = Bot.get(id=obj['id'])
+            botproperties.toggle_official(bot, update, to_edit)
+            admin.edit_bot(bot, update, chat_data, to_edit)
+        if action == CallbackActions.EDIT_BOT_OFFLINE:
+            to_edit = Bot.get(id=obj['id'])
+            botproperties.toggle_offline(bot, update, to_edit)
+            admin.edit_bot(bot, update, chat_data, to_edit)
+        if action == CallbackActions.CONFIRM_DELETE_BOT:
+            to_delete = Bot.get(id=obj['id'])
+            botproperties.delete_bot_confirm(bot, update, to_delete)
+        if action == CallbackActions.DELETE_BOT:
+            to_edit = Bot.get(id=obj['id'])
+            botproperties.delete_bot(bot, update, to_edit)
+            select_bot_from_category(bot, update, to_edit.category)
+        if action == CallbackActions.ACCEPT_SUGGESTION:
+            suggestion = Suggestion.get(id=obj['id'])
+            botproperties.accept_suggestion(bot, update, suggestion)
+            admin.approve_suggestions(bot, update)
+        if action == CallbackActions.REJECT_SUGGESTION:
+            suggestion = Suggestion.get(id=obj['id'])
+            suggestion.delete_instance()
+            admin.approve_suggestions(bot, update)
 
 
 def main():
@@ -354,58 +493,55 @@ def main():
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
 
-    # some also in callback_query_handler
-    admin_menu = [
-        RegexHandler(captions.ADD_BOT, admin.add_bot, pass_chat_data=True),
-        RegexHandler(captions.APPROVE_BOTS + '.*', admin.approve_bots),
-        RegexHandler(captions.EDIT_BOT, admin.edit_bot, pass_chat_data=True),
-        RegexHandler(captions.SEND_BOTLIST, admin.prepare_transmission, pass_chat_data=True),
-    ]
-
     conv_handler = ConversationHandler(
         entry_points=[
-            CommandHandler("admin", admin.menu),
+            CallbackQueryHandler(callback_router, pass_chat_data=True),
             CommandHandler('category', select_category),
-            CommandHandler('start', start, pass_args=True),
-            JSONCallbackHandler(CallbackActions.SELECT_CATEGORY, select_category)
+            CommandHandler('cat', select_category),
             # CallbackQueryHandler(callback_router, pass_chat_data=True)
         ],
         states={
-            BotStates.ADMIN_MENU: admin_menu,
-            BotStates.ADMIN_ADDING_BOT: chain(
-                admin_menu,
-                [MessageHandler(Filters.text, admin.add_bot, pass_chat_data=True)]
-            ),
-            CallbackStates.SELECTING_CATEGORY: [
-                JSONCallbackHandler(CallbackActions.CATEGORY_SELECTED, select_bot_from_category,
-                                    mapping={'id': (Category, 'category')})
+            BotStates.SENDING_DESCRIPTION: [
+                MessageHandler(Filters.text, botproperties.set_description, pass_chat_data=True)
             ],
-            CallbackStates.SELECTING_BOT: [
-                JSONCallbackHandler(CallbackActions.BACK, select_category),
-                JSONCallbackHandler(CallbackActions.SEND_BOT_DETAILS, send_bot_details,
-                                    mapping={'id': (Bot, 'item')})
+            BotStates.SENDING_EXTRA: [
+                MessageHandler(Filters.text, botproperties.set_extra, pass_chat_data=True)
             ],
-            CallbackStates.SHOWING_BOT_DETAILS: [
-                JSONCallbackHandler(CallbackActions.BACK, select_bot_from_category,
-                                    mapping={'id': (Category, 'category')})
+            BotStates.SENDING_NAME: [
+                MessageHandler(Filters.text, botproperties.set_name, pass_chat_data=True)
             ],
-            CallbackStates.APPROVING_BOTS: [
-                JSONCallbackHandler(CallbackActions.ACCEPT_BOT, admin.accept_bot,
-                                    mapping={'id': (Bot, 'item')}, pass_chat_data=True)
-            ]
+            BotStates.SENDING_USERNAME: [
+                MessageHandler(Filters.text, botproperties.set_username, pass_chat_data=True)
+            ],
         },
-        fallbacks=chain(admin_menu, [
-        ])
-
+        fallbacks=[
+            CallbackQueryHandler(callback_router, pass_chat_data=True),
+            CommandHandler('cat', select_category),
+            CommandHandler('start', start, pass_args=True),
+        ]
     )
     conv_handler.allow_reentry = True
     dp.add_handler(conv_handler)
 
-
+    dp.add_handler(CommandHandler('start', start, pass_args=True))
+    dp.add_handler(CommandHandler("admin", admin.menu))
+    dp.add_handler(RegexHandler(captions.APPROVE_BOTS + '.*', admin.approve_bots))
+    dp.add_handler(RegexHandler(captions.APPROVE_SUGGESTIONS + '.*', admin.approve_suggestions))
+    dp.add_handler(RegexHandler(captions.SEND_BOTLIST, admin.prepare_transmission, pass_chat_data=True))
+    dp.add_handler(RegexHandler(captions.SEND_CONFIG_FILES, admin.send_config_files))
+    dp.add_handler(RegexHandler(captions.FIND_OFFLINE, admin.send_offline))
 
     # dp.add_handler(CommandHandler('start', select_bot_from_category))
     # TODO: #new-emoji
+    dp.add_handler(RegexHandler("^/edit\d+$", admin.edit_bot, pass_chat_data=True))
+
+    dp.add_handler(CommandHandler('submit', new_bot_submission, pass_args=True))
     dp.add_handler(RegexHandler('.*#new.*', new_bot_submission))
+    dp.add_handler(RegexHandler('.*🆕.*', new_bot_submission))
+
+    dp.add_handler(CommandHandler('offline', notify_bot_offline, pass_args=True))
+    dp.add_handler(RegexHandler('.*#offline.*', notify_bot_offline))
+
     dp.add_handler(CommandHandler('r', restart))
     dp.add_handler(CommandHandler('help', help))
     dp.add_handler(InlineQueryHandler(inlinequery))

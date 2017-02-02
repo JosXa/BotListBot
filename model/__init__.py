@@ -3,6 +3,7 @@ from model.category import Category
 from model.channel import Channel
 from model.country import Country
 from model.user import User
+from model.suggestion import Suggestion
 
 if __name__ == "__main__":
     Category.create_table(fail_silently=True)
@@ -10,6 +11,7 @@ if __name__ == "__main__":
     Country.create_table(fail_silently=True)
     Channel.create_table(fail_silently=True)
     User.create_table(fail_silently=True)
+    Suggestion.create_table(fail_silently=True)
 
     Country.insert_many([
         {'name': 'Italy', 'emoji': '🇮🇹'},

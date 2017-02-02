@@ -1,5 +1,5 @@
 def validate_username(username: str):
-    if len(username) == 0:
+    if len(username) < 3:
         return False
     if username[0] != '@':
         username = '@' + username

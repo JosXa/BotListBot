@@ -78,7 +78,7 @@ def cid_from_update(update):
     return chat_id
 
 
-def callback_for_action(action, params=None):
+def callback_for_action(action: object, params: object = None) -> object:
     callback_data = {'a': action}
     if params:
         for key, value in params.items():

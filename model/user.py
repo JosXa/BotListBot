@@ -42,3 +42,12 @@ class User(BaseModel):
                      photo=photo)
             u.save()
         return u
+
+    def __str__(self):
+        return ' '.join([
+            '@' + self.username if self.username else '',
+            self.first_name if self.first_name else '',
+            self.last_name if self.last_name else '',
+            # "({})".format(self.chat_id)
+        ])
+

@@ -1,0 +1,4 @@
+category - Show a BOTLIST category
+submit - Add your bot to the BOTLIST
+offline - Notify us that a bot is offline
+help - Send help message
