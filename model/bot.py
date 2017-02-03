@@ -1,15 +1,13 @@
 import datetime
 
-from playhouse.sqlite_ext import JSONField
+from peewee import *
 
 import const
 import util
-from model.user import User
-from model.category import Category
 from model.basemodel import BaseModel
-from peewee import *
-
+from model.category import Category
 from model.country import Country
+from model.user import User
 
 
 class Bot(BaseModel):

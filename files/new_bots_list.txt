@@ -1,19 +1,24 @@
 ℹ️⬇️
------------------------------------------------------
-   🔹= Oficialised by Telegram
------------------------------------------------------
-  🔎 = Inline Bot
+```
+----------------------------------
+ 🔎 = Inline Bot
+ 🔹 = Officialized by Telegram
+ 💤 = Bot is currently unavailable
+----------------------------------```
 
 🇬🇧 Inline bots work from any chat by writing the bots name followed by a command or search term. E.g: @gif cats
 
 🇪🇸 Los bots en línea funcionan desde cualquier chat, escribiendo el nombre del bot, seguido del término de búsqueda o comando. Ej: @gif gatos
 
+```
+----------------------------------
  🔎 = Bot en línea
------------------------------------------------------
-  🔹= Oficializado por Telegram 
------------------------------------------------------
+ 🔹 = Oficializado por Telegram
+ 💤 = El Bot está actualmente desconectado
+----------------------------------
+```
 ℹ️⬆️
 
-NEW→
+NEW → `(30 days - 30 dias)`
 ↓
 {}

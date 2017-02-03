@@ -1,18 +1,41 @@
 ### START OF CONFIGURATION ###
 
 # PREFERENCES
+from model import Channel
+
 ADMINS = [62056065, 918962]
 BOT_CONSIDERED_NEW = 30  # days
 SELF_BOT_NAME = "bot_list_bot"
-SELF_CHANNEL_USERNAME = "botlist_testchannel"
-BOT_REGEX = r'.*(@[a-zA-Z0-9_\-]*).*'
+SELF_CHANNEL_USERNAME = "botlist"
+BOT_REGEX = r'.*(@[a-zA-Z]+[a-zA-Z0-9_\-]+).*'
 
 # MESSAGES
 PROMOTION_MESSAGE = "*Join* @BOTLIST\n*Share your bots in* @BotListChat"
 HELP_MESSAGE = """
-This bot was built to automate the process of receiving bots and adding them to the @BotList for review before they're published. It also creates "Share"  and "Copy Link" inline buttons for each category and allows you to send individual categories to your friends via inline search (i.e.: `@BotListBot music`).
+This bot is a mirror of the @BotList.
+It was built to simplify navigation and to automate the process of submitting, reviewing and adding bots to the @BotList by the @BotListChat community.
 
-This bot will also organise each category and send the final formated message on the @BotList to allow you to navigate the list with ease just by pressing on a category name.
+*Try it out:* Start off by using the /category command and use the available buttons from there on.
+You can also send individual @BotList categories to your friends via inline search (i.e. type `@bot_list_bot music` in any chat).
+
+If you want to check before contributing, you can also send me the `@username` of a bot and I will see whether it exists in the @BotList.
+"""
+CONTRIBUTING_MESSAGE = """
+You can use the following `#tag`s with a bot `@username` to contribute to the BotList:
+
+• #new — Submit a fresh bot. Use 🔎 if it supports inline queries and flag emojis to denote the language.
+• #offline — Mark a bot as offline.
+
+There are also the /new and /offline commands.
+
+The moderators will approve your submission as soon as possible.
+"""
+EXAMPLES_MESSAGE = """
+• Wow! I found this cool #new bot: @coolbot 🔎🇮🇹
+• /new @coolbot 🔎🇮🇹
+
+• Eh... guys?! @unresponsive\_bot is #offline 😞
+• /offline @unresponsive\_bot
 """
 
 ### END OF CONFIGURATION ###
@@ -20,6 +43,14 @@ This bot will also organise each category and send the final formated message on
 from helpers import get_commands
 
 COMMANDS = get_commands()
+
+
+def get_channel():
+    try:
+        return Channel.get(Channel.username == SELF_CHANNEL_USERNAME)
+    except Channel.DoesNotExist:
+        return False
+
 
 big_range = list(range(512))
 

@@ -2,15 +2,16 @@
 
 •Comparte tus bots en el @BotListChat escribiendo el hashtag #new seguido por el nombre del Bot•
 
-🔝ℹ️[First message - Primer mensaje]({})
+[🔝ℹ️First message - Introduction 🇬🇧]({})
+[🔝ℹ️Primer mensaje - Introducción 🇪🇸]({})
 
 {}
 
 🆕[New Bots - Bots nuevos]({})
                       
-⬆️Click above on a category to go to that section of the list⬆️
+⬆️Click on a category to go to that section of the list
 
-⬆️Pulse arriba sobre una categoría para ir a esa sección de la lista ⬆️
+⬆️Pulse sobre una categoría para ir a esa sección de la lista
 
                     `•` @botlist `•`
                     `{}`

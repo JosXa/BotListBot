@@ -1,29 +1,29 @@
 import codecs
-
+from time import sleep
 import datetime
+import re
 from pprint import pprint
 
 import emoji
-import re
-from telegram.error import BadRequest
-
+import logging
 from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ConversationHandler
+from telegram.error import BadRequest, RetryAfter
 from telegram.ext.dispatcher import run_async
 
 import captions
 import const
-import helpers
 import util
 from const import *
 from const import BotStates, CallbackActions
 from custemoji import Emoji
-from model import Bot, Category
+from model import Bot
 from model import Category
 from model import Channel
 from model import Suggestion
 from util import restricted
 
+logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+log = logging.getLogger(__name__)
 
 @restricted
 def menu(bot, update):
@@ -61,43 +61,6 @@ def _input_failed(bot, update, chat_data, text):
 def _add_bot_to_chatdata(chat_data, category=None):
     new_bot = Bot(category=category)
     chat_data['add_bot'] = new_bot
-
-
-# @restricted
-# def add_bot(bot, update, chat_data, category=None):
-#     chat_id = util.cid_from_update(update)
-#     text_input = None
-#     if update.message:
-#         text_input = update.message.text
-#     from bot import select_category
-#     if not category:
-#         msg = select_category(bot, update, CallbackActions.ADD_BOT_SELECT_CAT)
-#         chat_data['add_bot_message'] = msg.message_id
-#         return  # BotStates.ADMIN_ADDING_BOT
-#     text = ""
-#     reply_markup = None
-#
-#     new_bot = chat_data.get('add_bot', None)
-#     if new_bot is None:
-#         _add_bot_to_chatdata(chat_data, category)
-#         new_bot = chat_data['add_bot']
-#         text += "*{}* category selected.\n\n".format(category)
-#
-#     if new_bot.username is None:
-#         if text_input:
-#             username = helpers.validate_username(text_input)
-#             if username:
-#                 new_bot.username = username
-#                 text += "Username *{}* chosen.\n\n".format(username)
-#             else:
-#                 return _input_failed(bot, update, chat_id, "Invalid username. Please try again.")
-#         else:
-#             text += util.action_hint("Please send me the *@username* of the bot to add")
-#
-#     msg = util.send_or_edit_md_message(bot, chat_id, text, to_edit=chat_data['add_bot_message'],
-#                                        reply_markup=reply_markup)
-#     chat_data['add_bot'] = new_bot
-#     return BotStates.ADMIN_ADDING_BOT
 
 
 def _edit_bot_buttons(to_edit: Bot):
@@ -214,138 +177,178 @@ def prepare_transmission(bot, update, chat_data):
 @restricted
 @run_async
 def send_botlist(bot, update, chat_data, resend=False):
+    log.info("Re-Sending BotList..." if resend else "Updating BotList...")
     chat_id = util.cid_from_update(update)
     message_id = util.mid_from_update(update)
-    channel = Channel.get(Channel.username == const.SELF_CHANNEL_USERNAME)
+    channel = const.get_channel()
 
     def notify_admin(txt):
         util.send_or_edit_md_message(bot, chat_id, Emoji.HOURGLASS_WITH_FLOWING_SAND + ' ' + txt,
                                      to_edit=message_id,
                                      disable_web_page_preview=True)
 
-    if resend:
-        notify_admin("Sending intro GIF...")
-        bot.sendDocument(channel.chat_id, open("assets/gif/animation.gif", 'rb'), timeout=120)
+    def notify_admin_err(txt):
+        util.send_or_edit_md_message(bot, chat_id, util.failure(txt),
+                                     to_edit=message_id,
+                                     disable_web_page_preview=True)
 
-    with codecs.open('files/intro.txt', 'r', 'utf-8') as f:
-        intro = f.read()
+    if not channel:
+        notify_admin_err(
+            "I don't know the channel `{}`. Please make sure I am an admin there, "
+            "and send a random message so that I can remember the channel meta data.".format(
+                const.SELF_CHANNEL_USERNAME))
+        return
 
-    notify_admin("Sending channel intro text...")
     try:
         if resend:
-            intro_msg = util.send_md_message(bot, channel.chat_id, intro,
-                                             timeout=120)
-        else:
-            intro_msg = util.send_or_edit_md_message(bot, channel.chat_id, intro,
-                                                     to_edit=channel.intro_mid,
-                                                     timeout=120,
-                                                     disable_web_page_preview=True)
-        channel.intro_mid = intro_msg.message_id
-    except BadRequest:
-        # message not modified
-        pass
+            notify_admin("Sending intro GIF...")
+            bot.sendDocument(channel.chat_id, open("assets/gif/animation.gif", 'rb'), timeout=120)
+            sleep(1)
 
-    counter = 0
-    all_categories = Category.select()
-    n = len(all_categories)
-    for c in all_categories:
-        counter += 1
-        if counter % 5 == 1:
-            notify_admin("Sending/Updating categories *{} to {}* ({} total)...".format(
-                counter,
-                n if counter + 4 > n else counter + 4,
-                n
-            ))
+        with codecs.open('files/intro_en.txt', 'r', 'utf-8') as f:
+            intro_en = f.read()
+        with codecs.open('files/intro_es.txt', 'r', 'utf-8') as f:
+            intro_es = f.read()
 
-        # Bots!
-        cat_bots = Bot.select().where(Bot.category == c, Bot.approved == True)
-        text = '*' + str(c) + '*\n'
-        text += '\n'.join([str(b) for b in cat_bots])
-
-        # add "Details" deep-linking button
-        reply_markup = None
-        buttons = list()
-        # if any([b for b in cat_bots if b.description is not None]):
-        buttons.append(
-            InlineKeyboardButton("Details", url="https://t.me/{}?start={}".format(
-                const.SELF_BOT_NAME, c.id)))
-
-        # buttons.append(
-        #     InlineKeyboardButton("Permalink", callback_data=util.callback_for_action(CallbackActions.PERMALINK,
-        #                                                                              {'cid': c.id})))
-        # buttons.append(InlineKeyboardButton("Test", url="http://t.me/{}?start={}".format(
-        #     const.SELF_CHANNEL_USERNAME, c.current_message_id)))
-        reply_markup = InlineKeyboardMarkup([buttons])
+        notify_admin("Sending english channel intro text...")
         try:
             if resend:
-                msg = util.send_md_message(bot, channel.chat_id, text, reply_markup=reply_markup, timeout=120)
+                intro_msg = util.send_md_message(bot, channel.chat_id, intro_en,
+                                                 timeout=120)
             else:
-                msg = util.send_or_edit_md_message(bot, channel.chat_id, text, reply_markup=reply_markup,
-                                                   to_edit=c.current_message_id, timeout=120,
-                                                   disable_web_page_preview=True)
-            c.current_message_id = msg.message_id
-            channel.last_message_id = msg.message_id
-            c.save()
+                intro_msg = util.send_or_edit_md_message(bot, channel.chat_id, intro_en,
+                                                         to_edit=channel.intro_en_mid,
+                                                         timeout=120,
+                                                         disable_web_page_preview=True)
+            channel.intro_en_mid = intro_msg.message_id
+            sleep(1)
         except BadRequest:
             # message not modified
             pass
 
-    with codecs.open('files/new_bots_list.txt', 'r', 'utf-8') as f:
-        new_bots_list = f.read()
+        notify_admin("Sending spanish channel intro text...")
+        try:
+            if resend:
+                intro_msg = util.send_md_message(bot, channel.chat_id, intro_es,
+                                                 timeout=120)
+            else:
+                intro_msg = util.send_or_edit_md_message(bot, channel.chat_id, intro_es,
+                                                         to_edit=channel.intro_es_mid,
+                                                         timeout=120,
+                                                         disable_web_page_preview=True)
+            channel.intro_es_mid = intro_msg.message_id
+            sleep(1)
+        except BadRequest:
+            # message not modified
+            pass
 
-    # build list of newly added bots
-    new_bots = Bot.select().where(
-        (Bot.approved == True) & (
-            Bot.date_added.between(
-                datetime.date.today() - datetime.timedelta(days=const.BOT_CONSIDERED_NEW),
-                datetime.date.today()
-            )
-        ))
+        counter = 0
+        all_categories = Category.select()
+        n = len(all_categories)
+        for c in all_categories:
+            counter += 1
+            if counter % 5 == 1:
+                notify_admin("Sending/Updating categories *{} to {}* ({} total)...".format(
+                    counter,
+                    n if counter + 4 > n else counter + 4,
+                    n
+                ))
 
-    # insert spaces and the name of the bot
-    new_bots_list = new_bots_list.format('\n'.join(['     ' + str(b) for b in new_bots]))
-    try:
-        if resend:
-            new_bots_msg = util.send_md_message(bot, channel.chat_id, new_bots_list, timeout=120)
-        else:
-            new_bots_msg = util.send_or_edit_md_message(bot, channel.chat_id, new_bots_list,
-                                                        to_edit=channel.new_bots_mid,
-                                                        timeout=120, disable_web_page_preview=True)
-        channel.new_bots_mid = new_bots_msg.message_id
-    except BadRequest:
-        # message not modified
-        pass
+            # Bots!
+            cat_bots = Bot.select().where(Bot.category == c, Bot.approved == True)
+            text = '*' + str(c) + '*\n'
+            text += '\n'.join([str(b) for b in cat_bots])
 
-    # generate category links to previous messages
-    categories = '\n'.join(["[{}](https://t.me/{}/{})".format(
-        str(c),
-        channel.username,
-        c.current_message_id
-    ) for c in Category.select()])
-    with codecs.open('files/category_list.txt', 'r', 'utf-8') as f:
-        category_list = f.read()
+            # add "Share" deep-linking button
+            buttons = list()
+            # if any([b for b in cat_bots if b.description is not None]):
+            buttons.append(
+                InlineKeyboardButton("Share", url="https://t.me/{}?start={}".format(
+                    const.SELF_BOT_NAME, c.id)))
 
-    # insert placeholders in categories list
-    category_list = category_list.format(
-        "http://t.me/{}/{}".format(channel.username, channel.intro_mid), categories,
-        "http://t.me/{}/{}".format(channel.username, channel.new_bots_mid),
-        datetime.date.today().strftime("%d-%m-%Y")
-    )
-    try:
-        if resend:
-            category_list_msg = util.send_md_message(bot, channel.chat_id, category_list, timeout=120)
-        else:
-            category_list_msg = util.send_or_edit_md_message(bot, channel.chat_id, category_list,
-                                                             to_edit=channel.category_list_mid, timeout=120,
-                                                             disable_web_page_preview=True)
-        channel.category_list_mid = category_list_msg.message_id
-    except BadRequest:
-        # message not modified
-        pass
+            # buttons.append(
+            #     InlineKeyboardButton("Permalink", callback_data=util.callback_for_action(CallbackActions.PERMALINK,
+            #                                                                              {'cid': c.id})))
+            # buttons.append(InlineKeyboardButton("Test", url="http://t.me/{}?start={}".format(
+            #     const.SELF_CHANNEL_USERNAME, c.current_message_id)))
+            reply_markup = InlineKeyboardMarkup([buttons])
+            try:
+                if resend:
+                    msg = util.send_md_message(bot, channel.chat_id, text, reply_markup=reply_markup, timeout=120)
+                else:
+                    msg = util.send_or_edit_md_message(bot, channel.chat_id, text, reply_markup=reply_markup,
+                                                       to_edit=c.current_message_id, timeout=120,
+                                                       disable_web_page_preview=True)
+                c.current_message_id = msg.message_id
+                channel.last_message_id = msg.message_id
+                c.save()
+            except BadRequest:
+                # message not modified
+                pass
+            sleep(1)
 
-    channel.save()
-    util.send_or_edit_md_message(bot, chat_id, util.success("Botlist updated successfully."),
-                                 to_edit=message_id)
+        with codecs.open('files/new_bots_list.txt', 'r', 'utf-8') as f:
+            new_bots_list = f.read()
+
+        # build list of newly added bots
+        new_bots = Bot.select().where(
+            (Bot.approved == True) & (
+                Bot.date_added.between(
+                    datetime.date.today() - datetime.timedelta(days=const.BOT_CONSIDERED_NEW),
+                    datetime.date.today()
+                )
+            ))
+
+        # insert spaces and the name of the bot
+        new_bots_list = new_bots_list.format('\n'.join(['     ' + str(b) for b in new_bots]))
+        try:
+            if resend:
+                new_bots_msg = util.send_md_message(bot, channel.chat_id, new_bots_list, timeout=120)
+            else:
+                new_bots_msg = util.send_or_edit_md_message(bot, channel.chat_id, new_bots_list,
+                                                            to_edit=channel.new_bots_mid,
+                                                            timeout=120, disable_web_page_preview=True)
+            channel.new_bots_mid = new_bots_msg.message_id
+            sleep(1)
+        except BadRequest:
+            # message not modified
+            pass
+
+        # generate category links to previous messages
+        categories = '\n'.join(["[{}](https://t.me/{}/{})".format(
+            str(c),
+            channel.username,
+            c.current_message_id
+        ) for c in Category.select()])
+        with codecs.open('files/category_list.txt', 'r', 'utf-8') as f:
+            category_list = f.read()
+
+        # insert placeholders in categories list
+        category_list = category_list.format(
+            "http://t.me/{}/{}".format(channel.username, channel.intro_en_mid),
+            "http://t.me/{}/{}".format(channel.username, channel.intro_es_mid),
+            categories,
+            "http://t.me/{}/{}".format(channel.username, channel.new_bots_mid),
+            datetime.date.today().strftime("%d-%m-%Y")
+        )
+        try:
+            if resend:
+                category_list_msg = util.send_md_message(bot, channel.chat_id, category_list, timeout=120)
+            else:
+                category_list_msg = util.send_or_edit_md_message(bot, channel.chat_id, category_list,
+                                                                 to_edit=channel.category_list_mid, timeout=120,
+                                                                 disable_web_page_preview=True)
+            channel.category_list_mid = category_list_msg.message_id
+            sleep(1)
+        except BadRequest:
+            # message not modified
+            pass
+
+        channel.save()
+        util.send_or_edit_md_message(bot, chat_id, util.success("Botlist updated successfully."),
+                                     to_edit=message_id)
+    except RetryAfter as e:
+        notify_admin_err(e.message)
 
 
 @restricted
@@ -362,9 +365,9 @@ def approve_suggestions(bot, update):
     count = 1
     text = "Please choose suggestions to accept.\n"
     for x in suggestions:
-        text += "\n{}.) {}".format(count, str(x))
+        text += "\n{}) {}".format(count, str(x))
         buttons.append([
-            InlineKeyboardButton("{}.) {}".format(str(count), Emoji.WHITE_HEAVY_CHECK_MARK),
+            InlineKeyboardButton("{}) {}".format(str(count), Emoji.WHITE_HEAVY_CHECK_MARK),
                                  callback_data=util.callback_for_action(CallbackActions.ACCEPT_SUGGESTION,
                                                                         {'id': x.id})),
             InlineKeyboardButton(Emoji.CROSS_MARK,
@@ -390,19 +393,21 @@ def approve_bots(bot, update):
                                      to_edit=util.mid_from_update(update))
         return
 
+    unapproved_list = '\n'.join([str(x) for x in unapproved])
+
     buttons = []
     for x in unapproved:
         buttons.append([
-            InlineKeyboardButton(x.username,
+            InlineKeyboardButton("{} {}".format(Emoji.WHITE_HEAVY_CHECK_MARK, x.username),
                                  callback_data=util.callback_for_action(CallbackActions.ACCEPT_BOT, {'id': x.id})),
             InlineKeyboardButton(Emoji.CROSS_MARK,
                                  callback_data=util.callback_for_action(CallbackActions.REJECT_BOT, {'id': x.id}))
         ])
 
     reply_markup = InlineKeyboardMarkup(buttons)
-
     util.send_or_edit_md_message(bot, chat_id,
-                                 util.action_hint("Please select a bot you want to accept for the BotList."),
+                                 util.action_hint(
+                                     "Please select a bot you want to accept for the BotList\n\n" + unapproved_list),
                                  reply_markup=reply_markup, to_edit=util.mid_from_update(update))
     return CallbackStates.APPROVING_BOTS
 
@@ -447,11 +452,12 @@ def accept_bot_submission(bot, update, of_bot: Bot, category):
 
 @restricted
 def send_config_files(bot, update):
+    log.info("Sending config files...")
     chat_id = util.cid_from_update(update)
-    bot.sendDocument(chat_id, open('files/category_list.txt', 'rb'), filename="category_list.txt")
-    bot.sendDocument(chat_id, open('files/intro.txt', 'rb'), filename="intro.txt")
+    bot.sendDocument(chat_id, open('files/intro_en.txt', 'rb'), filename="intro_en.txt")
     bot.sendDocument(chat_id, open('files/new_bots_list.txt', 'rb'), filename="new_bots_list.txt")
-    bot.sendDocument(chat_id, open('files/commands.txt', 'rb'), filename="new_bots_list.txt")
+    bot.sendDocument(chat_id, open('files/category_list.txt', 'rb'), filename="category_list.txt")
+    bot.sendDocument(chat_id, open('files/commands.txt', 'rb'), filename="commands.txt")
 
 
 @restricted

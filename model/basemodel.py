@@ -1,4 +1,5 @@
 from peewee import *
+
 from appglobals import db
 
 

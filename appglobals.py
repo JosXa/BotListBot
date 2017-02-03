@@ -3,7 +3,7 @@ from peewee import *
 
 _db = None
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_NAME = "database.db"
+DB_NAME = os.path.expanduser("~/database-botlist.db")
 
 
 def db():
@@ -12,6 +12,11 @@ def db():
         db_path = os.path.join(ROOT_DIR, DB_NAME)
         _db = SqliteDatabase(db_path)
     return _db
+
+
+def disconnect():
+    pass
+    # _db.close()
 
 
 # globals

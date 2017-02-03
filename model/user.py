@@ -1,17 +1,8 @@
-import datetime
-from pprint import pprint
-
-from playhouse.sqlite_ext import JSONField
-
-import const
-import util
-from model.category import Category
-from model.basemodel import BaseModel
 from peewee import *
-
-from model.country import Country
 from telegram import User as TelegramUser
-from telegram import UserProfilePhotos
+
+import util
+from model.basemodel import BaseModel
 
 
 class User(BaseModel):
@@ -44,10 +35,11 @@ class User(BaseModel):
         return u
 
     def __str__(self):
-        return ' '.join([
+        text = ' '.join([
             '@' + self.username if self.username else '',
             self.first_name if self.first_name else '',
             self.last_name if self.last_name else '',
             # "({})".format(self.chat_id)
         ])
+        return util.escape_markdown(text)
 

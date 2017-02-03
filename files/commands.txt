@@ -1,4 +1,6 @@
 category - Show a BOTLIST category
-submit - Add your bot to the BOTLIST
-offline - Notify us that a bot is offline
+new - Add your bot to the BOTLIST
+offline - Mark a bot as offline
+contributing - How to contribute to the BOTLIST
+examples - See contribution examples
 help - Send help message

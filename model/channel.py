@@ -8,7 +8,8 @@ class Channel(BaseModel):
     username = CharField()
 
     # message ids
-    intro_mid = IntegerField(default=1)
+    intro_en_mid = IntegerField(default=1)
+    intro_es_mid = IntegerField(default=1)
     new_bots_mid = IntegerField(default=1)
     category_list_mid = IntegerField(default=1)
 

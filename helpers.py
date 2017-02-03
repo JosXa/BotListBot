@@ -8,7 +8,7 @@ def validate_username(username: str):
 
 def get_commands():
     commands = ""
-    with open('commands.txt', 'rb') as file:
+    with open('files/commands.txt', 'rb') as file:
         for command in file.readlines():
             commands += '/' + command.decode("utf-8")
     return commands
