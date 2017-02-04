@@ -6,8 +6,11 @@ from model import Channel
 ADMINS = [62056065, 918962]
 BOT_CONSIDERED_NEW = 30  # days
 SELF_BOT_NAME = "bot_list_bot"
+SELF_BOT_ID = "265482650"
 SELF_CHANNEL_USERNAME = "botlist"
-BOT_REGEX = r'.*(@[a-zA-Z]+[a-zA-Z0-9_\-]+).*'
+REGEX_BOT_IN_TEXT = r'.*(@[a-zA-Z]+[a-zA-Z0-9_\-]{3,}).*'
+REGEX_BOT_ONLY = r'(@[a-zA-Z]+[a-zA-Z0-9_\-]{3,})'
+
 
 # MESSAGES
 PROMOTION_MESSAGE = "*Join* @BOTLIST\n*Share your bots in* @BotListChat"

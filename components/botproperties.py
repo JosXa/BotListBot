@@ -38,7 +38,7 @@ def _is_clear_query(query):
 
 @restricted
 def set_country(bot, update, to_edit):
-    chat_id = util.cid_from_update(update)
+    chat_id = util.uid_from_update(update)
     countries = Country.select().order_by(Country.name).execute()
 
     buttons = util.build_menu([InlineKeyboardButton(
@@ -61,7 +61,7 @@ def set_country(bot, update, to_edit):
 
 @restricted
 def set_description(bot, update, chat_data, to_edit=None):
-    chat_id = util.cid_from_update(update)
+    chat_id = util.uid_from_update(update)
     if to_edit:
         if to_edit.description:
             util.send_md_message(bot, chat_id, "*Current description*:\n{}".format(to_edit.description))
@@ -85,7 +85,7 @@ def set_description(bot, update, chat_data, to_edit=None):
 
 @restricted
 def set_extra(bot, update, chat_data, to_edit=None):
-    chat_id = util.cid_from_update(update)
+    chat_id = util.uid_from_update(update)
     if to_edit:
         text = (to_edit.extra + "\n\n" if to_edit.extra else '')
         text += util.action_hint("Please send me the extra text to use for {} (`x` to empty)".format(to_edit))
@@ -127,7 +127,7 @@ def toggle_offline(bot, update, to_edit):
 
 @restricted
 def set_name(bot, update, chat_data, to_edit=None):
-    chat_id = util.cid_from_update(update)
+    chat_id = util.uid_from_update(update)
     if to_edit:
         text = (to_edit.name + "\n\n" if to_edit.name else '')
         text += util.action_hint("Please send me a name to use for {} (`x` to empty)".format(to_edit))
@@ -151,7 +151,7 @@ def set_name(bot, update, chat_data, to_edit=None):
 
 @restricted
 def set_username(bot, update, chat_data, to_edit=None):
-    chat_id = util.cid_from_update(update)
+    chat_id = util.uid_from_update(update)
     if to_edit:
         text = (util.escape_markdown(to_edit.username) + "\n\n" if to_edit.username else '')
         text += util.action_hint("Please send me a username for {}.".format(to_edit))
@@ -178,7 +178,7 @@ def set_username(bot, update, chat_data, to_edit=None):
 
 @restricted
 def delete_bot_confirm(bot, update, to_edit):
-    chat_id = util.cid_from_update(update)
+    chat_id = util.uid_from_update(update)
     reply_markup = InlineKeyboardMarkup([[
         InlineKeyboardButton("Yes, delete it!", callback_data=util.callback_for_action(
             CallbackActions.DELETE_BOT, {'id': to_edit.id}
@@ -193,7 +193,7 @@ def delete_bot_confirm(bot, update, to_edit):
 
 @restricted
 def delete_bot(bot, update, to_edit):
-    chat_id = util.cid_from_update(update)
+    chat_id = util.uid_from_update(update)
     to_edit.delete_instance()
     util.send_md_message(bot, chat_id, "Bot has been deleted.")
 

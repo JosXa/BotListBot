@@ -16,7 +16,7 @@ import time
 def restricted(func):
     @wraps(func)
     def wrapped(bot, update, *args, **kwargs):
-        chat_id = cid_from_update(update)
+        chat_id = uid_from_update(update)
         if chat_id not in const.ADMINS:
             print("Unauthorized access denied for {}.".format(chat_id))
             return
@@ -55,7 +55,7 @@ def build_menu(buttons: List,
     return menu
 
 
-def cid_from_update(update):
+def uid_from_update(update):
     """
     Extract the chat id from update
     :param update: `telegram.Update`
@@ -138,7 +138,7 @@ def callback_str_from_dict(d):
 
 
 def wait(bot, update, t=1.8):
-    chat_id = cid_from_update(update)
+    chat_id = uid_from_update(update)
     bot.sendChatAction(chat_id, ChatAction.TYPING)
     time.sleep(t)
 

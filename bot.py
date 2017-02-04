@@ -37,6 +37,7 @@ log = logging.getLogger(__name__)
 
 """
 TODO:
+- make regexes case-insensitive
 - #new not working in groups
 - fix database.channel
 - add /credits for people who have a lot of bot submissions
@@ -64,7 +65,7 @@ def start(bot, update, args):
 
 @restricted
 def restart(bot, update):
-    chat_id = util.cid_from_update(update)
+    chat_id = util.uid_from_update(update)
     # if not admin.check_admin(chat_id):
     #     return
     util.send_message_success(bot, chat_id, "Bot is restarting...")
@@ -76,7 +77,7 @@ def select_category(bot, update, callback_action=None):
     if callback_action is None:
         # set default
         callback_action = CallbackActions.SELECT_BOT_FROM_CATEGORY
-    chat_id = util.cid_from_update(update)
+    chat_id = util.uid_from_update(update)
     categories = Category.select().order_by(Category.name.asc()).execute()
 
     buttons = util.build_menu([InlineKeyboardButton(
@@ -134,8 +135,12 @@ def contributing(bot, update):
 
 
 def examples(bot, update):
-    chat_id = util.cid_from_update(update)
+    chat_id = util.uid_from_update(update)
     update.message.reply_text(const.EXAMPLES_MESSAGE, parse_mode=ParseMode.MARKDOWN)
+
+
+def rules(bot, update):
+    pass
 
 
 def new_channel_post(bot, update, photo=None):
@@ -203,7 +208,6 @@ def new_channel_post(bot, update, photo=None):
                 else:
                     new_bot.date_added = datetime.date.today() - datetime.timedelta(days=31)
 
-
                 new_bot.save()
         except AttributeError:
             log.error("Error parsing the following text:\n" + text)
@@ -246,7 +250,7 @@ def notify_bot_offline(bot, update, args=None):
 
     # `#offline` is already checked by handler
     try:
-        username = re.match(const.BOT_REGEX, text).groups()[0]
+        username = re.match(const.REGEX_BOT_IN_TEXT, text).groups()[0]
     except AttributeError:
         if args:
             update.message.reply_text(util.failure("Sorry, but you didn't send me a bot `@username`."), quote=True,
@@ -257,7 +261,7 @@ def notify_bot_offline(bot, update, args=None):
         return
 
     try:
-        offline_bot = Bot.get(Bot.username ** username)
+        offline_bot = Bot.get(Bot.username ** username, Bot.approved == True)
         try:
             Suggestion.get(action="offline", subject=offline_bot)
         except Suggestion.DoesNotExist:
@@ -283,7 +287,7 @@ def new_bot_submission(bot, update, args=None):
 
     # `#new` is already checked by handler
     try:
-        username = re.match(const.BOT_REGEX, text).groups()[0]
+        username = re.match(const.REGEX_BOT_IN_TEXT, text).groups()[0]
     except AttributeError:
         if args:
             update.message.reply_text(util.failure("Sorry, but you didn't send me a bot `@username`."), quote=True,
@@ -291,7 +295,6 @@ def new_bot_submission(bot, update, args=None):
         # no bot username, ignore update
         return
 
-    log.info("New bot submission: " + text)
 
     languages = Country.select().execute()
     try:
@@ -319,13 +322,14 @@ def new_bot_submission(bot, update, args=None):
     # TODO: allow users to suggest a category
     # new_bot.category = cat
 
+    log.info("New bot submission: {}".format(new_bot.username))
     new_bot.save()
     update.message.reply_text(util.success("You submitted {} for approval.".format(new_bot)),
                               parse_mode=ParseMode.MARKDOWN)
 
 
 def select_bot_from_category(bot, update, category=None):
-    chat_id = util.cid_from_update(update)
+    chat_id = util.uid_from_update(update)
     bot_list = Bot.select().where(Bot.category == category, Bot.approved == True)
     bots_with_description = [b for b in bot_list if b.description is not None]
 
@@ -356,17 +360,19 @@ def select_bot_from_category(bot, update, category=None):
 
 
 def send_bot_details(bot, update, item=None):
-    chat_id = util.cid_from_update(update)
+    chat_id = util.uid_from_update(update)
 
     if item is None:
         try:
             text = update.message.text
-            bot_in_text = re.findall(const.BOT_REGEX, text)[0]
+            bot_in_text = re.findall(const.REGEX_BOT_IN_TEXT, text)[0]
             item = Bot.get(Bot.username == bot_in_text)
 
             if item.description is None:
+                # make reply_markup if user is admin and talking to the bot in private
                 reply_markup = None
-                if chat_id in const.ADMINS:
+                private_message = (update.message and update.message.chat.type == 'private')
+                if chat_id in const.ADMINS and private_message:
                     reply_markup = InlineKeyboardMarkup([[
                         InlineKeyboardButton("Edit {}".format(item.username),
                                              callback_data=util.callback_for_action(
@@ -375,11 +381,14 @@ def send_bot_details(bot, update, item=None):
                                              ))
                     ]])
                 update.message.reply_text(util.success(
-                    "{} is in the @{}.\n\nIt has no description yet.".format(item.username,
-                                                                            const.SELF_CHANNEL_USERNAME)),
+                    "{} is in the @{}."
+                        # \n\nIt has no description yet."" \
+                        .format(item.username,
+                                const.SELF_CHANNEL_USERNAME)),
                     reply_markup=reply_markup)
                 return
-        except (AttributeError, Bot.DoesNotExist):
+        # except (AttributeError, Bot.DoesNotExist):
+        except (Bot.DoesNotExist):
             update.message.reply_text(util.failure("This bot is not in the @{}.".format(const.SELF_CHANNEL_USERNAME)))
             return
 
@@ -571,12 +580,12 @@ def main():
 
     dp.add_handler(CommandHandler('new', new_bot_submission, pass_args=True))
     dp.add_handler(RegexHandler('.*#new.*', new_bot_submission))
-    dp.add_handler(RegexHandler('.*🆕.*', new_bot_submission))
+    # dp.add_handler(RegexHandler('.*🆕{}.*'.format(const.BOT_REGEX), new_bot_submission))
 
     dp.add_handler(CommandHandler('offline', notify_bot_offline, pass_args=True))
     dp.add_handler(RegexHandler('.*#offline.*', notify_bot_offline))
 
-    dp.add_handler(RegexHandler(const.BOT_REGEX, send_bot_details))
+    dp.add_handler(RegexHandler('^{}$'.format(const.REGEX_BOT_ONLY), send_bot_details))
 
     dp.add_handler(CommandHandler('r', restart))
     dp.add_handler(CommandHandler('help', help))

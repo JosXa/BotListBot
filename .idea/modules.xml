@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/../better-markdown/.idea/better-markdown.iml" filepath="$PROJECT_DIR$/../better-markdown/.idea/better-markdown.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/botlist.iml" filepath="$PROJECT_DIR$/.idea/botlist.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../electro-events-bot/.idea/eventBot.iml" filepath="$PROJECT_DIR$/../electro-events-bot/.idea/eventBot.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../jeff-dean-bot/.idea/jeffDeanBot.iml" filepath="$PROJECT_DIR$/../jeff-dean-bot/.idea/jeffDeanBot.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../python-telegram-bot/.idea/python-telegram-bot.iml" filepath="$PROJECT_DIR$/../python-telegram-bot/.idea/python-telegram-bot.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../symbose/.idea/symbose.iml" filepath="$PROJECT_DIR$/../symbose/.idea/symbose.iml" />
+    </modules>
+  </component>
+</project>
