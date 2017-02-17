@@ -29,16 +29,16 @@ More channels where you can learn or get the latest info:
 Check out this great list of open source bots on GitHub: https://danyspin97.github.io/TelegramBotsList/
 
 ```
-----------------------------------
+-------------------------------
  🔎 = Inline Bot
  🔹 = Officialized by Telegram
  💤 = Bot is currently unavailable
-----------------------------------```
+-------------------------------```
 ℹ️Inline bots work from any chat by writing the bots name followed by a space and a command or search term. E.g: `@gif cats`
 ```
-----------------------------------
+-------------------------------
  🔎 = Inline Bot
  🔹 = Officialized by Telegram
  💤 = Bot is currently unavailable
-----------------------------------
+-------------------------------
 ```

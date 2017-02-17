@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from peewee import *
 from telegram import User as TelegramUser
 
@@ -15,22 +16,10 @@ class User(BaseModel):
 
     @staticmethod
     def from_telegram_object(user: TelegramUser):
-        print(user.type)
         try:
             u = User.get(User.chat_id == user.id)
         except User.DoesNotExist:
-            photos = user.get_profile_photos().photos
-
-            photo = None
-            # TODO: xxx
-            try:
-                if photos.total_count > 0:
-                    photo = photos[-1]
-            except AttributeError:
-                pass
-
-            u = User(chat_id=user.id, username=user.username, first_name=user.first_name, last_name=user.last_name,
-                     photo=photo)
+            u = User(chat_id=user.id, username=user.username, first_name=user.first_name, last_name=user.last_name)
             u.save()
         return u
 
@@ -38,8 +27,6 @@ class User(BaseModel):
         text = ' '.join([
             '@' + self.username if self.username else '',
             self.first_name if self.first_name else '',
-            self.last_name if self.last_name else '',
-            # "({})".format(self.chat_id)
+            self.last_name if self.last_name else ''
         ])
-        return util.escape_markdown(text)
-
+        return util.escape_markdown(text).encode('utf-8').decode('utf-8')

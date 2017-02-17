@@ -4,7 +4,7 @@
 from model import Channel
 
 ADMINS = [62056065, 918962]
-BOT_CONSIDERED_NEW = 30  # days
+BOT_CONSIDERED_NEW = 15  # days
 SELF_BOT_NAME = "bot_list_bot"
 SELF_BOT_ID = "265482650"
 SELF_CHANNEL_USERNAME = "botlist"
@@ -34,6 +34,7 @@ There are also the /new and /offline commands.
 The moderators will approve your submission as soon as possible.
 """
 EXAMPLES_MESSAGE = """
+*Examples for contributing to the BotList:*
 • Wow! I found this cool #new bot: @coolbot 🔎🇮🇹
 • /new @coolbot 🔎🇮🇹
 

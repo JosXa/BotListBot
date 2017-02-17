@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from peewee import *
 
 import util
@@ -12,9 +13,18 @@ class Suggestion(BaseModel):
     date = DateField()
     subject = ForeignKeyField(Bot)
 
+    @staticmethod
+    def delete_missing():
+        # TODO: test
+        for suggestion in Suggestion.select():
+            if suggestion.subject is None:
+                suggestion.delete_instance()
+
+
     def __str__(self):
         text = str(self.user) + ": "
         if self.action == "offline":
             text += "Set offline"
-        text += " {}.".format(self.subject.username)
-        return util.escape_markdown(text)
+        text += " {}.".format(util.escape_markdown(self.subject.username))
+        return text.encode('utf-8').decode('utf-8')
+

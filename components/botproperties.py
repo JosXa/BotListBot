@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import codecs
 
 import datetime
@@ -155,7 +156,6 @@ def set_username(bot, update, chat_data, to_edit=None):
     if to_edit:
         text = (util.escape_markdown(to_edit.username) + "\n\n" if to_edit.username else '')
         text += util.action_hint("Please send me a username for {}.".format(to_edit))
-        print(text)
         util.send_md_message(bot, chat_id, text)
         chat_data['edit_bot'] = to_edit
         return BotStates.SENDING_USERNAME

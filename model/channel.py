@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from peewee import *
 
 from model.basemodel import BaseModel

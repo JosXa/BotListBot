@@ -10,6 +10,7 @@ from pprint import pprint
 from uuid import uuid4
 
 import emoji
+from peewee import fn
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram import InlineQueryResultArticle
 from telegram import InputTextMessageContent
@@ -21,16 +22,19 @@ from telegram.ext import Updater, CommandHandler
 
 import appglobals
 import captions
+import components.botlist
 import const
 import util
 from components import admin
+from components import botlist
 from components import botproperties
 from components.admin import edit_bot_category
+from components.botlist import new_channel_post
 from const import BotStates, CallbackActions, CallbackStates
 from model import Category, Bot, Country, Channel
 from model.suggestion import Suggestion
 from model.user import User
-from util import restricted
+from util import restricted, private_chat_only
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -38,8 +42,7 @@ log = logging.getLogger(__name__)
 """
 TODO:
 - make regexes case-insensitive
-- #new not working in groups
-- fix database.channel
+- TEST - delete suggestions where bot does not exist anymore
 - add /credits for people who have a lot of bot submissions
 - if inline query yields no category result, try to find a BOT **like that query and send the corresponding category
 """
@@ -126,100 +129,26 @@ def error(bot, update, error):
 
 
 def help(bot, update):
-    update.message.reply_text(const.HELP_MESSAGE, parse_mode=ParseMode.MARKDOWN)
+    update.message.reply_text(const.HELP_MESSAGE, quote=True, parse_mode=ParseMode.MARKDOWN)
     update.message.reply_text('*Available commands:*\n' + const.COMMANDS, parse_mode=ParseMode.MARKDOWN)
 
 
 def contributing(bot, update):
-    update.message.reply_text(const.CONTRIBUTING_MESSAGE, parse_mode=ParseMode.MARKDOWN)
+    update.message.reply_text(const.CONTRIBUTING_MESSAGE, quote=True, parse_mode=ParseMode.MARKDOWN)
 
 
 def examples(bot, update):
     chat_id = util.uid_from_update(update)
-    update.message.reply_text(const.EXAMPLES_MESSAGE, parse_mode=ParseMode.MARKDOWN)
+    update.message.reply_text(const.EXAMPLES_MESSAGE, quote=True, parse_mode=ParseMode.MARKDOWN)
 
 
 def rules(bot, update):
     pass
 
 
-def new_channel_post(bot, update, photo=None):
-    post = update.channel_post
-    if post.chat.username != const.SELF_CHANNEL_USERNAME:
-        return
-    text = post.text
-
-    channel, created = Channel.get_or_create(chat_id=post.chat_id, username=post.chat.username)
-    if created:
-        channel.save()
-
-    category_list = '•Share your bots to the @BotListChat using the hashtag #new' in text
-    intro = 'Hi! Welcome' in text
-    category = text[0] == '•' and not category_list
-    new_bots_list = 'NEW→' in text
-
-    # TODO: is this a document?
-    if photo:
-        pass
-    elif category:
-        try:
-            # get the category meta data
-            meta = re.match(r'•(.*?)([A-Z].*):(?:\n(.*):)?', text).groups()
-            if len(meta) < 2:
-                raise ValueError("Category could not get parsed.")
-
-            emojis = str.strip(meta[0])
-            name = str.strip(meta[1])
-            extra = str.strip(meta[2]) if meta[2] else None
-            try:
-                cat = Category.get(name=name)
-            except Category.DoesNotExist:
-                cat = Category(name=name)
-            cat.emojis = emojis
-            cat.extra = extra
-            cat.save()
-
-            # get the bots in that category
-            bots = re.findall(r'^(🆕)?.*(@\w+)( .+)?$', text, re.MULTILINE)
-            languages = Country.select().execute()
-            for b in bots:
-                username = b[1]
-                try:
-                    new_bot = Bot.get(username=username)
-                except Bot.DoesNotExist:
-                    new_bot = Bot(username=username)
-                    print("New bot created: {}".format(username))
-                new_bot.category = cat
-
-                new_bot.inlinequeries = "🔎" in b[2]
-                new_bot.official = "🔹" in b[2]
-
-                extra = re.findall(r'(\[.*\])', b[2])
-                if extra:
-                    new_bot.extra = extra[0]
-
-                # find language
-                for lang in languages:
-                    if lang.emoji in b[2]:
-                        new_bot.country = lang
-
-                if b[0]:
-                    new_bot.date_added = datetime.date.today()
-                else:
-                    new_bot.date_added = datetime.date.today() - datetime.timedelta(days=31)
-
-                new_bot.save()
-        except AttributeError:
-            log.error("Error parsing the following text:\n" + text)
-            # elif intro:
-            #     with codecs.open('files/intro_en.txt', 'w', 'utf-8') as f:
-            #         f.write(text)
-            # elif category_list:
-            #     with codecs.open('files/category_list.txt', 'w', 'utf-8') as f:
-            #         f.write(text)
-            # elif new_bots_list:
-            #     with codecs.open('files/new_bots_list.txt', 'w', 'utf-8') as f:
-            #         f.write(text)
+def credits(bot, update):
+    # TODO: test
+    Bot.select(Bot.submitted_by)
 
 
 def photo_handler(bot, update):
@@ -261,7 +190,7 @@ def notify_bot_offline(bot, update, args=None):
         return
 
     try:
-        offline_bot = Bot.get(Bot.username ** username, Bot.approved == True)
+        offline_bot = Bot.get(fn.lower(Bot.username) ** username.lower(), Bot.approved == True)
         try:
             Suggestion.get(action="offline", subject=offline_bot)
         except Suggestion.DoesNotExist:
@@ -295,16 +224,15 @@ def new_bot_submission(bot, update, args=None):
         # no bot username, ignore update
         return
 
-
     languages = Country.select().execute()
     try:
-        new_bot = Bot.get(username=username)
+        new_bot = Bot.by_username(username)
         if new_bot.approved:
             update.message.reply_text(
-                util.action_hint("Sorry fool, but {} is already in the @botlist 😉".format(username)))
+                util.action_hint("Sorry fool, but {} is already in the @botlist 😉".format(new_bot.username)))
         else:
             update.message.reply_text(
-                util.action_hint("{} has already been submitted. Please have patience...".format(username)))
+                util.action_hint("{} has already been submitted. Please have patience...".format(new_bot.username)))
         return
     except Bot.DoesNotExist:
         new_bot = Bot(approved=False, username=username, submitted_by=user)
@@ -322,7 +250,7 @@ def new_bot_submission(bot, update, args=None):
     # TODO: allow users to suggest a category
     # new_bot.category = cat
 
-    log.info("New bot submission: {}".format(new_bot.username))
+    log.info("New bot submission by {}: {}".format(new_bot.submitted_by, new_bot.username))
     new_bot.save()
     update.message.reply_text(util.success("You submitted {} for approval.".format(new_bot)),
                               parse_mode=ParseMode.MARKDOWN)
@@ -359,6 +287,7 @@ def select_bot_from_category(bot, update, category=None):
                                  to_edit=util.mid_from_update(update), reply_markup=InlineKeyboardMarkup(menu))
 
 
+@private_chat_only
 def send_bot_details(bot, update, item=None):
     chat_id = util.uid_from_update(update)
 
@@ -366,13 +295,13 @@ def send_bot_details(bot, update, item=None):
         try:
             text = update.message.text
             bot_in_text = re.findall(const.REGEX_BOT_IN_TEXT, text)[0]
-            item = Bot.get(Bot.username == bot_in_text)
+            item = Bot.by_username(bot_in_text)
 
             if item.description is None:
                 # make reply_markup if user is admin and talking to the bot in private
                 reply_markup = None
-                private_message = (update.message and update.message.chat.type == 'private')
-                if chat_id in const.ADMINS and private_message:
+                # private_message = (update.message and update.message.chat.type == 'private')
+                if chat_id in const.ADMINS:
                     reply_markup = InlineKeyboardMarkup([[
                         InlineKeyboardButton("Edit {}".format(item.username),
                                              callback_data=util.callback_for_action(
@@ -432,9 +361,9 @@ def callback_router(bot, update, chat_data):
         #     category_permalink(bot, update, category)
         # SEND BOTLIST
         if action == CallbackActions.SEND_BOTLIST:
-            admin.send_botlist(bot, update, chat_data)
+            components.botlist.send_botlist(bot, update, chat_data)
         if action == CallbackActions.RESEND_BOTLIST:
-            admin.send_botlist(bot, update, chat_data, resend=True)
+            components.botlist.send_botlist(bot, update, chat_data, resend=True)
         # ACCEPT/REJECT BOT SUBMISSIONS
         if action == CallbackActions.ACCEPT_BOT:
             to_accept = Bot.get(id=obj['id'])
@@ -521,7 +450,8 @@ def main():
         BOT_TOKEN = str(os.environ['TG_TOKEN'])
     except Exception:
         # BOT_TOKEN = str(sys.argv[1])
-        BOT_TOKEN = "265482650:AAEABaV06JMB3k5QnyWvbP4-_3S-wyxLG4M"
+        BOT_TOKEN = "265482650:AAEABaV06JMB3k5QnyWvbP4-_3S-wyxLG4M"  # live
+        # BOT_TOKEN = "182355371:AAGYq_ZfFss6foI51jb753gvB3skk6RAV84"  # dev
     try:
         PORT = str(os.environ['PORT'])
     except Exception:
@@ -568,23 +498,18 @@ def main():
 
     dp.add_handler(CommandHandler('start', start, pass_args=True))
     dp.add_handler(CommandHandler("admin", admin.menu))
+    dp.add_handler(CommandHandler("promo", botlist.preview_promo_message))
     dp.add_handler(RegexHandler(captions.APPROVE_BOTS + '.*', admin.approve_bots))
     dp.add_handler(RegexHandler(captions.APPROVE_SUGGESTIONS + '.*', admin.approve_suggestions))
     dp.add_handler(RegexHandler(captions.SEND_BOTLIST, admin.prepare_transmission, pass_chat_data=True))
     dp.add_handler(RegexHandler(captions.SEND_CONFIG_FILES, admin.send_config_files))
     dp.add_handler(RegexHandler(captions.FIND_OFFLINE, admin.send_offline))
 
-    # dp.add_handler(CommandHandler('start', select_bot_from_category))
-    # TODO: #new-emoji
     dp.add_handler(RegexHandler("^/edit\d+$", admin.edit_bot, pass_chat_data=True))
-
     dp.add_handler(CommandHandler('new', new_bot_submission, pass_args=True))
     dp.add_handler(RegexHandler('.*#new.*', new_bot_submission))
-    # dp.add_handler(RegexHandler('.*🆕{}.*'.format(const.BOT_REGEX), new_bot_submission))
-
     dp.add_handler(CommandHandler('offline', notify_bot_offline, pass_args=True))
     dp.add_handler(RegexHandler('.*#offline.*', notify_bot_offline))
-
     dp.add_handler(RegexHandler('^{}$'.format(const.REGEX_BOT_ONLY), send_bot_details))
 
     dp.add_handler(CommandHandler('r', restart))

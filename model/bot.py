@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import datetime
 
 from peewee import *
@@ -42,4 +43,12 @@ class Bot(BaseModel):
                ('🔹' if self.official else '') + \
                (self.country.emoji if self.country else '') + \
                (' ' + self.extra if self.extra else '')
-        return util.escape_markdown(text)
+        return util.escape_markdown(text).encode('utf-8').decode('utf-8')
+
+    @staticmethod
+    def by_username(username: str):
+        result = Bot.select().where(fn.lower(Bot.username) == username.lower())
+        if len(result) > 0:
+            return result[0]
+        else:
+            raise Bot.DoesNotExist()

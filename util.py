@@ -16,11 +16,35 @@ import time
 def restricted(func):
     @wraps(func)
     def wrapped(bot, update, *args, **kwargs):
-        chat_id = uid_from_update(update)
+        try:
+            chat_id = update.message.from_user.id
+        except (NameError, AttributeError):
+            try:
+                chat_id = update.inline_query.from_user.id
+            except (NameError, AttributeError):
+                try:
+                    chat_id = update.chosen_inline_result.from_user.id
+                except (NameError, AttributeError):
+                    try:
+                        chat_id = update.callback_query.from_user.id
+                    except (NameError, AttributeError):
+                        logging.error("No chat_id available in update.")
         if chat_id not in const.ADMINS:
             print("Unauthorized access denied for {}.".format(chat_id))
             return
         return func(bot, update, *args, **kwargs)
+
+    return wrapped
+
+
+def private_chat_only(func):
+    @wraps(func)
+    def wrapped(bot, update, *args, **kwargs):
+        if (update.message and update.message.chat.type == 'private') or (
+            update.callback_query and update.callback_query.message.chat.type == 'private'):
+            return func(bot, update, *args, **kwargs)
+        else:
+            pass
 
     return wrapped
 
@@ -133,8 +157,9 @@ def escape_markdown(text):
 
 
 def callback_str_from_dict(d):
-    assert (len(d) <= 64)
-    return json.dumps(d, separators=(',', ':'))
+    dumped = json.dumps(d, separators=(',', ':'))
+    assert len(dumped) <= 64
+    return dumped
 
 
 def wait(bot, update, t=1.8):

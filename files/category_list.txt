@@ -12,6 +12,3 @@
 ⬆️Click on a category to go to that section of the list
 
 ⬆️Pulse sobre una categoría para ir a esa sección de la lista
-
-                    `•` @botlist `•`
-                    `{}`
