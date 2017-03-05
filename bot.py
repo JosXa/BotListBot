@@ -126,7 +126,7 @@ def error(bot, update, error):
 
 def help(bot, update):
     update.message.reply_text(const.HELP_MESSAGE, quote=True, parse_mode=ParseMode.MARKDOWN)
-    util.wait()
+    util.wait(bot, update)
     update.message.reply_text('*Available commands:*\n' + const.COMMANDS, parse_mode=ParseMode.MARKDOWN)
 
 
@@ -377,9 +377,9 @@ def callback_router(bot, update, chat_data):
             category = Category.get(id=obj['cid'])
             admin.accept_bot_submission(bot, update, to_accept, category)
         # ADD BOT
-        if action == CallbackActions.ADD_BOT_SELECT_CAT:
-            category = Category.get(id=obj['id'])
-            admin.add_bot(bot, update, chat_data, category)
+        # if action == CallbackActions.ADD_BOT_SELECT_CAT:
+        #     category = Category.get(id=obj['id'])
+        #     admin.add_bot(bot, update, chat_data, category)
         # EDIT BOT
         if action == CallbackActions.EDIT_BOT:
             to_edit = Bot.get(id=obj['id'])
