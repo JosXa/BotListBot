@@ -249,7 +249,7 @@ def send_botlist(bot, update, chat_data, resend=False):
 
 
 def preview_promo_message(bot, update):
-    util.send_md_message(bot, update.message.chat_id, "LELELELELELELEL")
+    util.send_md_message(bot, update.message.chat_id, "uffff")
 
 
 def _promo_message():
