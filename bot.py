@@ -28,10 +28,9 @@ import util
 from components import admin
 from components import botlist
 from components import botproperties
-from components.admin import edit_bot_category
 from components.botlist import new_channel_post
 from const import BotStates, CallbackActions, CallbackStates
-from model import Category, Bot, Country, Channel
+from model import Category, Bot, Country
 from model.suggestion import Suggestion
 from model.user import User
 from util import restricted, private_chat_only
@@ -41,10 +40,7 @@ log = logging.getLogger(__name__)
 
 """
 TODO:
-- make regexes case-insensitive
 - TEST - delete suggestions where bot does not exist anymore
-- add /credits for people who have a lot of bot submissions
-- if inline query yields no category result, try to find a BOT **like that query and send the corresponding category
 """
 
 
@@ -59,7 +55,7 @@ def start(bot, update, args):
         # 1st arg: category id
         try:
             cat = Category.get(Category.id == args[0])
-            return select_bot_from_category(bot, update, cat)
+            return send_category(bot, update, cat)
         except Category.DoesNotExist:
             util.send_message_failure(bot, chat_id, "The requested category does not exist.")
         return
@@ -108,7 +104,7 @@ def inlinequery(bot, update):
         categories = Category.select()
 
     for c in categories:
-        bot_list = Bot.select().where(Bot.category == c, Bot.approved == True)
+        bot_list = Bot.of_category(c)
         bots_with_description = [b for b in bot_list if b.description is not None]
 
         txt = const.PROMOTION_MESSAGE + '\n\n'
@@ -130,6 +126,7 @@ def error(bot, update, error):
 
 def help(bot, update):
     update.message.reply_text(const.HELP_MESSAGE, quote=True, parse_mode=ParseMode.MARKDOWN)
+    util.wait()
     update.message.reply_text('*Available commands:*\n' + const.COMMANDS, parse_mode=ParseMode.MARKDOWN)
 
 
@@ -138,7 +135,6 @@ def contributing(bot, update):
 
 
 def examples(bot, update):
-    chat_id = util.uid_from_update(update)
     update.message.reply_text(const.EXAMPLES_MESSAGE, quote=True, parse_mode=ParseMode.MARKDOWN)
 
 
@@ -161,7 +157,7 @@ def plaintext(bot, update):
     if update.channel_post:
         return new_channel_post(bot, update)
 
-        # print("Plaintext received: {}".format(update.message.text))
+        # pprint(update.to_dict())
 
 
 def notify_bot_offline(bot, update, args=None):
@@ -224,12 +220,11 @@ def new_bot_submission(bot, update, args=None):
         # no bot username, ignore update
         return
 
-    languages = Country.select().execute()
     try:
         new_bot = Bot.by_username(username)
         if new_bot.approved:
             update.message.reply_text(
-                util.action_hint("Sorry fool, but {} is already in the @botlist 😉".format(new_bot.username)))
+                util.action_hint("Sorry fool, but {} is already in the @BotList 😉".format(new_bot.username)))
         else:
             update.message.reply_text(
                 util.action_hint("{} has already been submitted. Please have patience...".format(new_bot.username)))
@@ -241,24 +236,29 @@ def new_bot_submission(bot, update, args=None):
     new_bot.official = "🔹" in text
 
     # find language
+    languages = Country.select().execute()
     for lang in languages:
         if lang.emoji in text:
             new_bot.country = lang
 
     new_bot.date_added = datetime.date.today()
 
-    # TODO: allow users to suggest a category
-    # new_bot.category = cat
+    description_reg = re.match(const.REGEX_BOT_IN_TEXT + ' -\s?(.*)', text)
+    description_notify = ''
+    if description_reg:
+        description = description_reg.group(2)
+        new_bot.description = description
+        description_notify = 'Your description was included.'
 
     log.info("New bot submission by {}: {}".format(new_bot.submitted_by, new_bot.username))
     new_bot.save()
-    update.message.reply_text(util.success("You submitted {} for approval.".format(new_bot)),
+    update.message.reply_text(util.success("You submitted {} for approval.{}".format(new_bot, description_notify)),
                               parse_mode=ParseMode.MARKDOWN)
 
 
-def select_bot_from_category(bot, update, category=None):
+def send_category(bot, update, category=None):
     chat_id = util.uid_from_update(update)
-    bot_list = Bot.select().where(Bot.category == category, Bot.approved == True)
+    bot_list = Bot.of_category(category)
     bots_with_description = [b for b in bot_list if b.description is not None]
 
     callback = CallbackActions.SEND_BOT_DETAILS
@@ -352,7 +352,7 @@ def callback_router(bot, update, chat_data):
             select_category(bot, update)
         if action == CallbackActions.SELECT_BOT_FROM_CATEGORY:
             category = Category.get(id=obj['id'])
-            select_bot_from_category(bot, update, category)
+            send_category(bot, update, category)
         if action == CallbackActions.SEND_BOT_DETAILS:
             item = Bot.get(id=obj['id'])
             send_bot_details(bot, update, item)
@@ -367,11 +367,11 @@ def callback_router(bot, update, chat_data):
         # ACCEPT/REJECT BOT SUBMISSIONS
         if action == CallbackActions.ACCEPT_BOT:
             to_accept = Bot.get(id=obj['id'])
-            edit_bot_category(bot, update, to_accept, CallbackActions.BOT_ACCEPTED)
+            admin.edit_bot_category(bot, update, to_accept, CallbackActions.BOT_ACCEPTED)
         if action == CallbackActions.REJECT_BOT:
             to_reject = Bot.get(id=obj['id'])
             to_reject.delete_instance()
-            admin.approve_bots(bot, update)
+            admin.approve_bots(bot, update, obj['page'])
         if action == CallbackActions.BOT_ACCEPTED:
             to_accept = Bot.get(id=obj['bid'])
             category = Category.get(id=obj['cid'])
@@ -386,7 +386,7 @@ def callback_router(bot, update, chat_data):
             admin.edit_bot(bot, update, chat_data, to_edit)
         if action == CallbackActions.EDIT_BOT_SELECT_CAT:
             to_edit = Bot.get(id=obj['id'])
-            edit_bot_category(bot, update, to_edit)
+            admin.edit_bot_category(bot, update, to_edit)
         if action == CallbackActions.EDIT_BOT_CAT_SELECTED:
             to_edit = Bot.get(id=obj['bid'])
             to_edit.category = Category.get(id=obj['cid'])
@@ -434,23 +434,28 @@ def callback_router(bot, update, chat_data):
         if action == CallbackActions.DELETE_BOT:
             to_edit = Bot.get(id=obj['id'])
             botproperties.delete_bot(bot, update, to_edit)
-            select_bot_from_category(bot, update, to_edit.category)
+            send_category(bot, update, to_edit.category)
         if action == CallbackActions.ACCEPT_SUGGESTION:
             suggestion = Suggestion.get(id=obj['id'])
             botproperties.accept_suggestion(bot, update, suggestion)
-            admin.approve_suggestions(bot, update)
+            admin.approve_suggestions(bot, update, page=obj['page'])
         if action == CallbackActions.REJECT_SUGGESTION:
             suggestion = Suggestion.get(id=obj['id'])
             suggestion.delete_instance()
-            admin.approve_suggestions(bot, update)
+            admin.approve_suggestions(bot, update, page=obj['page'])
+        if action == CallbackActions.SWITCH_SUGGESTIONS_PAGE:
+            page = obj['page']
+            admin.approve_suggestions(bot, update, page)
+        if action == CallbackActions.SWITCH_APPROVALS_PAGE:
+            admin.approve_bots(bot, update, page=obj['page'])
 
 
 def main():
     try:
         BOT_TOKEN = str(os.environ['TG_TOKEN'])
     except Exception:
-        # BOT_TOKEN = str(sys.argv[1])
-        BOT_TOKEN = "265482650:AAEABaV06JMB3k5QnyWvbP4-_3S-wyxLG4M"  # live
+        BOT_TOKEN = str(sys.argv[1])
+        # BOT_TOKEN = "265482650:AAEABaV06JMB3k5QnyWvbP4-_3S-wyxLG4M"  # live
         # BOT_TOKEN = "182355371:AAGYq_ZfFss6foI51jb753gvB3skk6RAV84"  # dev
     try:
         PORT = str(os.environ['PORT'])
@@ -489,7 +494,6 @@ def main():
         },
         fallbacks=[
             CallbackQueryHandler(callback_router, pass_chat_data=True),
-            CommandHandler('cat', select_category),
             CommandHandler('start', start, pass_args=True),
         ]
     )
@@ -498,6 +502,7 @@ def main():
 
     dp.add_handler(CommandHandler('start', start, pass_args=True))
     dp.add_handler(CommandHandler("admin", admin.menu))
+    dp.add_handler(CommandHandler("a", admin.menu))
     dp.add_handler(CommandHandler("promo", botlist.preview_promo_message))
     dp.add_handler(RegexHandler(captions.APPROVE_BOTS + '.*', admin.approve_bots))
     dp.add_handler(RegexHandler(captions.APPROVE_SUGGESTIONS + '.*', admin.approve_suggestions))
@@ -508,6 +513,7 @@ def main():
     dp.add_handler(RegexHandler("^/edit\d+$", admin.edit_bot, pass_chat_data=True))
     dp.add_handler(CommandHandler('new', new_bot_submission, pass_args=True))
     dp.add_handler(RegexHandler('.*#new.*', new_bot_submission))
+    dp.add_handler(CommandHandler('reject', admin.reject_bot_submission))
     dp.add_handler(CommandHandler('offline', notify_bot_offline, pass_args=True))
     dp.add_handler(RegexHandler('.*#offline.*', notify_bot_offline))
     dp.add_handler(RegexHandler('^{}$'.format(const.REGEX_BOT_ONLY), send_bot_details))

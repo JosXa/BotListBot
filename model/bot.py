@@ -52,3 +52,7 @@ class Bot(BaseModel):
             return result[0]
         else:
             raise Bot.DoesNotExist()
+
+    @staticmethod
+    def of_category(category):
+        return Bot.select().where(Bot.category == category, Bot.approved == True).order_by(fn.Lower(Bot.username))

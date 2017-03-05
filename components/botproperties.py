@@ -195,7 +195,7 @@ def delete_bot_confirm(bot, update, to_edit):
 def delete_bot(bot, update, to_edit):
     chat_id = util.uid_from_update(update)
     to_edit.delete_instance()
-    util.send_md_message(bot, chat_id, "Bot has been deleted.")
+    util.send_or_edit_md_message(bot, chat_id, "Bot has been deleted.", to_edit=util.mid_from_update(update))
 
 
 @restricted

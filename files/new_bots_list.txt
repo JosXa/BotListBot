@@ -19,6 +19,6 @@
 ```
 ℹ️⬆️
 
-NEW → `(30 days - 30 días)`
+NEW → `({days_new} days - {days_new} días)`
 ↓
 {}

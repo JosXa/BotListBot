@@ -7,6 +7,8 @@ from pprint import pprint
 
 import emoji
 import logging
+
+from peewee import fn
 from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import BadRequest, RetryAfter
 from telegram.ext.dispatcher import run_async
@@ -15,8 +17,6 @@ import captions
 import const
 import mdformat
 import util
-from bot import log
-from components.admin import log
 from const import *
 from const import BotStates, CallbackActions
 from custemoji import Emoji
@@ -118,13 +118,11 @@ def send_botlist(bot, update, chat_data, resend=False):
             counter += 1
             if counter % 5 == 1:
                 notify_admin("Sending/Updating categories *{} to {}* ({} total)...".format(
-                    counter,
-                    n if counter + 4 > n else counter + 4,
-                    n
+                    counter, n if counter + 4 > n else counter + 4, n
                 ))
 
             # Bots!
-            cat_bots = Bot.select().where(Bot.category == cat, Bot.approved == True)
+            cat_bots = Bot.of_category(cat)
             text = '*' + str(cat) + '*\n'
             text += '\n'.join([str(b) for b in cat_bots])
 
@@ -172,7 +170,8 @@ def send_botlist(bot, update, chat_data, resend=False):
         # insert spaces and the name of the bot
         print('\n'.join(['     {}'.format(str(b)) for b in new_bots]))
 
-        new_bots_list = new_bots_list.format('\n'.join(['     ' + str(b) for b in new_bots]))
+        new_bots_list = new_bots_list.format('\n'.join(['     ' + str(b) for b in new_bots]),
+                                             days_new=const.BOT_CONSIDERED_NEW)
         try:
             if resend:
                 new_bots_msg = util.send_md_message(bot, channel.chat_id, new_bots_list, timeout=120,

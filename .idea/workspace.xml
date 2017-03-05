@@ -2,24 +2,22 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="a99656b7-e9ec-4128-8cb6-d0d32ca0f6b3" name="Default" comment="Escape Captions when broadcasting">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/jsoncallbackhandler.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/model/user.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/database.db" afterPath="$PROJECT_DIR$/database.db" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/../electro-events-bot/.idea/dictionaries/joscha.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../electro-events-bot/venv/bin/python3" afterPath="$PROJECT_DIR$/../electro-events-bot/venv/bin/python3" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../electro-events-bot/venv/bin/python3.5" afterPath="$PROJECT_DIR$/../electro-events-bot/venv/bin/python3.5" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/bot.py" afterPath="$PROJECT_DIR$/bot.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/botlist.py" afterPath="$PROJECT_DIR$/botlist.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/captions.py" afterPath="$PROJECT_DIR$/captions.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/components/admin.py" afterPath="$PROJECT_DIR$/components/admin.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/components/botlist.py" afterPath="$PROJECT_DIR$/components/botlist.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/const.py" afterPath="$PROJECT_DIR$/const.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/files/category_list.txt" afterPath="$PROJECT_DIR$/files/category_list.txt" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/helpers.py" afterPath="$PROJECT_DIR$/helpers.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/manual.md" afterPath="$PROJECT_DIR$/manual.md" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/model/__init__.py" afterPath="$PROJECT_DIR$/model/__init__.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/model/basemodel.py" afterPath="$PROJECT_DIR$/model/basemodel.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/model/bot.py" afterPath="$PROJECT_DIR$/model/bot.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/model/channel.py" afterPath="$PROJECT_DIR$/model/channel.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/util.py" afterPath="$PROJECT_DIR$/util.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../electro-events-bot/.idea/eventBot.iml" afterPath="$PROJECT_DIR$/../electro-events-bot/.idea/eventBot.iml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../electro-events-bot/preferences.py" afterPath="$PROJECT_DIR$/../electro-events-bot/preferences.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../electro-events-bot/venv/bin/easy_install-3.5" afterPath="$PROJECT_DIR$/../electro-events-bot/venv/bin/easy_install-3.5" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../electro-events-bot/venv/bin/futurize" afterPath="$PROJECT_DIR$/../electro-events-bot/venv/bin/futurize" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../electro-events-bot/venv/bin/pasteurize" afterPath="$PROJECT_DIR$/../electro-events-bot/venv/bin/pasteurize" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../electro-events-bot/venv/bin/pip3" afterPath="$PROJECT_DIR$/../electro-events-bot/venv/bin/pip3" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../electro-events-bot/venv/bin/pip3.5" afterPath="$PROJECT_DIR$/../electro-events-bot/venv/bin/pip3.5" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../electro-events-bot/venv/bin/unit2" afterPath="$PROJECT_DIR$/../electro-events-bot/venv/bin/unit2" />
     </list>
     <list id="fe5cca8a-c510-4061-bfc5-b637b5335475" name="Wontpush" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -30,10 +28,10 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="CoverageDataManager">
-    <SUITE FILE_PATH="coverage/botlist$eventbot.coverage" NAME="eventbot Coverage Results" MODIFIED="1483465520837" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/../electro-events-bot" />
-    <SUITE FILE_PATH="coverage/botlist$migration.coverage" NAME="migration Coverage Results" MODIFIED="1483041753930" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/../phamily-buphineph" />
-    <SUITE FILE_PATH="coverage/botlist$__init__.coverage" NAME="__init__ Coverage Results" MODIFIED="1485629341938" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/model" />
     <SUITE FILE_PATH="coverage/botlist$bot.coverage" NAME="bot Coverage Results" MODIFIED="1485639021879" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/botlist$migration.coverage" NAME="migration Coverage Results" MODIFIED="1483041753930" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/../phamily-buphineph" />
+    <SUITE FILE_PATH="coverage/botlist$eventbot.coverage" NAME="eventbot Coverage Results" MODIFIED="1483465520837" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/../electro-events-bot" />
+    <SUITE FILE_PATH="coverage/botlist$__init__.coverage" NAME="__init__ Coverage Results" MODIFIED="1485629341938" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/model" />
   </component>
   <component name="CreatePatchCommitExecutor">
     <option name="PATCH_PATH" value="" />
@@ -51,12 +49,12 @@
     <favorites_list name="botlist" />
   </component>
   <component name="FileEditorManager">
-    <leaf>
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file leaf-file-name="bot.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/bot.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="54">
-              <caret line="37" column="37" lean-forward="false" selection-start-line="37" selection-start-column="37" selection-end-line="37" selection-end-column="37" />
+            <state relative-caret-position="408">
+              <caret line="58" column="0" lean-forward="true" selection-start-line="58" selection-start-column="0" selection-end-line="58" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -114,13 +112,13 @@
         <option value="$PROJECT_DIR$/captions.py" />
         <option value="$PROJECT_DIR$/util.py" />
         <option value="$PROJECT_DIR$/components/admin.py" />
-        <option value="$USER_HOME$/Dropbox/projects/botlist/jsoncallbackhandler.py" />
+        <option value="$PROJECT_DIR$/jsoncallbackhandler.py" />
         <option value="$PROJECT_DIR$/jsoncallbackhandler.py" />
         <option value="$PROJECT_DIR$/const.py" />
         <option value="$PROJECT_DIR$/model/__init__.py" />
-        <option value="$PROJECT_DIR$/bot.py" />
         <option value="$PROJECT_DIR$/model/user.py" />
         <option value="$PROJECT_DIR$/../symbose/api/model/workflow.py" />
+        <option value="$PROJECT_DIR$/bot.py" />
       </list>
     </option>
   </component>
@@ -131,10 +129,10 @@
     <sorting>DEFINITION_ORDER</sorting>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="-1" />
-    <option name="y" value="10" />
-    <option name="width" value="1922" />
-    <option name="height" value="1071" />
+    <option name="x" value="-8" />
+    <option name="y" value="-8" />
+    <option name="width" value="1936" />
+    <option name="height" value="1056" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
@@ -586,11 +584,14 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="-1" y="10" width="1922" height="1071" extended-state="0" />
-    <editor active="false" />
+    <frame x="-8" y="-8" width="1936" height="1056" extended-state="0" />
+    <editor active="true" />
     <layout>
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.13447171" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.134375" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32908705" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="DB Browser" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Statistic" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="DB Execution Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32875264" sideWeight="0.5" order="6" side_tool="true" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32953367" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
@@ -599,14 +600,11 @@
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3285273" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="DB Browser" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="DB Execution Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.37940234" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
-      <window_info id="Statistic" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32916668" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.39957717" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
@@ -849,7 +847,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$USER_HOME$/Dropbox/projects/botlist/components/admin.py">
+    <entry file="file://$PROJECT_DIR$/components/admin.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="730">
           <caret line="245" column="20" lean-forward="false" selection-start-line="245" selection-start-column="20" selection-end-line="245" selection-end-column="20" />
@@ -884,21 +882,21 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$USER_HOME$/Dropbox/projects/botlist/const.py">
+    <entry file="file://$PROJECT_DIR$/const.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="135">
           <caret line="9" column="56" lean-forward="false" selection-start-line="9" selection-start-column="56" selection-end-line="9" selection-end-column="56" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$USER_HOME$/Dropbox/projects/botlist/util.py">
+    <entry file="file://$PROJECT_DIR$/util.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="288">
           <caret line="192" column="83" lean-forward="false" selection-start-line="192" selection-start-column="83" selection-end-line="192" selection-end-column="83" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$USER_HOME$/Dropbox/projects/botlist/jsoncallbackhandler.py">
+    <entry file="file://$PROJECT_DIR$/jsoncallbackhandler.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="759">
           <caret line="70" column="0" lean-forward="true" selection-start-line="70" selection-start-column="0" selection-end-line="70" selection-end-column="0" />
@@ -977,8 +975,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/bot.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="54">
-          <caret line="37" column="37" lean-forward="false" selection-start-line="37" selection-start-column="37" selection-end-line="37" selection-end-column="37" />
+        <state relative-caret-position="408">
+          <caret line="58" column="0" lean-forward="true" selection-start-line="58" selection-start-column="0" selection-end-line="58" selection-end-column="0" />
           <folding />
         </state>
       </provider>

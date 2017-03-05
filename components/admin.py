@@ -3,12 +3,15 @@ import logging
 import re
 from pprint import pprint
 
+import datetime
 import emoji
-from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup, TelegramError
 
 import captions
+import const
 import mdformat
 import util
+from bot import log
 from const import *
 from const import BotStates, CallbackActions
 from custemoji import Emoji
@@ -177,11 +180,30 @@ def prepare_transmission(bot, update, chat_data):
                          reply_markup=reply_markup)
 
 
+"""
+page     = 5
+items    = 110
+pagesize = 10
+
+start = 50 = page*pagesize
+end   = 60 = page*pagesize + pagesize-1
+"""
+
+
 @restricted
-def approve_suggestions(bot, update):
+def approve_suggestions(bot, update, page=0):
     chat_id = util.uid_from_update(update)
     Suggestion.delete_missing()
-    suggestions = Suggestion.select()[:10]
+    suggestions = Suggestion.select()
+    if page * const.PAGE_SIZE_SUGGESTIONS_LIST >= len(suggestions):
+        # old item deleted, list now too small
+        page = page - 1 if page > 0 else 0
+    start = page * const.PAGE_SIZE_SUGGESTIONS_LIST
+    end = start + const.PAGE_SIZE_SUGGESTIONS_LIST
+
+    has_prev_page = page > 0
+    has_next_page = page * const.PAGE_SIZE_SUGGESTIONS_LIST < len(suggestions)
+    suggestions = suggestions[start:end]
 
     if len(suggestions) == 0:
         util.send_or_edit_md_message(bot, chat_id, "No more suggestions available.",
@@ -196,12 +218,24 @@ def approve_suggestions(bot, update):
         buttons.append([
             InlineKeyboardButton("{}) {}".format(str(count), Emoji.WHITE_HEAVY_CHECK_MARK),
                                  callback_data=util.callback_for_action(CallbackActions.ACCEPT_SUGGESTION,
-                                                                        {'id': x.id})),
+                                                                        {'id': x.id, 'page': page})),
             InlineKeyboardButton(Emoji.CROSS_MARK,
                                  callback_data=util.callback_for_action(CallbackActions.REJECT_SUGGESTION,
-                                                                        {'id': x.id}))
+                                                                        {'id': x.id, 'page': page}))
         ])
         count += 1
+    page_arrows = list()
+    if has_prev_page:
+        page_arrows.append(InlineKeyboardButton(Emoji.LEFTWARDS_BLACK_ARROW,
+                                                callback_data=util.callback_for_action(
+                                                    CallbackActions.SWITCH_SUGGESTIONS_PAGE,
+                                                    {'page': page - 1})))
+    if has_next_page:
+        page_arrows.append(InlineKeyboardButton(Emoji.BLACK_RIGHTWARDS_ARROW,
+                                                callback_data=util.callback_for_action(
+                                                    CallbackActions.SWITCH_SUGGESTIONS_PAGE,
+                                                    {'page': page + 1})))
+    buttons.append(page_arrows)
 
     reply_markup = InlineKeyboardMarkup(buttons)
 
@@ -211,30 +245,51 @@ def approve_suggestions(bot, update):
 
 
 @restricted
-def approve_bots(bot, update):
+def approve_bots(bot, update, page=0):
     chat_id = util.uid_from_update(update)
-    unapproved = Bot.select().where(Bot.approved == False)[:10]
+    unapproved = Bot.select().where(Bot.approved == False).order_by(Bot.date_added)
+    if page * const.PAGE_SIZE_APPROVALS_LIST >= len(unapproved):
+        # old item deleted, list now too small
+        page = page - 1 if page > 0 else 0
+    start = page * const.PAGE_SIZE_APPROVALS_LIST
+    end = start + const.PAGE_SIZE_APPROVALS_LIST
+    has_prev_page = page > 0
+    has_next_page = (page + 1) * const.PAGE_SIZE_APPROVALS_LIST < len(unapproved)
+    unapproved = unapproved[start:end]
 
     if len(unapproved) == 0:
         util.send_or_edit_md_message(bot, chat_id, "No more unapproved bots available.",
                                      to_edit=util.mid_from_update(update))
         return
 
-    unapproved_list = '\n'.join([str(x) for x in unapproved])
 
     buttons = []
     for x in unapproved:
         buttons.append([
-            InlineKeyboardButton("{} {}".format(Emoji.WHITE_HEAVY_CHECK_MARK, x.username),
+            InlineKeyboardButton(Emoji.WHITE_HEAVY_CHECK_MARK,
                                  callback_data=util.callback_for_action(CallbackActions.ACCEPT_BOT, {'id': x.id})),
+            InlineKeyboardButton(x.username, url="http://t.me/{}".format(x.username[1:])),
             InlineKeyboardButton(Emoji.CROSS_MARK,
-                                 callback_data=util.callback_for_action(CallbackActions.REJECT_BOT, {'id': x.id}))
+                                 callback_data=util.callback_for_action(CallbackActions.REJECT_BOT,
+                                                                        {'id': x.id, 'page': page}))
         ])
+    page_arrows = list()
+    if has_prev_page:
+        page_arrows.append(InlineKeyboardButton(Emoji.LEFTWARDS_BLACK_ARROW,
+                                                callback_data=util.callback_for_action(
+                                                    CallbackActions.SWITCH_APPROVALS_PAGE,
+                                                    {'page': page - 1})))
+    if has_next_page:
+        page_arrows.append(InlineKeyboardButton(Emoji.BLACK_RIGHTWARDS_ARROW,
+                                                callback_data=util.callback_for_action(
+                                                    CallbackActions.SWITCH_APPROVALS_PAGE,
+                                                    {'page': page + 1})))
+    buttons.append(page_arrows)
 
     reply_markup = InlineKeyboardMarkup(buttons)
     util.send_or_edit_md_message(bot, chat_id,
                                  util.action_hint(
-                                     "Please select a bot you want to accept for the BotList\n\n" + unapproved_list),
+                                     "Please select a bot you want to accept for the BotList"),
                                  reply_markup=reply_markup, to_edit=util.mid_from_update(update))
     return CallbackStates.APPROVING_BOTS
 
@@ -263,6 +318,7 @@ def accept_bot_submission(bot, update, of_bot: Bot, category):
 
     try:
         of_bot.category = category
+        of_bot.date_added = datetime.date.today()
         of_bot.approved = True
         of_bot.save()
 
@@ -273,6 +329,16 @@ def accept_bot_submission(bot, update, of_bot: Bot, category):
 
         util.send_or_edit_md_message(bot, chat_id, "{} has been accepted to the Botlist.".format(of_bot),
                                      to_edit=message_id, reply_markup=reply_markup)
+
+        log_msg = "{} accepted by {}.".format(of_bot.username, chat_id)
+        # notify submittant
+        try:
+            bot.sendMessage(of_bot.submitted_by.chat_id,
+                            util.success(const.ACCEPTANCE_PRIVATE_MESSAGE.format(of_bot.username)))
+            log_msg += "\nUser {} was notified.".format(str(of_bot.submitted_by))
+        except TelegramError:
+            log_msg += "\nUser {} could NOT be contacted/notified in private.".format(str(of_bot.submitted_by))
+        log.info(log_msg)
     except:
         util.send_message_failure(bot, chat_id, "An error has occured. Bot not added.")
 
@@ -282,6 +348,7 @@ def send_config_files(bot, update):
     log.info("Sending config files...")
     chat_id = util.uid_from_update(update)
     bot.sendDocument(chat_id, open('files/intro_en.txt', 'rb'), filename="intro_en.txt")
+    bot.sendDocument(chat_id, open('files/intro_es.txt', 'rb'), filename="intro_es.txt")
     bot.sendDocument(chat_id, open('files/new_bots_list.txt', 'rb'), filename="new_bots_list.txt")
     bot.sendDocument(chat_id, open('files/category_list.txt', 'rb'), filename="category_list.txt")
     bot.sendDocument(chat_id, open('files/commands.txt', 'rb'), filename="commands.txt")
@@ -297,3 +364,44 @@ def send_offline(bot, update):
     else:
         text = "No bots are offline."
     util.send_md_message(bot, chat_id, text)
+
+
+@restricted
+def reject_bot_submission(bot, update, to_reject=None, verbose=True):
+    uid = util.uid_from_update(update)
+
+    if to_reject is None:
+        if not update.message.reply_to_message:
+            update.message.reply_text(util.failure("You must reply to a message of mine."))
+            return
+        text = update.message.reply_to_message.text
+
+        try:
+            username = re.match(const.REGEX_BOT_IN_TEXT, text).groups()[0]
+        except AttributeError:
+            log.info("No username in message that was replied to.")
+            # no bot username, ignore update
+            return
+
+        try:
+            to_reject = Bot.by_username(username)
+        except Bot.DoesNotExist:
+            log.info("Rejection failed: could not find {}".format(username))
+            return
+
+        if to_reject.approved is True:
+            bot.sendMessage(uid, util.failure(
+                "{} has already been accepted, so it cannot be rejected anymore.".format(username)))
+            return
+
+    log_msg = "{} rejected by {}.".format(to_reject.username, uid)
+    try:
+        bot.sendMessage(to_reject.submitted_by.chat_id,
+                        util.failure(const.REJECTION_PRIVATE_MESSAGE.format(to_reject.username)))
+        log_msg += "\nUser {} was notified.".format(str(to_reject.submitted_by))
+    except TelegramError:
+        log_msg += "\nUser {} could NOT be contacted/notified in private.".format(str(to_reject.submitted_by))
+    to_reject.delete_instance()
+    log.info(log_msg)
+    if verbose:
+        bot.sendMessage(uid, util.success("{} rejected.".format(to_reject.username)))
