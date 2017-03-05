@@ -41,7 +41,15 @@ EXAMPLES_MESSAGE = """*Examples for contributing to the BotList:*
 • Eh... guys?! @unresponsive\_bot is #offline 😞
 • /offline @unresponsive\_bot
 """
-REJECTION_PRIVATE_MESSAGE = """Sorry, but your bot submission, {}, does not suffice the standards we impose for inclusion in the @BotList.\n
+REJECTION_PRIVATE_MESSAGE = """Sorry, but your bot submission {} was rejected.
+
+It does not suffice the standards we impose for inclusion in the @BotList for one of the following reasons:
+
+▫️A better bot with the same functionality is already in the @BotList.
+▫️The user interface is bad in terms of usability and/or simplicity.
+▫️Contains ads or adult content
+▫️English language not supported per default
+
 For further information, please ask in the @BotListChat."""
 ACCEPTANCE_PRIVATE_MESSAGE = """Congratulations, your bot submission {} has been accepted for the @BotList. You can already see it by using the /category command, and it is going to be in the @BotList in the next two weeks."""
 

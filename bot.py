@@ -10,7 +10,7 @@ from pprint import pprint
 from uuid import uuid4
 
 import emoji
-from peewee import fn
+from peewee import fn, JOIN
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram import InlineQueryResultArticle
 from telegram import InputTextMessageContent
@@ -160,6 +160,11 @@ def plaintext(bot, update):
         # pprint(update.to_dict())
 
 
+def credits(bot, update):
+    users_contrib = User.select().join()
+    pass
+
+
 def notify_bot_offline(bot, update, args=None):
     tg_user = update.message.from_user
     user = User.from_telegram_object(tg_user)
@@ -248,7 +253,7 @@ def new_bot_submission(bot, update, args=None):
     if description_reg:
         description = description_reg.group(2)
         new_bot.description = description
-        description_notify = 'Your description was included.'
+        description_notify = ' Your description was included.'
 
     log.info("New bot submission by {}: {}".format(new_bot.submitted_by, new_bot.username))
     new_bot.save()
@@ -270,6 +275,7 @@ def send_category(bot, update, category=None):
         InlineKeyboardButton(captions.BACK, callback_data=util.callback_for_action(
             CallbackActions.SELECT_CATEGORY
         )),
+        InlineKeyboardButton("Show in BotList", url='http://t.me/botlist/{}'.format(category.current_message_id)),
         InlineKeyboardButton("Share", switch_inline_query=category.name)
     ])
     txt = "There are *{}* bots in the category *{}*:\n\n".format(len(bot_list), str(category))
@@ -370,7 +376,7 @@ def callback_router(bot, update, chat_data):
             admin.edit_bot_category(bot, update, to_accept, CallbackActions.BOT_ACCEPTED)
         if action == CallbackActions.REJECT_BOT:
             to_reject = Bot.get(id=obj['id'])
-            to_reject.delete_instance()
+            admin.reject_bot_submission(bot, update, to_reject, verbose=False)
             admin.approve_bots(bot, update, obj['page'])
         if action == CallbackActions.BOT_ACCEPTED:
             to_accept = Bot.get(id=obj['bid'])
@@ -527,11 +533,17 @@ def main():
     dp.add_handler(MessageHandler(Filters.text, plaintext))
     dp.add_handler(MessageHandler(Filters.photo, photo_handler))
 
-    # if PORT and URL:
-    #     updater.start_webhook(listen='0.0.0.0', port=PORT, url_path=BOT_TOKEN)
-    #     updater.bot.setWebhook(URL +
-    #                            BOT_TOKEN)
-    # else:
+    # users = User.select().join(
+    #     Bot.select(
+    #         Bot.submitted_by, fn.COUNT(Bot.submitted_by).alias('num_submissions')
+    #     ), on=(Bot.submitted_by == )
+    # )
+    # users = User.select().join(
+    #     Bot.select(
+    #         Bot.submitted_by, fn.COUNT(Bot.submitted_by).alias('num_submissions')
+    #     ).group_by(Bot.submitted_by), on=Bot.submitted_by
+    # )
+
     updater.start_polling()
 
     log.info('Listening...')
