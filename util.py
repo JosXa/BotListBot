@@ -14,6 +14,28 @@ from telegram import ChatAction, ReplyKeyboardHide
 from telegram import ParseMode
 import time
 
+from model.group import Group
+
+
+def track_groups(func):
+    """
+    Decorator that stores all groups that the bot has been added to
+    """
+
+    @wraps(func)
+    def wrapped(bot, update, *args, **kwargs):
+        try:
+            if update.message.chat.type == 'group':
+                Group.from_telegram_object(update.message.chat)
+        except (NameError, AttributeError):
+            try:
+                if update.callback_query.message.chat.type == 'group':
+                    Group.from_telegram_object(update.callback_query.message.chat)
+            except (NameError, AttributeError):
+                logging.error("No chat_id available in update.")
+        return func(bot, update, *args, **kwargs)
+    return wrapped
+
 
 def restricted(func):
     @wraps(func)
@@ -43,7 +65,7 @@ def private_chat_only(func):
     @wraps(func)
     def wrapped(bot, update, *args, **kwargs):
         if (update.message and update.message.chat.type == 'private') or (
-            update.callback_query and update.callback_query.message.chat.type == 'private'):
+                    update.callback_query and update.callback_query.message.chat.type == 'private'):
             return func(bot, update, *args, **kwargs)
         else:
             pass
@@ -81,11 +103,28 @@ def build_menu(buttons: List,
     return menu
 
 
-def uid_from_update(update):
+def cid_from_update(update):
     """
     Extract the chat id from update
     :param update: `telegram.Update`
     :return: chat_id extracted from the update
+    """
+    chat_id = None
+    try:
+        chat_id = update.message.chat_id
+    except (NameError, AttributeError):
+        try:
+            chat_id = update.callback_query.message.chat_id
+        except (NameError, AttributeError):
+            logging.error("No chat_id available in update.")
+    return chat_id
+
+
+def uid_from_update(update):
+    """
+    Extract the user id from update
+    :param update: `telegram.Update`
+    :return: user_id extracted from the update
     """
     chat_id = None
     try:
@@ -100,7 +139,7 @@ def uid_from_update(update):
                 try:
                     chat_id = update.callback_query.from_user.id
                 except (NameError, AttributeError):
-                    logging.error("No chat_id available in update.")
+                    logging.error("No user_id available in update.")
     return chat_id
 
 

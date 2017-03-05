@@ -2,6 +2,7 @@ from model.bot import Bot
 from model.category import Category
 from model.channel import Channel
 from model.country import Country
+from model.group import Group
 from model.user import User
 from model.suggestion import Suggestion
 
@@ -12,18 +13,19 @@ if __name__ == "__main__":
     Channel.create_table(fail_silently=True)
     User.create_table(fail_silently=True)
     Suggestion.create_table(fail_silently=True)
+    Group.create_table(fail_silently=True)
 
-    Country.insert_many([
-        {'name': 'Italy', 'emoji': '🇮🇹'},
-        {'name': 'Brazil', 'emoji': '🇧🇷'},
-        {'name': 'Great Britain', 'emoji': '🇬🇧'},
-        {'name': 'Spin', 'emoji': '🇪🇸'},
-        {'name': 'Iran', 'emoji': '🇮🇷'},
-        {'name': 'Indonesia', 'emoji': '🇮🇩'},
-        {'name': 'Russia', 'emoji': '🇷🇺'},
-        {'name': 'India', 'emoji': '🇮🇳'},
-        {'name': 'Argentina', 'emoji': '🇦🇷'},
-    ]).execute()
+    # Country.insert_many([
+    #     {'name': 'Italy', 'emoji': '🇮🇹'},
+    #     {'name': 'Brazil', 'emoji': '🇧🇷'},
+    #     {'name': 'Great Britain', 'emoji': '🇬🇧'},
+    #     {'name': 'Spin', 'emoji': '🇪🇸'},
+    #     {'name': 'Iran', 'emoji': '🇮🇷'},
+    #     {'name': 'Indonesia', 'emoji': '🇮🇩'},
+    #     {'name': 'Russia', 'emoji': '🇷🇺'},
+    #     {'name': 'India', 'emoji': '🇮🇳'},
+    #     {'name': 'Argentina', 'emoji': '🇦🇷'},
+    # ]).execute()
 
     # Category.insert_many([
     #     {'emojis': ':joy::performing_arts:', 'name': 'Humor', 'extra': None},

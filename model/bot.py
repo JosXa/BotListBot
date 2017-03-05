@@ -3,7 +3,6 @@ import datetime
 
 from peewee import *
 
-import const
 import util
 from model.basemodel import BaseModel
 from model.category import Category
@@ -29,6 +28,7 @@ class Bot(BaseModel):
 
     @property
     def is_new(self):
+        import const
         today = datetime.date.today()
         delta = datetime.timedelta(days=const.BOT_CONSIDERED_NEW)
         result = today - self.date_added < delta

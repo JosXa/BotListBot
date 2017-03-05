@@ -33,7 +33,7 @@ from const import BotStates, CallbackActions, CallbackStates
 from model import Category, Bot, Country
 from model.suggestion import Suggestion
 from model.user import User
-from util import restricted, private_chat_only
+from util import restricted, private_chat_only, track_groups
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -44,6 +44,7 @@ TODO:
 """
 
 
+@track_groups
 def start(bot, update, args):
     tg_user = update.message.from_user
     chat_id = tg_user.id
@@ -72,11 +73,12 @@ def restart(bot, update):
     os.execl(sys.executable, sys.executable, *sys.argv)
 
 
+@track_groups
 def select_category(bot, update, callback_action=None):
     if callback_action is None:
         # set default
         callback_action = CallbackActions.SELECT_BOT_FROM_CATEGORY
-    chat_id = util.uid_from_update(update)
+    chat_id = util.cid_from_update(update)
     categories = Category.select().order_by(Category.name.asc()).execute()
 
     buttons = util.build_menu([InlineKeyboardButton(
@@ -124,6 +126,7 @@ def error(bot, update, error):
     log.error(error)
 
 
+@track_groups
 def help(bot, update):
     update.message.reply_text(const.HELP_MESSAGE, quote=True, parse_mode=ParseMode.MARKDOWN)
     util.wait(bot, update)
@@ -153,11 +156,12 @@ def photo_handler(bot, update):
         return new_channel_post(bot, update, pic)
 
 
+@track_groups
 def plaintext(bot, update):
     if update.channel_post:
         return new_channel_post(bot, update)
 
-        # pprint(update.to_dict())
+    # pprint(update.to_dict())
 
 
 def credits(bot, update):
@@ -202,6 +206,7 @@ def notify_bot_offline(bot, update, args=None):
         update.message.reply_text(util.action_hint("The bot you sent me is not in the @botlist."))
 
 
+@track_groups
 def new_bot_submission(bot, update, args=None):
     tg_user = update.message.from_user
     user = User.from_telegram_object(tg_user)
@@ -262,7 +267,8 @@ def new_bot_submission(bot, update, args=None):
 
 
 def send_category(bot, update, category=None):
-    chat_id = util.uid_from_update(update)
+    pprint(update.to_dict())
+    chat_id = util.cid_from_update(update)
     bot_list = Bot.of_category(category)
     bots_with_description = [b for b in bot_list if b.description is not None]
 

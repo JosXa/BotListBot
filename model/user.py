@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from peewee import *
 from telegram import User as TelegramUser
-
 import util
 from model.basemodel import BaseModel
 

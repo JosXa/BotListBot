@@ -1,4 +1,3 @@
-from model import Channel
 
 ### START OF CONFIGURATION ###
 
@@ -52,6 +51,12 @@ It does not suffice the standards we impose for inclusion in the @BotList for on
 
 For further information, please ask in the @BotListChat."""
 ACCEPTANCE_PRIVATE_MESSAGE = """Congratulations, your bot submission {} has been accepted for the @BotList. You can already see it by using the /category command, and it is going to be in the @BotList in the next two weeks."""
+BOTLIST_UPDATE_NOTIFICATION = """⚠️@BotList *update!*
+There are {n_bots} new bots:
+
+{new_bots}
+
+Share your bots in @BotListChat"""
 
 ### END OF CONFIGURATION ###
 
@@ -61,6 +66,7 @@ COMMANDS = get_commands()
 
 
 def get_channel():
+    from model import Channel
     try:
         return Channel.get(Channel.username == SELF_CHANNEL_USERNAME)
     except Channel.DoesNotExist:
