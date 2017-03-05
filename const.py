@@ -13,7 +13,6 @@ REGEX_BOT_ONLY = r'(@[a-zA-Z]+[a-zA-Z0-9_\-]{3,})'
 PAGE_SIZE_SUGGESTIONS_LIST = 10
 PAGE_SIZE_APPROVALS_LIST = 10
 
-
 # MESSAGES
 PROMOTION_MESSAGE = "*Join* @BotList*!*\n*Share your bots in* @BotListChat"
 HELP_MESSAGE = """This bot is a mirror of the @BotList.
