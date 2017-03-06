@@ -10,7 +10,7 @@ import logging
 
 from peewee import fn
 from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.error import BadRequest, RetryAfter
+from telegram.error import BadRequest, RetryAfter, TelegramError
 from telegram.ext.dispatcher import run_async
 
 import captions
@@ -23,6 +23,7 @@ from custemoji import Emoji
 from model import Bot, Category, Channel, Country
 from model import Category
 from model import Channel
+from model import Notifications
 from model import Suggestion
 from util import restricted
 
@@ -156,7 +157,7 @@ def send_botlist(bot, update, chat_data, resend=False):
             sleep(1)
 
         with codecs.open('files/new_bots_list.txt', 'r', 'utf-8') as f:
-            new_bots_list = f.read()
+            new_bots_text = f.read()
 
         # build list of newly added bots
         new_bots = Bot.select().where(
@@ -168,16 +169,16 @@ def send_botlist(bot, update, chat_data, resend=False):
             ))
 
         # insert spaces and the name of the bot
-        print('\n'.join(['     {}'.format(str(b)) for b in new_bots]))
+        new_bots_joined = '\n'.join(['     {}'.format(str(b)) for b in new_bots])
 
-        new_bots_list = new_bots_list.format('\n'.join(['     ' + str(b) for b in new_bots]),
+        new_bots_text = new_bots_text.format(new_bots_joined,
                                              days_new=const.BOT_CONSIDERED_NEW)
         try:
             if resend:
-                new_bots_msg = util.send_md_message(bot, channel.chat_id, new_bots_list, timeout=120,
+                new_bots_msg = util.send_md_message(bot, channel.chat_id, new_bots_text, timeout=120,
                                                     disable_notification=True)
             else:
-                new_bots_msg = util.send_or_edit_md_message(bot, channel.chat_id, new_bots_list,
+                new_bots_msg = util.send_or_edit_md_message(bot, channel.chat_id, new_bots_text,
                                                             to_edit=channel.new_bots_mid,
                                                             timeout=120, disable_web_page_preview=True,
                                                             disable_notification=True)
@@ -232,6 +233,23 @@ def send_botlist(bot, update, chat_data, resend=False):
             pass
 
         channel.save()
+
+        if len(new_bots) > 0:
+            notify_admin("Sending notifications to subscribers...")
+            subscribers = Notifications.select().where(Notifications.enabled == True)
+            notification_count = 0
+            for sub in subscribers:
+                try:
+                    util.send_md_message(bot, sub.chat_id, const.BOTLIST_UPDATE_NOTIFICATION.format(
+                        n_bots=len(new_bots),
+                        new_bots=new_bots_joined))
+                    notification_count += 1
+                    sub.last_notification = datetime.date.today()
+                    sub.save()
+                except TelegramError:
+                    pass
+            sent['notifications'] = "Notifications sent to {} users.".format(notification_count)
+
     except RetryAfter as e:
         notify_admin_err(e.message)
 
@@ -244,8 +262,7 @@ def send_botlist(bot, update, chat_data, resend=False):
 
         pprint(sent)
 
-        util.send_or_edit_md_message(bot, chat_id, text,
-                                     to_edit=message_id)
+        util.send_or_edit_md_message(bot, chat_id, text, to_edit=message_id)
 
 
 def preview_promo_message(bot, update):

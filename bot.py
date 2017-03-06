@@ -31,17 +31,14 @@ from components import botproperties
 from components.botlist import new_channel_post
 from const import BotStates, CallbackActions, CallbackStates
 from model import Category, Bot, Country
+from model import Group
+from model import Notifications
 from model.suggestion import Suggestion
 from model.user import User
 from util import restricted, private_chat_only, track_groups
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
-
-"""
-TODO:
-- TEST - delete suggestions where bot does not exist anymore
-"""
 
 
 @track_groups
@@ -61,6 +58,51 @@ def start(bot, update, args):
             util.send_message_failure(bot, chat_id, "The requested category does not exist.")
         return
     help(bot, update)
+    util.wait(bot, update)
+    manage_subscription(bot, update)
+
+
+def available_commands(bot, update):
+    update.message.reply_text('*Available commands:*\n' + const.COMMANDS, parse_mode=ParseMode.MARKDOWN)
+
+
+def manage_subscription(bot, update):
+    chat_id = util.cid_from_update(update)
+    msg = "Would you like to be notified when new bots arrive at the @BotList?"
+    buttons = [[
+        InlineKeyboardButton(util.success("Yes"),
+                             callback_data=util.callback_for_action(CallbackActions.SET_NOTIFICATIONS,
+                                                                    {'value': True})),
+        InlineKeyboardButton("No", callback_data=util.callback_for_action(CallbackActions.SET_NOTIFICATIONS,
+                                                                          {'value': False}))]]
+    reply_markup = InlineKeyboardMarkup(buttons)
+    util.send_md_message(bot, chat_id, msg, reply_markup=reply_markup)
+
+
+def show_new_bots(bot, update):
+    chat_id = util.cid_from_update(update)
+
+
+def select_language(bot, update):
+    chat_id = util.cid_from_update(update)
+    msg = util.action_hint("Choose a language")
+    buttons = [[
+        InlineKeyboardButton("🇬🇧 English",
+                             callback_data=util.callback_for_action(CallbackActions.SELECT_LANGUAGE,
+                                                                    {'lang': 'en'})),
+        InlineKeyboardButton("🇪🇸 Spanish", callback_data=util.callback_for_action(CallbackActions.SELECT_LANGUAGE,
+                                                                                    {'lang': 'es'}))]]
+    reply_markup = InlineKeyboardMarkup(buttons)
+    util.send_md_message(bot, chat_id, msg, reply_markup=reply_markup)
+
+
+@track_groups
+def all_handler(bot, update):
+    chat_id = util.cid_from_update(update)
+    if update.message and update.message.new_chat_member and update.message.new_chat_member.id == int(
+            const.SELF_BOT_ID):
+        # bot was added to a group
+        start(bot, update)
 
 
 @restricted
@@ -128,9 +170,7 @@ def error(bot, update, error):
 
 @track_groups
 def help(bot, update):
-    update.message.reply_text(const.HELP_MESSAGE, quote=True, parse_mode=ParseMode.MARKDOWN)
-    util.wait(bot, update)
-    update.message.reply_text('*Available commands:*\n' + const.COMMANDS, parse_mode=ParseMode.MARKDOWN)
+    update.message.reply_text(const.HELP_MESSAGE_ENGLISH, quote=False, parse_mode=ParseMode.MARKDOWN)
 
 
 def contributing(bot, update):
@@ -161,7 +201,7 @@ def plaintext(bot, update):
     if update.channel_post:
         return new_channel_post(bot, update)
 
-    # pprint(update.to_dict())
+        # pprint(update.to_dict())
 
 
 def credits(bot, update):
@@ -267,7 +307,6 @@ def new_bot_submission(bot, update, args=None):
 
 
 def send_category(bot, update, category=None):
-    pprint(update.to_dict())
     chat_id = util.cid_from_update(update)
     bot_list = Bot.of_category(category)
     bots_with_description = [b for b in bot_list if b.description is not None]
@@ -352,6 +391,20 @@ def send_bot_details(bot, update, item=None):
 #     link = "http://telegram.me/{}/{}".format(urllib.parse.quote_plus(const.SELF_CHANNEL_USERNAME), category.current_message_id)
 #     link = "http://google.com"
 #     bot.answerCallbackQuery(update.callback_query.id, url=link)
+
+
+def set_notifications(bot, update, value: bool):
+    chat_id = util.cid_from_update(update)
+    try:
+        notifications = Notifications.get(Notifications.chat_id == chat_id)
+    except Notifications.DoesNotExist:
+        notifications = Notifications(chat_id=chat_id)
+    notifications.enabled = value
+    notifications.save()
+
+    msg = util.success("Nice! Notifications enabled.") if value else "Ok, notifications disabled."
+    msg += '\nYou can always adjust this setting with the /subscribe command.'
+    util.send_or_edit_md_message(bot, chat_id, msg, to_edit=util.mid_from_update(update))
 
 
 def callback_router(bot, update, chat_data):
@@ -460,6 +513,8 @@ def callback_router(bot, update, chat_data):
             admin.approve_suggestions(bot, update, page)
         if action == CallbackActions.SWITCH_APPROVALS_PAGE:
             admin.approve_bots(bot, update, page=obj['page'])
+        if action == CallbackActions.SET_NOTIFICATIONS:
+            set_notifications(bot, update, obj['value'])
 
 
 def main():
@@ -533,11 +588,17 @@ def main():
     dp.add_handler(CommandHandler('r', restart))
     dp.add_handler(CommandHandler('help', help))
     dp.add_handler(CommandHandler("contributing", contributing))
+    dp.add_handler(CommandHandler("contribute", contributing))
     dp.add_handler(CommandHandler("examples", examples))
+
+    dp.add_handler(CommandHandler("subscribe", manage_subscription))
+    dp.add_handler(CommandHandler("newbots", show_new_bots))
+
     dp.add_handler(InlineQueryHandler(inlinequery))
     dp.add_error_handler(error)
     dp.add_handler(MessageHandler(Filters.text, plaintext))
     dp.add_handler(MessageHandler(Filters.photo, photo_handler))
+    dp.add_handler(MessageHandler(Filters.all, all_handler))
 
     # users = User.select().join(
     #     Bot.select(

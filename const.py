@@ -1,11 +1,12 @@
-
+import os
 ### START OF CONFIGURATION ###
 
 # PREFERENCES
+
 ADMINS = [62056065, 918962]
 BOT_CONSIDERED_NEW = 15  # days
 SELF_BOT_NAME = "bot_list_bot"
-SELF_BOT_ID = "265482650"
+SELF_BOT_ID = "182355371" if os.environ.get("DEV") == "True" else "265482650"
 SELF_CHANNEL_USERNAME = "botlist"
 REGEX_BOT_IN_TEXT = r'.*(@[a-zA-Z]+[a-zA-Z0-9_\-]{3,}).*'
 REGEX_BOT_ONLY = r'(@[a-zA-Z]+[a-zA-Z0-9_\-]{3,})'
@@ -14,14 +15,28 @@ PAGE_SIZE_APPROVALS_LIST = 10
 
 # MESSAGES
 PROMOTION_MESSAGE = "*Join* @BotList*!*\n*Share your bots in* @BotListChat"
-HELP_MESSAGE = """This bot is a mirror of the @BotList.
-It was built to simplify navigation and to automate the process of submitting, reviewing and adding bots to the @BotList by the @BotListChat community.
+HELP_MESSAGE_ENGLISH = """*ɢʀᴇᴇᴛɪɴɢs ʜᴜᴍᴀɴᴏɪᴅs* 🤖
 
-*Try it out:* Start off by using the /category command and use the available buttons from there on.
-You can also send individual @BotList categories to your friends via inline search (i.e. type `@bot_list_bot music` in any chat).
+I'm the bot in charge of maintaining the @BotList channel, the *most reliable and unbiased bot catalog* out there. I was built to simplify navigation and to automate the process of submitting, reviewing and publishing bots by the @BotListChat community.
 
-If you want to check before /contributing, you can also send me the `@username` of a bot and I will see whether it exists in the @BotList.
-Refer to the /examples if you want to submit a bot or set it as offline.
+▫️ Add me to your groups and subscribe to BotList updates.
+▫️ Send individual @BotList categories to your friends via inline search (i.e. type `@bot_list_bot music` in any chat).
+▫️ Join the @BotListChat community and /contribute to the BotList: `#new @newbot🔎 - description`
+
+First steps: Start off by using the /category command and use the available buttons from there on.
+
+One step closer to world domination... 🤖"""
+HELP_MESSAGE_SPANISH = """*ɢʀᴇᴇᴛɪɴɢs ʜᴜᴍᴀɴᴏɪᴅs* 🤖
+
+Soy el bot encargado de mantener el canal @BotList y proporcionar a los usuarios de Telegram como tú el *catálogo de bot más fiable e imparcial* de una _manera interactiva_.
+
+▫️ Agregame a tus grupos y recibe una notificación cuando se actualice el @BotList.
+▫️ Envíeme acategorías individuales del @BotList a tus amigos a través de búsqueda en línea (p.e: escribe @bot_list_bot música en cualquier chat).
+▫️ Únete a la comunidad @BotListChat y contribuye al BotList: #new @ nuevobot🔎 - descripción
+
+Primeros pasos: Empieza con el comando /category y utiliza los botones disponibles en pantalla desde ahí.
+
+Un paso más cerca de la dominación mundial... 🤖
 """
 CONTRIBUTING_MESSAGE = """You can use the following `#tag`s with a bot `@username` to contribute to the BotList:
 
@@ -34,10 +49,10 @@ The moderators will approve your submission as soon as possible.
 """
 EXAMPLES_MESSAGE = """*Examples for contributing to the BotList:*
 
-• Wow! I found this nice #new bot: @coolbot 🔎🇮🇹 - Cools your drinks in the fridge.
+• "Wow! I found this nice #new bot: @coolbot 🔎🇮🇹 - Cools your drinks in the fridge."
 • /new @coolbot 🔎🇮🇹 - Cools your drinks in the fridge.
 
-• Eh... guys?! @unresponsive\_bot is #offline 😞
+• "Oh no... guys?! @unresponsive\_bot is #offline 😞"
 • /offline @unresponsive\_bot
 """
 REJECTION_PRIVATE_MESSAGE = """Sorry, but your bot submission {} was rejected.
@@ -101,6 +116,8 @@ class CallbackStates:
 
 
 class CallbackActions:
+    DISABLE_NOTIFICATIONS, \
+    SET_NOTIFICATIONS, \
     SWITCH_APPROVALS_PAGE, \
     SWITCH_SUGGESTIONS_PAGE, \
     REJECT_SUGGESTION, \

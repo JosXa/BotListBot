@@ -32,7 +32,11 @@ def track_groups(func):
                 if update.callback_query.message.chat.type == 'group':
                     Group.from_telegram_object(update.callback_query.message.chat)
             except (NameError, AttributeError):
-                logging.error("No chat_id available in update.")
+                try:
+                    if update.message.new_chat_member.id == const.SELF_BOT_ID:
+                        Group.from_telegram_object(update.callback_query.message.chat)
+                except (NameError, AttributeError):
+                    logging.error("No chat_id available in update.")
         return func(bot, update, *args, **kwargs)
     return wrapped
 
@@ -203,7 +207,7 @@ def callback_str_from_dict(d):
     return dumped
 
 
-def wait(bot, update, t=1.8):
+def wait(bot, update, t=1.5):
     chat_id = uid_from_update(update)
     bot.sendChatAction(chat_id, ChatAction.TYPING)
     time.sleep(t)
