@@ -33,7 +33,7 @@ log = logging.getLogger(__name__)
 
 @restricted
 @run_async
-def send_botlist(bot, update, chat_data, resend=False):
+def send_botlist(bot, update, chat_data, resend=False, silent=False):
     log.info("Re-Sending BotList..." if resend else "Updating BotList...")
     chat_id = util.uid_from_update(update)
     message_id = util.mid_from_update(update)
@@ -160,16 +160,10 @@ def send_botlist(bot, update, chat_data, resend=False):
             new_bots_text = f.read()
 
         # build list of newly added bots
-        new_bots = Bot.select().where(
-            (Bot.approved == True) & (
-                Bot.date_added.between(
-                    datetime.date.today() - datetime.timedelta(days=const.BOT_CONSIDERED_NEW),
-                    datetime.date.today()
-                )
-            ))
+        new_bots = Bot.get_new_bots()
 
         # insert spaces and the name of the bot
-        new_bots_joined = '\n'.join(['     {}'.format(str(b)) for b in new_bots])
+        new_bots_joined = Bot.get_new_bots_str()
 
         new_bots_text = new_bots_text.format(new_bots_joined,
                                              days_new=const.BOT_CONSIDERED_NEW)
@@ -234,7 +228,7 @@ def send_botlist(bot, update, chat_data, resend=False):
 
         channel.save()
 
-        if len(new_bots) > 0:
+        if not silent and len(new_bots) > 0:
             notify_admin("Sending notifications to subscribers...")
             subscribers = Notifications.select().where(Notifications.enabled == True)
             notification_count = 0

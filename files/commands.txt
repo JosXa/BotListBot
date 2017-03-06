@@ -3,4 +3,6 @@ new - Add your bot to the BOTLIST
 offline - Mark a bot as offline
 contributing - How to contribute to the BOTLIST
 examples - See contribution examples
+newbots - Get a list of newly added Bots
+subscribe - Get notified when BOTLIST updates
 help - Send help message

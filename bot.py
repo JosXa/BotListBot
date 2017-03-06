@@ -6,11 +6,10 @@ import os
 import re
 import sys
 import time
-from pprint import pprint
 from uuid import uuid4
 
 import emoji
-from peewee import fn, JOIN
+from peewee import fn
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram import InlineQueryResultArticle
 from telegram import InputTextMessageContent
@@ -31,7 +30,6 @@ from components import botproperties
 from components.botlist import new_channel_post
 from const import BotStates, CallbackActions, CallbackStates
 from model import Category, Bot, Country
-from model import Group
 from model import Notifications
 from model.suggestion import Suggestion
 from model.user import User
@@ -79,8 +77,15 @@ def manage_subscription(bot, update):
     util.send_md_message(bot, chat_id, msg, reply_markup=reply_markup)
 
 
-def show_new_bots(bot, update):
-    chat_id = util.cid_from_update(update)
+def _new_bots_text():
+    new_bots = Bot.get_new_bots()
+    if len(new_bots) > 0:
+        txt = "Newly added bots from the last {} days:\n\n{}".format(
+            const.BOT_CONSIDERED_NEW,
+            Bot.get_new_bots_str())
+    else:
+        txt = 'No new bots available.'
+    return txt
 
 
 def select_language(bot, update):
@@ -127,6 +132,10 @@ def select_category(bot, update, callback_action=None):
         '{}{}'.format(emoji.emojize(c.emojis, use_aliases=True), c.name),
         callback_data=util.callback_for_action(
             callback_action, {'id': c.id})) for c in categories], 2)
+    buttons.insert(0, [InlineKeyboardButton(
+        '🆕 New Bots',
+        callback_data=util.callback_for_action(
+            CallbackActions.NEW_BOTS_SELECTED))])
     msg = util.send_or_edit_md_message(bot, chat_id, util.action_hint("Please select a category"),
                                        to_edit=util.mid_from_update(update),
                                        reply_markup=InlineKeyboardMarkup(buttons))
@@ -134,10 +143,19 @@ def select_category(bot, update, callback_action=None):
 
 
 def inlinequery(bot, update):
-    query = update.inline_query.query
+    query = update.inline_query.query.lower()
     chat_id = update.inline_query.from_user.id
     results_list = list()
     categories = list()
+
+    # append new bots list to result
+    txt = const.PROMOTION_MESSAGE + '\n\n' + _new_bots_text()
+    results_list.append(InlineQueryResultArticle(
+        id=uuid4(),
+        title='🆕 New Bots',
+        input_message_content=InputTextMessageContent(message_text=txt, parse_mode="Markdown"),
+        description='Bots added in the last {} days.'.format(const.BOT_CONSIDERED_NEW)
+    ))
 
     try:
         # user selected a specific category
@@ -306,6 +324,23 @@ def new_bot_submission(bot, update, args=None):
                               parse_mode=ParseMode.MARKDOWN)
 
 
+def show_new_bots(bot, update, back_button=False):
+    chat_id = util.cid_from_update(update)
+    channel = const.get_channel()
+    reply_markup = None
+    if back_button:
+        reply_markup = InlineKeyboardMarkup([[
+            InlineKeyboardButton(captions.BACK, callback_data=util.callback_for_action(
+                CallbackActions.SELECT_CATEGORY
+            )),
+            InlineKeyboardButton("Show in BotList",
+                                 url="http://t.me/{}/{}".format(channel.username, channel.new_bots_mid)),
+            InlineKeyboardButton("Share", switch_inline_query='New Bots')
+        ]])
+    util.send_or_edit_md_message(bot, chat_id, _new_bots_text(), to_edit=util.mid_from_update(update),
+                                 reply_markup=reply_markup)
+
+
 def send_category(bot, update, category=None):
     chat_id = util.cid_from_update(update)
     bot_list = Bot.of_category(category)
@@ -426,7 +461,8 @@ def callback_router(bot, update, chat_data):
         #     category_permalink(bot, update, category)
         # SEND BOTLIST
         if action == CallbackActions.SEND_BOTLIST:
-            components.botlist.send_botlist(bot, update, chat_data)
+            silent = obj['silent']
+            components.botlist.send_botlist(bot, update, chat_data, silent=silent)
         if action == CallbackActions.RESEND_BOTLIST:
             components.botlist.send_botlist(bot, update, chat_data, resend=True)
         # ACCEPT/REJECT BOT SUBMISSIONS
@@ -435,7 +471,8 @@ def callback_router(bot, update, chat_data):
             admin.edit_bot_category(bot, update, to_accept, CallbackActions.BOT_ACCEPTED)
         if action == CallbackActions.REJECT_BOT:
             to_reject = Bot.get(id=obj['id'])
-            admin.reject_bot_submission(bot, update, to_reject, verbose=False)
+            notification = obj.get('ntfc', True)
+            admin.reject_bot_submission(bot, update, to_reject, verbose=False, notify_submittant=notification)
             admin.approve_bots(bot, update, obj['page'])
         if action == CallbackActions.BOT_ACCEPTED:
             to_accept = Bot.get(id=obj['bid'])
@@ -515,6 +552,8 @@ def callback_router(bot, update, chat_data):
             admin.approve_bots(bot, update, page=obj['page'])
         if action == CallbackActions.SET_NOTIFICATIONS:
             set_notifications(bot, update, obj['value'])
+        if action == CallbackActions.NEW_BOTS_SELECTED:
+            show_new_bots(bot, update, back_button=True)
 
 
 def main():
@@ -522,16 +561,6 @@ def main():
         BOT_TOKEN = str(os.environ['TG_TOKEN'])
     except Exception:
         BOT_TOKEN = str(sys.argv[1])
-        # BOT_TOKEN = "265482650:AAEABaV06JMB3k5QnyWvbP4-_3S-wyxLG4M"  # live
-        # BOT_TOKEN = "182355371:AAGYq_ZfFss6foI51jb753gvB3skk6RAV84"  # dev
-    try:
-        PORT = str(os.environ['PORT'])
-    except Exception:
-        PORT = None
-    try:
-        URL = str(os.environ['URL'])
-    except Exception:
-        URL = None
 
     updater = Updater(BOT_TOKEN, workers=2)
 
@@ -581,6 +610,7 @@ def main():
     dp.add_handler(CommandHandler('new', new_bot_submission, pass_args=True))
     dp.add_handler(RegexHandler('.*#new.*', new_bot_submission))
     dp.add_handler(CommandHandler('reject', admin.reject_bot_submission))
+    dp.add_handler(CommandHandler('rej', admin.reject_bot_submission))
     dp.add_handler(CommandHandler('offline', notify_bot_offline, pass_args=True))
     dp.add_handler(RegexHandler('.*#offline.*', notify_bot_offline))
     dp.add_handler(RegexHandler('^{}$'.format(const.REGEX_BOT_ONLY), send_bot_details))

@@ -56,3 +56,18 @@ class Bot(BaseModel):
     @staticmethod
     def of_category(category):
         return Bot.select().where(Bot.category == category, Bot.approved == True).order_by(fn.Lower(Bot.username))
+
+    @staticmethod
+    def get_new_bots():
+        import const
+        return Bot.select().where(
+            (Bot.approved == True) & (
+                Bot.date_added.between(
+                    datetime.date.today() - datetime.timedelta(days=const.BOT_CONSIDERED_NEW),
+                    datetime.date.today()
+                )
+            ))
+
+    @staticmethod
+    def get_new_bots_str():
+        return '\n'.join(['     {}'.format(str(b)) for b in Bot.get_new_bots()])

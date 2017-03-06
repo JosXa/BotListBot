@@ -1,10 +1,11 @@
 import os
+
 ### START OF CONFIGURATION ###
 
 # PREFERENCES
 
 ADMINS = [62056065, 918962]
-BOT_CONSIDERED_NEW = 15  # days
+BOT_CONSIDERED_NEW = 14  # days
 SELF_BOT_NAME = "bot_list_bot"
 SELF_BOT_ID = "182355371" if os.environ.get("DEV") == "True" else "265482650"
 SELF_CHANNEL_USERNAME = "botlist"
@@ -25,7 +26,8 @@ I'm the bot in charge of maintaining the @BotList channel, the *most reliable an
 
 First steps: Start off by using the /category command and use the available buttons from there on.
 
-One step closer to world domination... 🤖"""
+One step closer to world domination... 🤖
+Developed and maintained by @Josxa."""
 HELP_MESSAGE_SPANISH = """*ɢʀᴇᴇᴛɪɴɢs ʜᴜᴍᴀɴᴏɪᴅs* 🤖
 
 Soy el bot encargado de mantener el canal @BotList y proporcionar a los usuarios de Telegram como tú el *catálogo de bot más fiable e imparcial* de una _manera interactiva_.
@@ -37,7 +39,7 @@ Soy el bot encargado de mantener el canal @BotList y proporcionar a los usuarios
 Primeros pasos: Empieza con el comando /category y utiliza los botones disponibles en pantalla desde ahí.
 
 Un paso más cerca de la dominación mundial... 🤖
-"""
+Developed and maintained by @Josxa."""
 CONTRIBUTING_MESSAGE = """You can use the following `#tag`s with a bot `@username` to contribute to the BotList:
 
 • #new — Submit a fresh bot. Use 🔎 if it supports inline queries and flag emojis to denote the language. Everything after the `-` character can be your description of the bot (see /examples).
@@ -63,6 +65,7 @@ It does not suffice the standards we impose for inclusion in the @BotList for on
 ▫️The user interface is bad in terms of usability and/or simplicity.
 ▫️Contains ads or adult content
 ▫️English language not supported per default
+▫NO MANYBOTS!!! 👺
 
 For further information, please ask in the @BotListChat."""
 ACCEPTANCE_PRIVATE_MESSAGE = """Congratulations, your bot submission {} has been accepted for the @BotList. You can already see it by using the /category command, and it is going to be in the @BotList in the next two weeks."""
@@ -116,6 +119,7 @@ class CallbackStates:
 
 
 class CallbackActions:
+    NEW_BOTS_SELECTED, \
     DISABLE_NOTIFICATIONS, \
     SET_NOTIFICATIONS, \
     SWITCH_APPROVALS_PAGE, \

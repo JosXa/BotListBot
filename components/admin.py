@@ -167,10 +167,13 @@ def edit_bot(bot, update, chat_data, bot_to_edit=None):
 def prepare_transmission(bot, update, chat_data):
     chat_id = util.uid_from_update(update)
     text = mdformat.action_hint(
-        "You have the option to update the messages, or re-send the whole botlist (or not... LOL).")
+        "Notify subscribers about this update?")
     reply_markup = InlineKeyboardMarkup([[
-        InlineKeyboardButton("☑ Update messages", callback_data=util.callback_for_action(
-            CallbackActions.SEND_BOTLIST
+        InlineKeyboardButton("☑ Notifications", callback_data=util.callback_for_action(
+            CallbackActions.SEND_BOTLIST, {'silent': False}
+        )),
+        InlineKeyboardButton("Silent update", callback_data=util.callback_for_action(
+            CallbackActions.SEND_BOTLIST, {'silent': True}
         )),
         # InlineKeyboardButton("I deleted all messages. Re-Send now", callback_data=util.callback_for_action(
         #     CallbackActions.RESEND_BOTLIST
@@ -262,7 +265,6 @@ def approve_bots(bot, update, page=0):
                                      to_edit=util.mid_from_update(update))
         return
 
-
     buttons = []
     for x in unapproved:
         buttons.append([
@@ -271,7 +273,10 @@ def approve_bots(bot, update, page=0):
             InlineKeyboardButton(x.username, url="http://t.me/{}".format(x.username[1:])),
             InlineKeyboardButton(Emoji.CROSS_MARK,
                                  callback_data=util.callback_for_action(CallbackActions.REJECT_BOT,
-                                                                        {'id': x.id, 'page': page}))
+                                                                        {'id': x.id, 'page': page, 'ntfc': True})),
+            InlineKeyboardButton('🗑',
+                                 callback_data=util.callback_for_action(CallbackActions.REJECT_BOT,
+                                                                        {'id': x.id, 'page': page, 'ntfc': False}))
         ])
     page_arrows = list()
     if has_prev_page:
@@ -367,7 +372,7 @@ def send_offline(bot, update):
 
 
 @restricted
-def reject_bot_submission(bot, update, to_reject=None, verbose=True):
+def reject_bot_submission(bot, update, to_reject=None, verbose=True, notify_submittant=True):
     uid = util.uid_from_update(update)
 
     if to_reject is None:
@@ -395,12 +400,13 @@ def reject_bot_submission(bot, update, to_reject=None, verbose=True):
             return
 
     log_msg = "{} rejected by {}.".format(to_reject.username, uid)
-    try:
-        bot.sendMessage(to_reject.submitted_by.chat_id,
-                        util.failure(const.REJECTION_PRIVATE_MESSAGE.format(to_reject.username)))
-        log_msg += "\nUser {} was notified.".format(str(to_reject.submitted_by))
-    except TelegramError:
-        log_msg += "\nUser {} could NOT be contacted/notified in private.".format(str(to_reject.submitted_by))
+    if notify_submittant:
+        try:
+            bot.sendMessage(to_reject.submitted_by.chat_id,
+                            util.failure(const.REJECTION_PRIVATE_MESSAGE.format(to_reject.username)))
+            log_msg += "\nUser {} was notified.".format(str(to_reject.submitted_by))
+        except TelegramError:
+            log_msg += "\nUser {} could NOT be contacted/notified in private.".format(str(to_reject.submitted_by))
     to_reject.delete_instance()
     log.info(log_msg)
     if verbose:
