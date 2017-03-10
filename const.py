@@ -66,7 +66,6 @@ class CallbackActions:
     EDIT_BOT, \
     BOT_ACCEPTED, \
     BACK, \
-    CATEGORY_SELECTED, \
     ACCEPT_BOT_CAT_SELECTED, \
     ACCEPT_BOT, \
     RESEND_BOTLIST, \

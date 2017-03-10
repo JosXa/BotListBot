@@ -139,7 +139,11 @@ def _edit_bot_buttons(to_edit: Bot):
     buttons.append(
         InlineKeyboardButton("Delete", callback_data=util.callback_for_action(CallbackActions.CONFIRM_DELETE_BOT, bid)))
 
-    return util.build_menu(buttons, n_cols=2)
+    header = [InlineKeyboardButton(captions.BACK,
+                                   callback_data=util.callback_for_action(CallbackActions.SELECT_CATEGORY,
+                                                                          {'id': to_edit.category.id}))]
+
+    return util.build_menu(buttons, n_cols=2, header_buttons=header)
 
 
 @restricted
@@ -190,6 +194,7 @@ def prepare_transmission(bot, update, chat_data):
     ]])
     util.send_md_message(bot, chat_id, text,
                          reply_markup=reply_markup)
+
 
 @restricted
 def approve_suggestions(bot, update, page=0):

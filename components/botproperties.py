@@ -15,6 +15,7 @@ from telegram.ext.dispatcher import run_async
 import captions
 import const
 import helpers
+import messages
 import util
 from const import *
 from const import BotStates, CallbackActions
@@ -200,8 +201,8 @@ def set_keywords(bot, update, chat_data, to_edit):
     reply_markup = InlineKeyboardMarkup(buttons)
     msg = util.send_or_edit_md_message(bot,
                                  chat_id,
-                                 util.action_hint('Send me the keywords for {} one by one...'.format(
-                                     util.escape_markdown(to_edit.username))),
+                                 util.action_hint('Send me the keywords for {} one by one...\n\n{}'.format(
+                                     util.escape_markdown(to_edit.username), messages.KEYWORD_BEST_PRACTICES)),
                                  to_edit=set_keywords_msgid,
                                  reply_markup=reply_markup)
     chat_data['set_keywords_msg'] = msg.message_id
@@ -213,8 +214,8 @@ def add_keyword(bot, update, chat_data):
     kw = update.message.text
     bot_to_edit = chat_data.get('edit_bot')
     kw = helpers.format_keyword(kw)
-    if len(kw) <= 3:
-        update.message.reply_text('Keywords must be longer than 3 characters.')
+    if len(kw) <= 2:
+        update.message.reply_text('Keywords must be longer than 2 characters.')
         return
     kw_obj = Keyword(name=kw, entity=bot_to_edit)
     kw_obj.save()

@@ -11,7 +11,7 @@ I'm the bot in charge of maintaining the @BotList channel, the *most reliable an
 
 First steps: Start off by using the /category command and use the available buttons from there on.
 
-One step closer to world domination... 🤖"""
+ᴏɴᴇ sᴛᴇᴘ ᴄʟᴏsᴇʀ ᴛᴏ ᴡᴏʀʟᴅ ᴅᴏᴍɪɴᴀᴛɪᴏɴ 🤖"""
 HELP_MESSAGE_SPANISH = """*ɢʀᴇᴇᴛɪɴɢs ʜᴜᴍᴀɴᴏɪᴅs* 🤖
 
 Soy el bot encargado de mantener el canal @BotList y proporcionar a los usuarios de Telegram como tú el *catálogo de bot más fiable e imparcial* de una _manera interactiva_.
@@ -62,4 +62,13 @@ Share your bots in @BotListChat"""
 SEARCH_MESSAGE = util.action_hint("What would you like to search for?")
 SEARCH_RESULTS = """I found {num_results} bot{plural} in the @BotList matching your request:
 {bots}
+"""
+KEYWORD_BEST_PRACTICES = """The following rules for keywords apply:
+▫️Keep the keywords as short as possible
+▫️Use singular where applicable (#̶v̶i̶d̶e̶o̶s̶ video)
+▫️Try to tag every supported platform (e.g. #vimeo, #youtube, #twitch, ...)
+▫Try to tag every supported action (#search, #upload, #download, ...)
+▫Keep it specific (only tag #share if the bot has a dedicated 'Share' button)
+▫Tag bots made with _bot creators_ (e.g. #manybot)
+▫Use #related if the bot is not standalone, but needs another application to work properly, e.g. an Android App
 """

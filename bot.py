@@ -691,6 +691,7 @@ def main():
             CallbackQueryHandler(callback_router, pass_chat_data=True),
             CommandHandler('category', select_category),
             CommandHandler('search', search_handler, pass_args=True),
+            CommandHandler('s', search_handler, pass_args=True),
             CommandHandler('cat', select_category),
             # CallbackQueryHandler(callback_router, pass_chat_data=True)
         ],
