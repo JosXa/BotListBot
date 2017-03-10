@@ -3,6 +3,7 @@ import datetime
 
 from peewee import *
 
+import helpers
 import util
 from model.basemodel import BaseModel
 from model.category import Category
@@ -27,6 +28,22 @@ class Bot(BaseModel):
     submitted_by = ForeignKeyField(User, null=True)
 
     @property
+    def serialize(self):
+        return {
+            'id': self.id,
+            'category_id': self.category.id,
+            # 'name': self.name,
+            'username': self.username,
+            'description': self.description,
+            'date_added': self.date_added,
+            'inlinequeries': self.inlinequeries,
+            'official': self.official,
+            'extra_text': self.extra,
+            'offline': self.offline,
+            'botlist_url': helpers.botlist_url_for_category(self.category),
+        }
+
+    @property
     def is_new(self):
         import const
         today = datetime.date.today()
@@ -35,7 +52,11 @@ class Bot(BaseModel):
         return result
 
     def __str__(self):
-        text = ('💤 ' if self.offline else '') + \
+        return util.escape_markdown(self.str_no_md).encode('utf-8').decode('utf-8')
+
+    @property
+    def str_no_md(self):
+        return ('💤 ' if self.offline else '') + \
                ('🆕 ' if self.is_new else '') + \
                self.username + \
                (' ' if any([self.inlinequeries, self.official, self.country]) else '') + \
@@ -43,7 +64,6 @@ class Bot(BaseModel):
                ('🔹' if self.official else '') + \
                (self.country.emoji if self.country else '') + \
                (' ' + self.extra if self.extra else '')
-        return util.escape_markdown(text).encode('utf-8').decode('utf-8')
 
     @staticmethod
     def by_username(username: str):
@@ -71,3 +91,8 @@ class Bot(BaseModel):
     @staticmethod
     def get_new_bots_str():
         return '\n'.join(['     {}'.format(str(b)) for b in Bot.get_new_bots()])
+
+    @property
+    def keywords(self):
+        from model.keywordmodel import Keyword
+        return Keyword.select().where(Keyword.entity == self)

@@ -15,7 +15,9 @@ from telegram.ext.dispatcher import run_async
 
 import captions
 import const
+import helpers
 import mdformat
+import messages
 import util
 from const import *
 from const import BotStates, CallbackActions
@@ -37,7 +39,7 @@ def send_botlist(bot, update, chat_data, resend=False, silent=False):
     log.info("Re-Sending BotList..." if resend else "Updating BotList...")
     chat_id = util.uid_from_update(update)
     message_id = util.mid_from_update(update)
-    channel = const.get_channel()
+    channel = helpers.get_channel()
     error = False
 
     def notify_admin(txt):
@@ -234,7 +236,7 @@ def send_botlist(bot, update, chat_data, resend=False, silent=False):
             notification_count = 0
             for sub in subscribers:
                 try:
-                    util.send_md_message(bot, sub.chat_id, const.BOTLIST_UPDATE_NOTIFICATION.format(
+                    util.send_md_message(bot, sub.chat_id, messages.BOTLIST_UPDATE_NOTIFICATION.format(
                         n_bots=len(new_bots),
                         new_bots=new_bots_joined))
                     notification_count += 1

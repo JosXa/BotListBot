@@ -10,6 +10,7 @@ from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, 
 import captions
 import const
 import mdformat
+import messages
 import util
 from bot import log
 from const import *
@@ -17,6 +18,7 @@ from const import BotStates, CallbackActions
 from custemoji import Emoji
 from model import Bot
 from model import Category
+from model import Keyword
 from model import Suggestion
 from util import restricted
 
@@ -92,6 +94,10 @@ def _edit_bot_buttons(to_edit: Bot):
                              callback_data=util.callback_for_action(
                                  CallbackActions.EDIT_BOT_EXTRA, bid
                              )),
+        InlineKeyboardButton("Set keywords",
+                             callback_data=util.callback_for_action(
+                                 CallbackActions.EDIT_BOT_KEYWORDS, bid
+                             )),
     ]
 
     # inlinequeries
@@ -140,6 +146,7 @@ def _edit_bot_buttons(to_edit: Bot):
 def edit_bot(bot, update, chat_data, bot_to_edit=None):
     chat_id = util.uid_from_update(update)
     message_id = util.mid_from_update(update)
+    kws = Keyword.select().where(Keyword.entity == bot_to_edit)
 
     if not bot_to_edit:
         if update.message:
@@ -156,9 +163,11 @@ def edit_bot(bot, update, chat_data, bot_to_edit=None):
     reply_markup = InlineKeyboardMarkup(_edit_bot_buttons(bot_to_edit))
     util.send_or_edit_md_message(
         bot, chat_id,
-        util.action_hint("Edit the properties of {}:{}".format(
+        util.action_hint("Edit the properties of {}:{}{}".format(
             bot_to_edit,
-            ('\n\n*Description:*\n{}'.format(bot_to_edit.description) if bot_to_edit.description else '')
+            ('\n\n*Description:*\n{}'.format(bot_to_edit.description) if bot_to_edit.description else ''),
+            ('\n\n*Keywords:* {}'.format(util.escape_markdown(
+                ', '.join([str(x) for x in kws]))) if kws else ''),
         )),
         to_edit=message_id, reply_markup=reply_markup)
 
@@ -181,17 +190,6 @@ def prepare_transmission(bot, update, chat_data):
     ]])
     util.send_md_message(bot, chat_id, text,
                          reply_markup=reply_markup)
-
-
-"""
-page     = 5
-items    = 110
-pagesize = 10
-
-start = 50 = page*pagesize
-end   = 60 = page*pagesize + pagesize-1
-"""
-
 
 @restricted
 def approve_suggestions(bot, update, page=0):
@@ -339,7 +337,7 @@ def accept_bot_submission(bot, update, of_bot: Bot, category):
         # notify submittant
         try:
             bot.sendMessage(of_bot.submitted_by.chat_id,
-                            util.success(const.ACCEPTANCE_PRIVATE_MESSAGE.format(of_bot.username)))
+                            util.success(messages.ACCEPTANCE_PRIVATE_MESSAGE.format(of_bot.username)))
             log_msg += "\nUser {} was notified.".format(str(of_bot.submitted_by))
         except TelegramError:
             log_msg += "\nUser {} could NOT be contacted/notified in private.".format(str(of_bot.submitted_by))
@@ -403,7 +401,7 @@ def reject_bot_submission(bot, update, to_reject=None, verbose=True, notify_subm
     if notify_submittant:
         try:
             bot.sendMessage(to_reject.submitted_by.chat_id,
-                            util.failure(const.REJECTION_PRIVATE_MESSAGE.format(to_reject.username)))
+                            util.failure(messages.REJECTION_PRIVATE_MESSAGE.format(to_reject.username)))
             log_msg += "\nUser {} was notified.".format(str(to_reject.submitted_by))
         except TelegramError:
             log_msg += "\nUser {} could NOT be contacted/notified in private.".format(str(to_reject.submitted_by))

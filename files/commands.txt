@@ -1,4 +1,5 @@
 category - Show a BOTLIST category
+search - Search the BOTLIST
 new - Add your bot to the BOTLIST
 offline - Mark a bot as offline
 contributing - How to contribute to the BOTLIST

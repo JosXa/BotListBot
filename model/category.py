@@ -2,6 +2,8 @@
 import emoji
 from peewee import *
 
+import const
+import helpers
 from model.basemodel import BaseModel
 
 
@@ -11,6 +13,16 @@ class Category(BaseModel):
     name = CharField(unique=True)
     extra = CharField(null=True)
     current_message_id = IntegerField(null=True)
+
+    @property
+    def serialize(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'emojis': self.emojis,
+            'extra_text': self.extra,
+            'botlist_url': helpers.botlist_url_for_category(self)
+        }
 
     def __str__(self):
         return '•' + emoji.emojize(self.emojis, use_aliases=True) + self.name + \

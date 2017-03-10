@@ -1,8 +1,10 @@
 from model.bot import Bot
 from model.category import Category
 from model.channel import Channel
+from model.apiaccess import APIAccess
 from model.country import Country
 from model.group import Group
+from model.keywordmodel import Keyword
 from model.notifications import Notifications
 from model.user import User
 from model.suggestion import Suggestion
@@ -16,6 +18,13 @@ if __name__ == "__main__":
     Suggestion.create_table(fail_silently=True)
     Group.create_table(fail_silently=True)
     Notifications.create_table(fail_silently=True)
+    Keyword.create_table(fail_silently=True)
+    APIAccess.create_table(fail_silently=True)
+
+    APIAccess.insert({
+        'user': User.get(User.username == 'Josxa'),
+        'token': '5f25218eb541b992b926c2e831d9e611853158e9bd69af56a760b717922029a9',
+    }).execute()
 
     # Country.insert_many([
     #     {'name': 'Italy', 'emoji': '🇮🇹'},

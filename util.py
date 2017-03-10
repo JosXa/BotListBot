@@ -14,10 +14,9 @@ from telegram import ChatAction, ReplyKeyboardHide
 from telegram import ParseMode
 import time
 
-from model.group import Group
-
 
 def track_groups(func):
+    from model.group import Group
     """
     Decorator that stores all groups that the bot has been added to
     """
@@ -38,6 +37,7 @@ def track_groups(func):
                 except (NameError, AttributeError):
                     logging.error("No chat_id available in update.")
         return func(bot, update, *args, **kwargs)
+
     return wrapped
 
 
@@ -102,7 +102,7 @@ def build_menu(buttons: List,
             menu[int(i / n_cols)].append(item)
     if header_buttons:
         menu.insert(0, header_buttons)
-    if header_buttons:
+    if footer_buttons:
         menu.append(footer_buttons)
     return menu
 
@@ -161,6 +161,23 @@ def callback_data_from_update(update):
         return json.loads(data)
     except:
         return {}
+
+
+def is_group_message(update):
+    try:
+        return update.message.chat.type == 'group'
+    except (NameError, AttributeError):
+        try:
+            return update.callback_query.message.chat.type == 'group'
+        except (NameError, AttributeError):
+            try:
+                return update.message.new_chat_member.id == const.SELF_BOT_ID
+            except (NameError, AttributeError):
+                return False
+
+
+def is_private_message(update):
+    return not is_group_message(update)
 
 
 def is_inline_message(update):

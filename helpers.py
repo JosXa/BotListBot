@@ -1,7 +1,11 @@
 import logging
+from pprint import pprint
+
+from const import SELF_CHANNEL_USERNAME
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
+
 
 def validate_username(username: str):
     if len(username) < 3:
@@ -21,3 +25,22 @@ def get_commands():
     except FileNotFoundError:
         log.error("File could not be opened.")
 
+
+def get_channel():
+    from model import Channel
+    try:
+        return Channel.get(Channel.username == SELF_CHANNEL_USERNAME)
+    except Channel.DoesNotExist:
+        return False
+
+
+def botlist_url_for_category(category):
+    return 'http://t.me/{}/{}'.format(get_channel().username, category.current_message_id)
+
+
+def format_keyword(kw):
+    kw = kw[1:] if kw[0] == '#' else kw
+    kw = kw.replace(' ', '_')
+    kw = kw.replace('-', '_')
+    kw = kw.lower()
+    return kw

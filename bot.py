@@ -6,11 +6,16 @@ import os
 import re
 import sys
 import time
+from pprint import pprint
 from uuid import uuid4
+
+import binascii
+from wsgiref.simple_server import WSGIServer
 
 import emoji
 from peewee import fn
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import ForceReply
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, forcereply
 from telegram import InlineQueryResultArticle
 from telegram import InputTextMessageContent
 from telegram import ParseMode
@@ -18,18 +23,24 @@ from telegram.ext import CallbackQueryHandler
 from telegram.ext import MessageHandler, \
     Filters, RegexHandler, InlineQueryHandler, ConversationHandler
 from telegram.ext import Updater, CommandHandler
+from werkzeug.wsgi import DispatcherMiddleware
 
+import search
 import appglobals
 import captions
 import components.botlist
 import const
+import helpers
+import messages
 import util
+from api.botlistapi import app
 from components import admin
 from components import botlist
 from components import botproperties
 from components.botlist import new_channel_post
 from const import BotStates, CallbackActions, CallbackStates
 from model import Category, Bot, Country
+from model import Keyword
 from model import Notifications
 from model.suggestion import Suggestion
 from model.user import User
@@ -57,11 +68,11 @@ def start(bot, update, args):
         return
     help(bot, update)
     util.wait(bot, update)
-    manage_subscription(bot, update)
+    return ConversationHandler.END
 
 
 def available_commands(bot, update):
-    update.message.reply_text('*Available commands:*\n' + const.COMMANDS, parse_mode=ParseMode.MARKDOWN)
+    update.message.reply_text('*Available commands:*\n' + helpers.get_commands(), parse_mode=ParseMode.MARKDOWN)
 
 
 def manage_subscription(bot, update):
@@ -75,6 +86,7 @@ def manage_subscription(bot, update):
                                                                           {'value': False}))]]
     reply_markup = InlineKeyboardMarkup(buttons)
     util.send_md_message(bot, chat_id, msg, reply_markup=reply_markup)
+    return ConversationHandler.END
 
 
 def _new_bots_text():
@@ -99,6 +111,7 @@ def select_language(bot, update):
                                                                                     {'lang': 'es'}))]]
     reply_markup = InlineKeyboardMarkup(buttons)
     util.send_md_message(bot, chat_id, msg, reply_markup=reply_markup)
+    return ConversationHandler.END
 
 
 @track_groups
@@ -108,6 +121,7 @@ def all_handler(bot, update):
             const.SELF_BOT_ID):
         # bot was added to a group
         start(bot, update)
+    return ConversationHandler.END
 
 
 @restricted
@@ -118,6 +132,40 @@ def restart(bot, update):
     util.send_message_success(bot, chat_id, "Bot is restarting...")
     time.sleep(0.2)
     os.execl(sys.executable, sys.executable, *sys.argv)
+
+
+def search_query(bot, update, query):
+    chat_id = util.cid_from_update(update)
+    results = search.search_bots(query)
+    if results:
+        too_many_results = len(results) > const.MAX_SEARCH_RESULTS
+
+        bots_list = ''
+        if chat_id in const.ADMINS:
+            # append edit buttons
+            bots_list += 'ADMIN MODE\n'
+            bots_list += '\n'.join(["{} — /edit{}".format(b, b.id) for b in list(results)[:100]])
+        else:
+            bots_list += '\n'.join([str(b) for b in list(results)[:const.MAX_SEARCH_RESULTS]])
+        bots_list += '\n…' if too_many_results else ''
+        bots_list = messages.SEARCH_RESULTS.format(bots=bots_list, num_results=len(results),
+                                                   plural='s' if len(results) > 1 else '')
+        update.message.reply_text(bots_list, parse_mode=ParseMode.MARKDOWN)
+    else:
+        update.message.reply_text(
+            util.failure("Sorry, I couldn't find anything related "
+                         "to *{}* in the @BotList.".format(query)), parse_mode=ParseMode.MARKDOWN)
+    return ConversationHandler.END
+
+
+def search_handler(bot, update, args):
+    if args:
+        search_query(bot, update, ' '.join(args))
+    else:
+        # no search term
+        update.message.reply_text(messages.SEARCH_MESSAGE,
+                                  reply_markup=ForceReply(selective=True))
+    return ConversationHandler.END
 
 
 @track_groups
@@ -139,47 +187,7 @@ def select_category(bot, update, callback_action=None):
     msg = util.send_or_edit_md_message(bot, chat_id, util.action_hint("Please select a category"),
                                        to_edit=util.mid_from_update(update),
                                        reply_markup=InlineKeyboardMarkup(buttons))
-    # return msg
-
-
-def inlinequery(bot, update):
-    query = update.inline_query.query.lower()
-    chat_id = update.inline_query.from_user.id
-    results_list = list()
-    categories = list()
-
-    # append new bots list to result
-    txt = const.PROMOTION_MESSAGE + '\n\n' + _new_bots_text()
-    results_list.append(InlineQueryResultArticle(
-        id=uuid4(),
-        title='🆕 New Bots',
-        input_message_content=InputTextMessageContent(message_text=txt, parse_mode="Markdown"),
-        description='Bots added in the last {} days.'.format(const.BOT_CONSIDERED_NEW)
-    ))
-
-    try:
-        # user selected a specific category
-        c = Category.get((Category.name ** query) | (Category.extra ** query))
-        categories.append(c)
-    except Category.DoesNotExist:
-        # no search results, send all
-        categories = Category.select()
-
-    for c in categories:
-        bot_list = Bot.of_category(c)
-        bots_with_description = [b for b in bot_list if b.description is not None]
-
-        txt = const.PROMOTION_MESSAGE + '\n\n'
-        txt += "There are *{}* bots in the category *{}*:\n\n".format(len(bot_list), str(c))
-        txt += '\n'.join([str(b) for b in bot_list])
-        results_list.append(InlineQueryResultArticle(
-            id=uuid4(),
-            title=emoji.emojize(c.emojis, use_aliases=True) + c.name,
-            input_message_content=InputTextMessageContent(message_text=txt, parse_mode="Markdown"),
-            description=c.extra
-        ))
-
-    bot.answerInlineQuery(update.inline_query.id, results=results_list)
+    return ConversationHandler.END
 
 
 def error(bot, update, error):
@@ -188,30 +196,29 @@ def error(bot, update, error):
 
 @track_groups
 def help(bot, update):
-    update.message.reply_text(const.HELP_MESSAGE_ENGLISH, quote=False, parse_mode=ParseMode.MARKDOWN)
+    update.message.reply_text(messages.HELP_MESSAGE_ENGLISH, quote=False, parse_mode=ParseMode.MARKDOWN)
+    return ConversationHandler.END
 
 
 def contributing(bot, update):
-    update.message.reply_text(const.CONTRIBUTING_MESSAGE, quote=True, parse_mode=ParseMode.MARKDOWN)
+    update.message.reply_text(messages.CONTRIBUTING_MESSAGE, quote=True, parse_mode=ParseMode.MARKDOWN)
+    return ConversationHandler.END
 
 
 def examples(bot, update):
-    update.message.reply_text(const.EXAMPLES_MESSAGE, quote=True, parse_mode=ParseMode.MARKDOWN)
+    update.message.reply_text(messages.EXAMPLES_MESSAGE, quote=True, parse_mode=ParseMode.MARKDOWN)
+    return ConversationHandler.END
 
 
-def rules(bot, update):
-    pass
+def access_token(bot, update):
+    update.message.reply_text(binascii.hexlify(os.urandom(32)).decode('utf-8'))
+    return ConversationHandler.END
 
 
 def credits(bot, update):
     # TODO: test
     Bot.select(Bot.submitted_by)
-
-
-def photo_handler(bot, update):
-    if update.channel_post:
-        pic = update.message.photo
-        return new_channel_post(bot, update, pic)
+    return ConversationHandler.END
 
 
 @track_groups
@@ -262,6 +269,7 @@ def notify_bot_offline(bot, update, args=None):
         update.message.reply_text(util.success("Thank you! We will review your suggestion and set the bot offline."))
     except Bot.DoesNotExist:
         update.message.reply_text(util.action_hint("The bot you sent me is not in the @botlist."))
+    return ConversationHandler.END
 
 
 @track_groups
@@ -322,11 +330,12 @@ def new_bot_submission(bot, update, args=None):
     new_bot.save()
     update.message.reply_text(util.success("You submitted {} for approval.{}".format(new_bot, description_notify)),
                               parse_mode=ParseMode.MARKDOWN)
+    return ConversationHandler.END
 
 
 def show_new_bots(bot, update, back_button=False):
     chat_id = util.cid_from_update(update)
-    channel = const.get_channel()
+    channel = helpers.get_channel()
     reply_markup = None
     if back_button:
         reply_markup = InlineKeyboardMarkup([[
@@ -339,6 +348,7 @@ def show_new_bots(bot, update, back_button=False):
         ]])
     util.send_or_edit_md_message(bot, chat_id, _new_bots_text(), to_edit=util.mid_from_update(update),
                                  reply_markup=reply_markup)
+    return ConversationHandler.END
 
 
 def send_category(bot, update, category=None):
@@ -360,7 +370,7 @@ def send_category(bot, update, category=None):
     ])
     txt = "There are *{}* bots in the category *{}*:\n\n".format(len(bot_list), str(category))
 
-    if chat_id in const.ADMINS:
+    if chat_id in const.ADMINS and util.is_private_message(update):
         # append edit buttons
         txt += '\n'.join(["{} — /edit{}".format(b, b.id) for b in bot_list])
     else:
@@ -371,6 +381,12 @@ def send_category(bot, update, category=None):
     util.send_or_edit_md_message(bot, chat_id,
                                  txt,
                                  to_edit=util.mid_from_update(update), reply_markup=InlineKeyboardMarkup(menu))
+
+
+def _bot_detail_text(bot):
+    txt = '{}'.format(bot)
+    txt += '\n\n{}'.format(bot.description) if bot.description else ''
+    return txt
 
 
 @private_chat_only
@@ -413,8 +429,7 @@ def send_bot_details(bot, update, item=None):
         ))
     ]])
     util.send_or_edit_md_message(bot, chat_id,
-                                 "*{}*\n\n"
-                                 "{}\n\n".format(item, item.description),
+                                 _bot_detail_text(item),
                                  to_edit=util.mid_from_update(update),
                                  reply_markup=reply_markup
                                  )
@@ -440,6 +455,87 @@ def set_notifications(bot, update, value: bool):
     msg = util.success("Nice! Notifications enabled.") if value else "Ok, notifications disabled."
     msg += '\nYou can always adjust this setting with the /subscribe command.'
     util.send_or_edit_md_message(bot, chat_id, msg, to_edit=util.mid_from_update(update))
+    return ConversationHandler.END
+
+
+def inlinequery(bot, update):
+    query = update.inline_query.query.lower()
+    results_list = list()
+    MIN_LENGTH = 3
+    query_too_short = len(query) < MIN_LENGTH
+
+    cat_results = search.search_categories(query)
+    bot_results = list(search.search_bots(query))[:30]
+
+    if query_too_short and len(query) > 0:
+        txt = '[I am a stupid, crazy fool.](https://www.youtube.com/watch?v=DLzxrzFCyOs)'
+        results_list.append(InlineQueryResultArticle(
+            id=uuid4(),
+            title=util.action_hint('Your search term must be at least {} characters long.'.format(MIN_LENGTH)),
+            input_message_content=InputTextMessageContent(message_text=txt,
+                                                          parse_mode="Markdown",
+                                                          disable_web_page_preview=True)
+        ))
+
+    # search results?
+    if query_too_short or (not cat_results and not bot_results):
+        # append new bots list to result
+        txt = messages.PROMOTION_MESSAGE + '\n\n' + _new_bots_text()
+        results_list.append(InlineQueryResultArticle(
+            id=uuid4(),
+            title='🆕 New Bots',
+            input_message_content=InputTextMessageContent(message_text=txt, parse_mode="Markdown"),
+            description='Bots added in the last {} days.'.format(const.BOT_CONSIDERED_NEW)
+        ))
+
+        # append categories to result
+        categories = Category.select()
+        for c in categories:
+            bot_list = Bot.of_category(c)
+            # bots_with_description = [b for b in bot_list if b.description is not None]
+            txt = messages.PROMOTION_MESSAGE + '\n\n'
+            txt += "There are *{}* bots in the category *{}*:\n\n".format(len(bot_list), str(c))
+            txt += '\n'.join([str(b) for b in bot_list])
+            results_list.append(InlineQueryResultArticle(
+                id=uuid4(),
+                title=emoji.emojize(c.emojis, use_aliases=True) + c.name,
+                input_message_content=InputTextMessageContent(message_text=txt, parse_mode="Markdown"),
+                description=c.extra
+            ))
+    else:
+        for c in cat_results:
+            bot_list = Bot.of_category(c)
+            # bots_with_description = [b for b in bot_list if b.description is not None]
+            txt = messages.PROMOTION_MESSAGE + '\n\n'
+            txt += "There are *{}* bots in the category *{}*:\n\n".format(len(bot_list), str(c))
+            txt += '\n'.join([str(b) for b in bot_list])
+            results_list.append(InlineQueryResultArticle(
+                id=uuid4(),
+                title=emoji.emojize(c.emojis, use_aliases=True) + c.name,
+                input_message_content=InputTextMessageContent(message_text=txt, parse_mode="Markdown"),
+                description=c.extra
+            ))
+
+        for b in bot_results:
+            # bots_with_description = [b for b in bot_list if b.description is not None]
+            txt = messages.PROMOTION_MESSAGE + '\n\n'
+            txt += _bot_detail_text(b)
+            results_list.append(InlineQueryResultArticle(
+                id=uuid4(),
+                title=b.str_no_md,
+                input_message_content=InputTextMessageContent(message_text=txt, parse_mode="Markdown"),
+                description=b.description if b.description else b.name if b.name else None
+            ))
+
+    bot.answerInlineQuery(update.inline_query.id, results=results_list)
+
+
+def reply_router(bot, update, chat_data):
+    text = update.message.reply_to_message.text
+
+    if text == messages.SEARCH_MESSAGE:
+        query = update.message.text
+        search_query(bot, update, query)
 
 
 def callback_router(bot, update, chat_data):
@@ -461,7 +557,7 @@ def callback_router(bot, update, chat_data):
         #     category_permalink(bot, update, category)
         # SEND BOTLIST
         if action == CallbackActions.SEND_BOTLIST:
-            silent = obj['silent']
+            silent = obj.get('silent', False)
             components.botlist.send_botlist(bot, update, chat_data, silent=silent)
         if action == CallbackActions.RESEND_BOTLIST:
             components.botlist.send_botlist(bot, update, chat_data, resend=True)
@@ -475,6 +571,9 @@ def callback_router(bot, update, chat_data):
             admin.reject_bot_submission(bot, update, to_reject, verbose=False, notify_submittant=notification)
             admin.approve_bots(bot, update, obj['page'])
         if action == CallbackActions.BOT_ACCEPTED:
+
+            print('CallbackActions.BOT_ACCEPTED')
+
             to_accept = Bot.get(id=obj['bid'])
             category = Category.get(id=obj['cid'])
             admin.accept_bot_submission(bot, update, to_accept, category)
@@ -490,6 +589,9 @@ def callback_router(bot, update, chat_data):
             to_edit = Bot.get(id=obj['id'])
             admin.edit_bot_category(bot, update, to_edit)
         if action == CallbackActions.EDIT_BOT_CAT_SELECTED:
+
+            print('CallbackActions.EDIT_BOT_CAT_SELECTED')
+
             to_edit = Bot.get(id=obj['bid'])
             to_edit.category = Category.get(id=obj['cid'])
             to_edit.save()
@@ -498,6 +600,9 @@ def callback_router(bot, update, chat_data):
             to_edit = Bot.get(id=obj['id'])
             botproperties.set_country(bot, update, to_edit)
         if action == CallbackActions.SET_COUNTRY:
+
+            print('CallbackActions.SET_COUNTRY')
+
             to_edit = Bot.get(id=obj['bid'])
             if obj['cid'] == 'None':
                 country = None
@@ -518,6 +623,9 @@ def callback_router(bot, update, chat_data):
         if action == CallbackActions.EDIT_BOT_USERNAME:
             to_edit = Bot.get(id=obj['id'])
             return botproperties.set_username(bot, update, chat_data, to_edit)
+        if action == CallbackActions.EDIT_BOT_KEYWORDS:
+            to_edit = Bot.get(id=obj['id'])
+            return botproperties.set_keywords_init(bot, update, chat_data, to_edit)
         if action == CallbackActions.EDIT_BOT_INLINEQUERIES:
             to_edit = Bot.get(id=obj['id'])
             botproperties.toggle_inlinequeries(bot, update, to_edit)
@@ -554,9 +662,20 @@ def callback_router(bot, update, chat_data):
             set_notifications(bot, update, obj['value'])
         if action == CallbackActions.NEW_BOTS_SELECTED:
             show_new_bots(bot, update, back_button=True)
+        if action == CallbackActions.REMOVE_KEYWORD:
+            to_edit = Bot.get(id=obj['id'])
+            kw = Keyword.get(id=obj['kwid'])
+            kw.delete_instance()
+            botproperties.set_keywords(bot, update, chat_data, to_edit)
+        if action == CallbackActions.ABORT_SETTING_KEYWORDS:
+            to_edit = Bot.get(id=obj['id'])
+            admin.edit_bot(bot, update, chat_data, to_edit)
+            return ConversationHandler.END
 
 
 def main():
+    # TODO: start api
+
     try:
         BOT_TOKEN = str(os.environ['TG_TOKEN'])
     except Exception:
@@ -571,6 +690,7 @@ def main():
         entry_points=[
             CallbackQueryHandler(callback_router, pass_chat_data=True),
             CommandHandler('category', select_category),
+            CommandHandler('search', search_handler, pass_args=True),
             CommandHandler('cat', select_category),
             # CallbackQueryHandler(callback_router, pass_chat_data=True)
         ],
@@ -587,6 +707,12 @@ def main():
             BotStates.SENDING_USERNAME: [
                 MessageHandler(Filters.text, botproperties.set_username, pass_chat_data=True)
             ],
+            BotStates.SENDING_KEYWORDS: [
+                MessageHandler(Filters.text, botproperties.add_keyword, pass_chat_data=True)
+            ],
+            # BotStates.SEARCHING: [
+            #     MessageHandler(Filters.text, search_handler)
+            # ],
         },
         fallbacks=[
             CallbackQueryHandler(callback_router, pass_chat_data=True),
@@ -595,6 +721,8 @@ def main():
     )
     conv_handler.allow_reentry = True
     dp.add_handler(conv_handler)
+
+    dp.add_handler(MessageHandler(Filters.reply, reply_router, pass_chat_data=True))
 
     dp.add_handler(CommandHandler('start', start, pass_args=True))
     dp.add_handler(CommandHandler("admin", admin.menu))
@@ -624,10 +752,11 @@ def main():
     dp.add_handler(CommandHandler("subscribe", manage_subscription))
     dp.add_handler(CommandHandler("newbots", show_new_bots))
 
+    dp.add_handler(CommandHandler("accesstoken", access_token))
+
     dp.add_handler(InlineQueryHandler(inlinequery))
     dp.add_error_handler(error)
     dp.add_handler(MessageHandler(Filters.text, plaintext))
-    dp.add_handler(MessageHandler(Filters.photo, photo_handler))
     dp.add_handler(MessageHandler(Filters.all, all_handler))
 
     # users = User.select().join(
