@@ -35,7 +35,7 @@ log = logging.getLogger(__name__)
 
 @restricted
 @run_async
-def send_botlist(bot, update, chat_data, resend=False, silent=False):
+def send_botlist(bot, update, resend=False, silent=False):
     log.info("Re-Sending BotList..." if resend else "Updating BotList...")
     chat_id = util.uid_from_update(update)
     message_id = util.mid_from_update(update)
@@ -115,7 +115,7 @@ def send_botlist(bot, update, chat_data, resend=False, silent=False):
             pass
 
         counter = 0
-        all_categories = Category.select()
+        all_categories = Category.select_all()
         n = len(all_categories)
         for cat in all_categories:
             counter += 1
@@ -190,7 +190,7 @@ def send_botlist(bot, update, chat_data, resend=False, silent=False):
             str(c),
             channel.username,
             c.current_message_id
-        ) for c in Category.select()])
+        ) for c in Category.select_all()])
         with codecs.open('files/category_list.txt', 'r', 'utf-8') as f:
             category_list = f.read()
 
@@ -203,15 +203,6 @@ def send_botlist(bot, update, chat_data, resend=False, silent=False):
         )
         num_bots = Bot.select().count()
 
-        footer = '\n```'
-        footer += '\n' + mdformat.centered(
-            "• @botlist •\n{}\n{} bots".format(
-                datetime.date.today().strftime("%d-%m-%Y"),
-                num_bots
-            ))
-        footer += '```'
-        print(footer)
-        category_list += footer
         try:
             if resend:
                 category_list_msg = util.send_md_message(bot, channel.chat_id, category_list, timeout=120,
@@ -228,6 +219,35 @@ def send_botlist(bot, update, chat_data, resend=False, silent=False):
             # message not modified
             pass
 
+        # add footer as notification
+        footer = '\n```'
+        footer += '\n' + mdformat.centered(
+            "• @botlist •\n{}\n{} bots".format(
+                datetime.date.today().strftime("%d-%m-%Y"),
+                num_bots
+            ))
+        footer += '```'
+
+        try:
+            print('resend: {}'.format(resend))
+            print('not silent: {}'.format(not silent))
+            if resend or not silent:
+                footer_to_edit = None
+            else:
+                footer_to_edit = channel.footer_mid
+            print('footer to edit: {}'.format(footer_to_edit))
+            footer_msg = util.send_or_edit_md_message(bot, channel.chat_id, footer,
+                                                      to_edit=footer_to_edit,
+                                                      timeout=120,
+                                                      disable_notifications=silent)
+            channel.footer_mid = footer_msg.message_id
+        except BadRequest:
+            # message not modified
+            pass
+        sent['footer'] = "Footer sent"
+
+        # set last update
+        channel.last_update = datetime.date.today()
         channel.save()
 
         if not silent and len(new_bots) > 0:

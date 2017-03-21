@@ -7,13 +7,15 @@ import os
 ADMINS = [62056065, 918962]
 BOT_CONSIDERED_NEW = 14  # days
 SELF_BOT_NAME = "bot_list_bot"
-SELF_BOT_ID = "182355371" if os.environ.get("DEV") == "True" else "265482650"
-SELF_CHANNEL_USERNAME = "botlist"
+SELF_BOT_ID = "182355371" if bool(os.environ.get("DEV")) else "265482650"
+SELF_CHANNEL_USERNAME = "botlist_testchannel" if bool(os.environ.get("DEV")) else "botlist"
+# SELF_CHANNEL_USERNAME =
 REGEX_BOT_IN_TEXT = r'.*(@[a-zA-Z]+[a-zA-Z0-9_\-]{3,}).*'
 REGEX_BOT_ONLY = r'(@[a-zA-Z]+[a-zA-Z0-9_\-]{3,})'
 PAGE_SIZE_SUGGESTIONS_LIST = 10
 PAGE_SIZE_APPROVALS_LIST = 10
 MAX_SEARCH_RESULTS = 25
+MAX_BOTS_PER_MESSAGE = 140
 
 ### END OF CONFIGURATION ###
 
@@ -47,6 +49,8 @@ class CallbackStates:
 
 
 class CallbackActions:
+    INLINE_QUERY_CATEGORIES, \
+    EDIT_BOT_SPAM, \
     ABORT_SETTING_KEYWORDS, \
     REMOVE_KEYWORD, \
     EDIT_BOT_KEYWORDS, \

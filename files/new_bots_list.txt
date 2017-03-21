@@ -3,6 +3,7 @@
 -------------------------------
  🔎 = Inline Bot
  🔹 = Officialized by Telegram
+ 🚮 = Bot spams a lot
  💤 = Bot is currently unavailable
 -------------------------------```
 
@@ -14,6 +15,7 @@
 -------------------------------
  🔎 = Bot en línea
  🔹 = Oficializado por Telegram
+ 🚮 = El bot hace mucho spam
  💤 = El Bot está actualmente desconectado
 -------------------------------
 ```

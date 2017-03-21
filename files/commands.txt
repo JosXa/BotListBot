@@ -2,6 +2,7 @@ category - Show a BOTLIST category
 search - Search the BOTLIST
 new - Add your bot to the BOTLIST
 offline - Mark a bot as offline
+spam - Mark a bot that spams too much
 contributing - How to contribute to the BOTLIST
 examples - See contribution examples
 newbots - Get a list of newly added Bots

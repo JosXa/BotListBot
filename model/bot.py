@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
+from typing import List
 
 from peewee import *
 
@@ -23,6 +24,7 @@ class Bot(BaseModel):
     official = BooleanField(default=False)
     extra = CharField(null=True)
     offline = BooleanField(default=False)
+    spam = BooleanField(default=False)
 
     approved = BooleanField(default=True)
     submitted_by = ForeignKeyField(User, null=True)
@@ -40,6 +42,7 @@ class Bot(BaseModel):
             'official': self.official,
             'extra_text': self.extra,
             'offline': self.offline,
+            'spam': self.spam,
             'botlist_url': helpers.botlist_url_for_category(self.category),
         }
 
@@ -55,8 +58,20 @@ class Bot(BaseModel):
         return util.escape_markdown(self.str_no_md).encode('utf-8').decode('utf-8')
 
     @property
+    def detail_text(self):
+        from model import Keyword
+        keywords = Keyword.select().where(Keyword.entity == self)
+        txt = '{}'.format(self.__str__())
+        txt += '\n_{}_'.format(util.escape_markdown(self.name)) if self.name else ''
+        txt += '\n\n{}'.format(self.description) if self.description else ''
+        txt += util.escape_markdown(
+            '\n\nKeywords: {}'.format(', '.join([str(k) for k in keywords])) if keywords else '')
+        return txt
+
+    @property
     def str_no_md(self):
         return ('💤 ' if self.offline else '') + \
+               ('🚮 ' if self.spam else '') + \
                ('🆕 ' if self.is_new else '') + \
                self.username + \
                (' ' if any([self.inlinequeries, self.official, self.country]) else '') + \
@@ -70,6 +85,14 @@ class Bot(BaseModel):
         result = Bot.select().where(fn.lower(Bot.username) == username.lower())
         if len(result) > 0:
             return result[0]
+        else:
+            raise Bot.DoesNotExist()
+
+    @staticmethod
+    def many_by_usernames(names: List):
+        results = Bot.select().where(fn.lower(Bot.username) << [n.lower() for n in names])
+        if len(results) > 0:
+            return results
         else:
             raise Bot.DoesNotExist()
 

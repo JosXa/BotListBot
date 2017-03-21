@@ -8,6 +8,7 @@ import emoji
 import re
 from telegram.error import BadRequest
 
+from model import User
 from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ConversationHandler
 from telegram.ext.dispatcher import run_async
@@ -44,10 +45,12 @@ def set_country(bot, update, to_edit):
     uid = util.uid_from_update(update)
     countries = Country.select().order_by(Country.name).execute()
 
-    buttons = util.build_menu([InlineKeyboardButton(
-        '{} {}'.format(c.emojized, c.name),
-        callback_data=util.callback_for_action(
-            CallbackActions.SET_COUNTRY, {'cid': c.id, 'bid': to_edit.id})) for c in countries], 3)
+    buttons = util.build_menu(
+        [InlineKeyboardButton(
+            '{} {}'.format(c.emojized, c.name),
+            callback_data=util.callback_for_action(
+                CallbackActions.SET_COUNTRY, {'cid': c.id, 'bid': to_edit.id})) for c in countries
+         ], 3)
     buttons.insert(0, [
         InlineKeyboardButton(captions.BACK,
                              callback_data=util.callback_for_action(CallbackActions.EDIT_BOT,
@@ -66,9 +69,8 @@ def set_country(bot, update, to_edit):
 def set_description(bot, update, chat_data, to_edit=None):
     uid = util.uid_from_update(update)
     if to_edit:
-        if to_edit.description:
-            util.send_md_message(bot, uid, "*Current description*:\n{}".format(to_edit.description))
-        util.send_action_hint(bot, uid, "Please send me a description to use for {} (`x` to empty)".format(to_edit))
+        util.send_action_hint(bot, uid, "Please send me a description to use for {}. `x` to drop | /cancel".format(
+            to_edit.username))
         chat_data['edit_bot'] = to_edit
         return BotStates.SENDING_DESCRIPTION
     elif update.message:
@@ -82,6 +84,7 @@ def set_description(bot, update, chat_data, to_edit=None):
             to_edit.save()
             from components.admin import edit_bot
             edit_bot(bot, update, chat_data, to_edit)
+            return ConversationHandler.END
         else:
             util.send_message_failure(bot, uid, "An unexpected error occured.")
 
@@ -91,7 +94,7 @@ def set_extra(bot, update, chat_data, to_edit=None):
     uid = util.uid_from_update(update)
     if to_edit:
         text = (to_edit.extra + "\n\n" if to_edit.extra else '')
-        text += util.action_hint("Please send me the extra text to use for {} (`x` to empty)".format(to_edit))
+        text += util.action_hint("Please send me the extra text to use for {}. `x` to drop".format(to_edit.username))
         util.send_md_message(bot, uid, text)
         chat_data['edit_bot'] = to_edit
         return BotStates.SENDING_EXTRA
@@ -106,6 +109,7 @@ def set_extra(bot, update, chat_data, to_edit=None):
             to_edit.save()
             from components.admin import edit_bot
             edit_bot(bot, update, chat_data, to_edit)
+            return ConversationHandler.END
         else:
             util.send_message_failure(bot, uid, "An unexpected error occured.")
 
@@ -129,11 +133,17 @@ def toggle_offline(bot, update, to_edit):
 
 
 @restricted
+def toggle_spam(bot, update, to_edit):
+    to_edit.spam = not to_edit.spam
+    to_edit.save()
+
+
+@restricted
 def set_name(bot, update, chat_data, to_edit=None):
     uid = util.uid_from_update(update)
     if to_edit:
         text = (to_edit.name + "\n\n" if to_edit.name else '')
-        text += util.action_hint("Please send me a name to use for {} (`x` to empty)".format(to_edit))
+        text += util.action_hint("Please send me a name to use for {}. `x` to drop".format(to_edit.username))
         util.send_md_message(bot, uid, text)
         chat_data['edit_bot'] = to_edit
         return BotStates.SENDING_NAME
@@ -148,6 +158,7 @@ def set_name(bot, update, chat_data, to_edit=None):
             to_edit.save()
             from components.admin import edit_bot
             edit_bot(bot, update, chat_data, to_edit)
+            return ConversationHandler.END
         else:
             util.send_message_failure(bot, uid, "An unexpected error occured.")
 
@@ -171,16 +182,19 @@ def set_username(bot, update, chat_data, to_edit=None):
                 to_edit.save()
                 from components.admin import edit_bot
                 edit_bot(bot, update, chat_data, to_edit)
+                return ConversationHandler.END
             else:
                 util.send_message_failure(bot, uid, "An unexpected error occured.")
         else:
             util.send_message_failure(bot, uid, "The username you entered is not valid. Please try again...")
             return BotStates.SENDING_USERNAME
 
+
 @restricted
 def set_keywords_init(bot, update, chat_data, to_edit):
     chat_data['set_keywords_msg'] = util.mid_from_update(update)
     return set_keywords(bot, update, chat_data, to_edit)
+
 
 @restricted
 def set_keywords(bot, update, chat_data, to_edit):
@@ -200,11 +214,11 @@ def set_keywords(bot, update, chat_data, to_edit):
     ])
     reply_markup = InlineKeyboardMarkup(buttons)
     msg = util.send_or_edit_md_message(bot,
-                                 chat_id,
-                                 util.action_hint('Send me the keywords for {} one by one...\n\n{}'.format(
-                                     util.escape_markdown(to_edit.username), messages.KEYWORD_BEST_PRACTICES)),
-                                 to_edit=set_keywords_msgid,
-                                 reply_markup=reply_markup)
+                                       chat_id,
+                                       util.action_hint('Send me the keywords for {} one by one...\n\n{}'.format(
+                                           util.escape_markdown(to_edit.username), messages.KEYWORD_BEST_PRACTICES)),
+                                       to_edit=set_keywords_msgid,
+                                       reply_markup=reply_markup)
     chat_data['set_keywords_msg'] = msg.message_id
     return BotStates.SENDING_KEYWORDS
 
@@ -217,6 +231,15 @@ def add_keyword(bot, update, chat_data):
     if len(kw) <= 2:
         update.message.reply_text('Keywords must be longer than 2 characters.')
         return
+    if len(kw) >= 20:
+        update.message.reply_text('Keywords must not be longer than 20 characters.')
+
+    # ignore duplicates
+    try:
+        Keyword.get((Keyword.name == kw) & (Keyword.entity == bot_to_edit))
+        return
+    except Keyword.DoesNotExist:
+        pass
     kw_obj = Keyword(name=kw, entity=bot_to_edit)
     kw_obj.save()
     set_keywords(bot, update, chat_data, bot_to_edit)
@@ -245,9 +268,13 @@ def delete_bot(bot, update, to_edit):
     util.send_or_edit_md_message(bot, chat_id, "Bot has been deleted.", to_edit=util.mid_from_update(update))
 
 
-@restricted
-def accept_suggestion(bot, update, suggestion: Suggestion):
-    if suggestion.action == "offline":
-        suggestion.subject.offline = True
-        suggestion.subject.save()
-        suggestion.delete_instance()
+def change_category(bot, update, to_edit, category):
+    uid = util.uid_from_update(update)
+    user = User.get(User.chat_id == uid)
+    if uid == 62056065:
+        sugg = Suggestion(user=user, action='change_category', date=datetime.date.today(), subject=to_edit,
+                          value=category.id)
+        sugg.save()
+    else:
+        to_edit.category = category
+        to_edit.save()

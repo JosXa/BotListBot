@@ -9,5 +9,6 @@
     <orderEntry type="module" module-name="eventBot" />
     <orderEntry type="module" module-name="better-markdown" />
     <orderEntry type="module" module-name="symbose" />
+    <orderEntry type="module" module-name="dmz-bot" />
   </component>
 </module>

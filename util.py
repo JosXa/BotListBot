@@ -6,6 +6,9 @@ from functools import wraps
 from pprint import pprint
 from typing import List, Dict
 
+from telegram import TelegramError
+
+import helpers
 from telegram import ReplyKeyboardRemove
 
 import const
@@ -57,8 +60,13 @@ def restricted(func):
                         chat_id = update.callback_query.from_user.id
                     except (NameError, AttributeError):
                         logging.error("No chat_id available in update.")
+                        return
         if chat_id not in const.ADMINS:
-            print("Unauthorized access denied for {}.".format(chat_id))
+            try:
+                print("Unauthorized access denied for {}.".format(chat_id))
+                update.message.reply_text('*Available commands:*\n' + helpers.get_commands(), parse_mode=ParseMode.MARKDOWN)
+            except (TelegramError, AttributeError):
+                pass
             return
         return func(bot, update, *args, **kwargs)
 
@@ -68,11 +76,15 @@ def restricted(func):
 def private_chat_only(func):
     @wraps(func)
     def wrapped(bot, update, *args, **kwargs):
-        if (update.message and update.message.chat.type == 'private') or (
-                    update.callback_query and update.callback_query.message.chat.type == 'private'):
+        try:
+            ilq = update.message.inline_query
             return func(bot, update, *args, **kwargs)
-        else:
-            pass
+        except (NameError, AttributeError):
+            if (update.message and update.message.chat.type == 'private') or (
+                        update.callback_query and update.callback_query.message.chat.type == 'private'):
+                return func(bot, update, *args, **kwargs)
+            else:
+                pass
 
     return wrapped
 
@@ -249,7 +261,9 @@ def send_or_edit_md_message(bot, chat_id, text, to_edit=None, **kwargs):
 
 
 def send_md_message(bot, chat_id, text: str, **kwargs):
-    return bot.sendMessage(chat_id, text, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True, **kwargs)
+    if 'disable_web_page_preview' not in kwargs:
+        kwargs['disable_web_page_preview'] = True
+    return bot.sendMessage(chat_id, text, parse_mode=ParseMode.MARKDOWN, **kwargs)
 
 
 def send_message_success(bot, chat_id, text: str, add_punctuation=True, reply_markup=None, **kwargs):

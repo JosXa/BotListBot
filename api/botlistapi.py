@@ -159,7 +159,7 @@ def categories_endpoint():
     Returns all categories of the BotList.
     """
     if request.method == 'GET':
-        query = Category.select()
+        query = Category.select_all()
         data = [i.serialize for i in query]
 
         if data:

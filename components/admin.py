@@ -5,6 +5,10 @@ from pprint import pprint
 
 import datetime
 import emoji
+from telegram.ext import ConversationHandler, Job
+
+import helpers
+from model import User
 from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup, TelegramError
 
 import captions
@@ -32,30 +36,32 @@ def menu(bot, update):
 
     buttons = _admin_buttons()
 
-    util.send_md_message(bot, chat_id, "Administration menu.",
+    util.send_md_message(bot, chat_id, "🛃 Administration menu",
                          reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True))
     return BotStates.ADMIN_MENU
 
 
 def _admin_buttons():
     n_unapproved = len(Bot.select().where(Bot.approved == False))
-    n_suggestions = len(Suggestion.select())
+    n_suggestions = len(Suggestion.select_all())
 
-    first_row = list()
+    second_row = list()
     if n_unapproved > 0:
-        first_row.append(KeyboardButton(captions.APPROVE_BOTS + ' ({} 🆕)'.format(n_unapproved)))
+        second_row.append(KeyboardButton(captions.APPROVE_BOTS + ' ({} 🆕)'.format(n_unapproved)))
     if n_suggestions > 0:
-        first_row.append(KeyboardButton(captions.APPROVE_SUGGESTIONS + ' ({})'.format(n_suggestions)))
+        second_row.append(KeyboardButton(captions.APPROVE_SUGGESTIONS + ' ({})'.format(n_suggestions)))
 
     buttons = [[
+        KeyboardButton(captions.EXIT)
+    ], [
         KeyboardButton(captions.SEND_BOTLIST)
     ], [
         KeyboardButton(captions.FIND_OFFLINE),
         KeyboardButton(captions.SEND_CONFIG_FILES)
     ]]
 
-    if len(first_row) > 0:
-        buttons.insert(0, first_row)
+    if len(second_row) > 0:
+        buttons.insert(1, second_row)
 
     return buttons
 
@@ -136,11 +142,23 @@ def _edit_bot_buttons(to_edit: Bot):
                 CallbackActions.EDIT_BOT_OFFLINE, {'id': to_edit.id, 'value': True}
             )))
 
+    # offline
+    if to_edit.spam:
+        buttons.append(
+            InlineKeyboardButton("🚮 {}".format(Emoji.WHITE_HEAVY_CHECK_MARK), callback_data=util.callback_for_action(
+                CallbackActions.EDIT_BOT_SPAM, {'id': to_edit.id, 'value': False}
+            )))
+    else:
+        buttons.append(
+            InlineKeyboardButton("🚮 {}".format(Emoji.HEAVY_MULTIPLICATION_X), callback_data=util.callback_for_action(
+                CallbackActions.EDIT_BOT_SPAM, {'id': to_edit.id, 'value': True}
+            )))
+
     buttons.append(
         InlineKeyboardButton("Delete", callback_data=util.callback_for_action(CallbackActions.CONFIRM_DELETE_BOT, bid)))
 
     header = [InlineKeyboardButton(captions.BACK,
-                                   callback_data=util.callback_for_action(CallbackActions.SELECT_CATEGORY,
+                                   callback_data=util.callback_for_action(CallbackActions.SELECT_BOT_FROM_CATEGORY,
                                                                           {'id': to_edit.category.id}))]
 
     return util.build_menu(buttons, n_cols=2, header_buttons=header)
@@ -157,7 +175,11 @@ def edit_bot(bot, update, chat_data, bot_to_edit=None):
             command = update.message.text
             b_id = re.match(r'^/edit(\d+)$', command).groups()[0]
 
-            bot_to_edit = Bot.get(id=b_id)
+            try:
+                bot_to_edit = Bot.get(id=b_id)
+            except Bot.DoesNotExist:
+                update.message.reply_text(util.failure('No bot exists with this id.'))
+                return
         else:
             util.send_message_failure(bot, chat_id, "An unexpected error occured.")
             return
@@ -167,13 +189,9 @@ def edit_bot(bot, update, chat_data, bot_to_edit=None):
     reply_markup = InlineKeyboardMarkup(_edit_bot_buttons(bot_to_edit))
     util.send_or_edit_md_message(
         bot, chat_id,
-        util.action_hint("Edit the properties of {}:{}{}".format(
-            bot_to_edit,
-            ('\n\n*Description:*\n{}'.format(bot_to_edit.description) if bot_to_edit.description else ''),
-            ('\n\n*Keywords:* {}'.format(util.escape_markdown(
-                ', '.join([str(x) for x in kws]))) if kws else ''),
-        )),
+        "🛃 Edit {}".format(bot_to_edit.detail_text),
         to_edit=message_id, reply_markup=reply_markup)
+    return
 
 
 @restricted
@@ -182,15 +200,14 @@ def prepare_transmission(bot, update, chat_data):
     text = mdformat.action_hint(
         "Notify subscribers about this update?")
     reply_markup = InlineKeyboardMarkup([[
-        InlineKeyboardButton("☑ Notifications", callback_data=util.callback_for_action(
+        InlineKeyboardButton("☑ Notifications (delete footer)", callback_data=util.callback_for_action(
             CallbackActions.SEND_BOTLIST, {'silent': False}
         )),
         InlineKeyboardButton("Silent update", callback_data=util.callback_for_action(
             CallbackActions.SEND_BOTLIST, {'silent': True}
-        )),
-        # InlineKeyboardButton("I deleted all messages. Re-Send now", callback_data=util.callback_for_action(
-        #     CallbackActions.RESEND_BOTLIST
-        # )),
+        ))], [
+        InlineKeyboardButton("Re-send all Messages (delete first)", callback_data=util.callback_for_action(
+            CallbackActions.SEND_BOTLIST, {'silent': True, 're': True}))
     ]])
     util.send_md_message(bot, chat_id, text,
                          reply_markup=reply_markup)
@@ -199,8 +216,7 @@ def prepare_transmission(bot, update, chat_data):
 @restricted
 def approve_suggestions(bot, update, page=0):
     chat_id = util.uid_from_update(update)
-    Suggestion.delete_missing()
-    suggestions = Suggestion.select()
+    suggestions = Suggestion.select_all()
     if page * const.PAGE_SIZE_SUGGESTIONS_LIST >= len(suggestions):
         # old item deleted, list now too small
         page = page - 1 if page > 0 else 0
@@ -306,15 +322,15 @@ def approve_bots(bot, update, page=0):
 def edit_bot_category(bot, update, for_bot, callback_action=None):
     if callback_action is None:
         callback_action = CallbackActions.EDIT_BOT_CAT_SELECTED
-    chat_id = util.uid_from_update(update)
+    uid = util.uid_from_update(update)
     categories = Category.select().order_by(Category.name.asc()).execute()
 
     buttons = util.build_menu([InlineKeyboardButton(
         '{}{}'.format(emoji.emojize(c.emojis, use_aliases=True), c.name),
         callback_data=util.callback_for_action(
             callback_action, {'cid': c.id, 'bid': for_bot.id})) for c in categories], 2)
-    return util.send_or_edit_md_message(bot, chat_id, util.action_hint("Please select a category" +
-                                                                       (" for {}".format(for_bot) if for_bot else '')),
+    return util.send_or_edit_md_message(bot, uid, util.action_hint("Please select a category" +
+                                                                   (" for {}".format(for_bot) if for_bot else '')),
                                         to_edit=util.mid_from_update(update),
                                         reply_markup=InlineKeyboardMarkup(buttons))
 
@@ -387,7 +403,7 @@ def reject_bot_submission(bot, update, to_reject=None, verbose=True, notify_subm
         try:
             username = re.match(const.REGEX_BOT_IN_TEXT, text).groups()[0]
         except AttributeError:
-            log.info("No username in message that was replied to.")
+            log.info("No username in the message that was replied to.")
             # no bot username, ignore update
             return
 
@@ -414,3 +430,31 @@ def reject_bot_submission(bot, update, to_reject=None, verbose=True, notify_subm
     log.info(log_msg)
     if verbose:
         bot.sendMessage(uid, util.success("{} rejected.".format(to_reject.username)))
+
+
+def last_update_job(bot, job: Job):
+    ## SEND A MESSAGE
+    # user_ids = [u.chat_id for u in User.select()]
+    # not_sent = list()
+    # for uid in user_ids:
+    #     import bot as botlistbot
+    #     try:
+    #         bot.sendMessage(uid, "Hey, check out my new Keyboard! 😍",
+    #                         reply_markup=ReplyKeyboardMarkup(botlistbot._main_menu_buttons()))
+    #     except TelegramError:
+    #         not_sent.append(uid)
+    # pprint(not_sent)
+
+    last_update = helpers.get_channel().last_update
+    if last_update:
+        today = datetime.date.today()
+        delta = datetime.timedelta(days=const.BOT_CONSIDERED_NEW)
+        difference = today - last_update
+
+        if difference > delta:
+            for a in const.ADMINS:
+                try:
+                    bot.sendMessage(a, "Last @BotList update was {} days ago. UPDATE NOW YOU CARNT! /admin".format(
+                        difference.days))
+                except TelegramError:
+                    pass

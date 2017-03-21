@@ -14,3 +14,13 @@ SEND_CONFIG_FILES = "Config files"
 FIND_OFFLINE = "Find offline bots"
 APPROVE_SUGGESTIONS = "Approve Suggestions"
 DONE = "🔚 Done"
+
+
+# main menu
+CATEGORIES = "📚 Explore ᴄᴀᴛᴇɢᴏʀɪᴇs"
+NEW_BOTS = "🆕 New Bots"
+SEARCH = "🔎 Search"
+CONTRIBUTING = "📤 Contributing"
+EXAMPLES = "📝 Examples"
+HELP = "❔ Help"
+ADMIN_MENU = "🛃 Admin Menu"

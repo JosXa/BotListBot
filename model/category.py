@@ -9,10 +9,15 @@ from model.basemodel import BaseModel
 
 class Category(BaseModel):
     id = PrimaryKeyField()
+    order = IntegerField(unique=True)
     emojis = CharField()
     name = CharField(unique=True)
     extra = CharField(null=True)
     current_message_id = IntegerField(null=True)
+
+    @staticmethod
+    def select_all():
+        return Category.select().order_by(Category.order)
 
     @property
     def serialize(self):
