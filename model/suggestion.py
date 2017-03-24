@@ -24,11 +24,9 @@ class Suggestion(BaseModel):
         if self.action == 'offline':
             self.subject.offline = True
             self.subject.save()
-            self.delete_instance()
         if self.action == 'spam':
             self.subject.spam = True
             self.subject.save()
-            self.delete_instance()
         if self.action == 'change_category':
             from model import Category
             try:
@@ -37,7 +35,6 @@ class Suggestion(BaseModel):
                 raise AttributeError("Category to change to does not exist.")
             self.subject.category = cat
             self.subject.save()
-            self.delete_instance()
         self.executed = True
         self.save()
 

@@ -64,7 +64,8 @@ def restricted(func):
         if chat_id not in const.ADMINS:
             try:
                 print("Unauthorized access denied for {}.".format(chat_id))
-                update.message.reply_text('*Available commands:*\n' + helpers.get_commands(), parse_mode=ParseMode.MARKDOWN)
+                update.message.reply_text('*Available commands:*\n' + helpers.get_commands(),
+                                          parse_mode=ParseMode.MARKDOWN)
             except (TelegramError, AttributeError):
                 pass
             return
@@ -177,15 +178,22 @@ def callback_data_from_update(update):
 
 def is_group_message(update):
     try:
-        return update.message.chat.type == 'group'
+        return update.message.chat.type in ['group', 'supergroup']
     except (NameError, AttributeError):
         try:
-            return update.callback_query.message.chat.type == 'group'
+            return update.callback_query.message.chat.type in ['group', 'supergroup']
         except (NameError, AttributeError):
             try:
                 return update.message.new_chat_member.id == const.SELF_BOT_ID
             except (NameError, AttributeError):
                 return False
+
+
+def original_reply_id(update):
+    try:
+        return update.message.reply_to_message.message_id
+    except (NameError, AttributeError):
+        return None
 
 
 def is_private_message(update):
@@ -251,6 +259,9 @@ def order_dict_lexi(d):
             res[k] = v
     return res
 
+
+def private_or_else_group_message(bot, chat_id, text):
+    pass
 
 def send_or_edit_md_message(bot, chat_id, text, to_edit=None, **kwargs):
     if to_edit:

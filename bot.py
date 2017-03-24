@@ -30,6 +30,7 @@ from components import admin
 from components import botlist
 from components import botproperties
 from components.botlist import new_channel_post
+from components.onboarding import start
 from const import BotStates, CallbackActions, CallbackStates
 from model import Category, Bot, Country
 from model import Keyword
@@ -51,29 +52,6 @@ logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
-@track_groups
-def start(bot, update, args):
-    tg_user = update.message.from_user
-    chat_id = tg_user.id
-
-    # Get or create the user from/in database
-    user = User.from_telegram_object(tg_user)
-
-    if len(args) > 0:
-        # 1st arg: category id
-        try:
-            cat = Category.get(Category.id == args[0])
-            return send_category(bot, update, cat)
-        except Category.DoesNotExist:
-            util.send_message_failure(bot, chat_id, "The requested category does not exist.")
-        return
-    help(bot, update)
-    util.wait(bot, update)
-    if util.is_private_message(update):
-        main_menu(bot, update)
-    return ConversationHandler.END
-
-
 def _main_menu_buttons(admin=False):
     buttons = [
         [KeyboardButton(captions.CATEGORIES)],
@@ -89,8 +67,10 @@ def _main_menu_buttons(admin=False):
 def main_menu(bot, update):
     chat_id = util.cid_from_update(update)
     is_admin = chat_id in const.ADMINS
-    reply_markup = ReplyKeyboardMarkup(_main_menu_buttons(is_admin), resize_keyboard=True) if util.is_private_message(
-        update) else None
+    reply_markup = ReplyKeyboardMarkup(_main_menu_buttons(is_admin),
+                                       resize_keyboard=True) if util.is_private_message(
+        update) else ReplyKeyboardRemove()
+
     bot.sendMessage(chat_id, mdformat.action_hint("What would you like to do?"),
                     reply_markup=reply_markup)
 
@@ -163,7 +143,8 @@ def search_query(bot, update, query, send_errors=True):
     results = search.search_bots(query)
     is_admin = chat_id in const.ADMINS
     print('Is group search query: {}'.format(not util.is_private_message(update)))
-    reply_markup = ReplyKeyboardMarkup(_main_menu_buttons(is_admin)) if util.is_private_message(update) else None
+    reply_markup = ReplyKeyboardMarkup(_main_menu_buttons(is_admin)) if util.is_private_message(
+        update) else ReplyKeyboardRemove()
     if results:
         too_many_results = len(results) > const.MAX_SEARCH_RESULTS
 
@@ -279,6 +260,8 @@ def plaintext(bot, update):
 def notify_bot_spam(bot, update, args=None):
     tg_user = update.message.from_user
     user = User.from_telegram_object(tg_user)
+    reply_to = util.original_reply_id(update)
+
     if args:
         text = ' '.join(args)
     else:
@@ -286,17 +269,22 @@ def notify_bot_spam(bot, update, args=None):
         command_no_args = len(re.findall(r'^/spam\s*$', text)) > 0 or text.lower().strip() == '/spam@bot_list_bot'
         if command_no_args:
             update.message.reply_text(
-                util.action_hint("Please use this command with an argument. For example:\n\n/spam @mybot"))
+                util.action_hint("Please use this command with an argument. For example:\n/spam @mybot"),
+                reply_to_message_id=reply_to)
             return
 
     # `#spam` is already checked by handler
     try:
         username = re.match(const.REGEX_BOT_IN_TEXT, text).groups()[0]
+        if username == '@' + const.SELF_BOT_NAME:
+            log.info("Ignoring {}".format(text))
+            return
     except AttributeError:
         if args:
             update.message.reply_text(util.failure("Sorry, but you didn't send me a bot `@username`."), quote=True,
-                                      parse_mode=ParseMode.MARKDOWN)
+                                      parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
         else:
+            log.info("Ignoring {}".format(text))
             # no bot username, ignore update
             pass
         return
@@ -308,15 +296,19 @@ def notify_bot_spam(bot, update, args=None):
         except Suggestion.DoesNotExist:
             suggestion = Suggestion(user=user, action="spam", date=datetime.date.today(), subject=spam_bot)
             suggestion.save()
-        update.message.reply_text(util.success("Thank you! We will review your suggestion and mark the bot as spammy."))
+        update.message.reply_text(util.success("Thank you! We will review your suggestion and mark the bot as spammy."),
+                                  reply_to_message_id=reply_to)
     except Bot.DoesNotExist:
-        update.message.reply_text(util.action_hint("The bot you sent me is not in the @BotList."))
+        update.message.reply_text(util.action_hint("The bot you sent me is not in the @BotList."),
+                                  reply_to_message_id=reply_to)
     return ConversationHandler.END
 
 
 def notify_bot_offline(bot, update, args=None):
     tg_user = update.message.from_user
     user = User.from_telegram_object(tg_user)
+    reply_to = util.original_reply_id(update)
+
     if args:
         text = ' '.join(args)
     else:
@@ -324,17 +316,22 @@ def notify_bot_offline(bot, update, args=None):
         command_no_args = len(re.findall(r'^/new\s*$', text)) > 0 or text.lower().strip() == '/offline@bot_list_bot'
         if command_no_args:
             update.message.reply_text(
-                util.action_hint("Please use this command with an argument. For example:\n\n/offline @mybot"))
+                util.action_hint("Please use this command with an argument. For example:\n/offline @mybot"),
+                reply_to_message_id=reply_to)
             return
 
     # `#offline` is already checked by handler
     try:
         username = re.match(const.REGEX_BOT_IN_TEXT, text).groups()[0]
+        if username == '@' + const.SELF_BOT_NAME:
+            log.info("Ignoring {}".format(text))
+            return
     except AttributeError:
         if args:
             update.message.reply_text(util.failure("Sorry, but you didn't send me a bot `@username`."), quote=True,
-                                      parse_mode=ParseMode.MARKDOWN)
+                                      parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
         else:
+            log.info("Ignoring {}".format(text))
             # no bot username, ignore update
             pass
         return
@@ -346,9 +343,11 @@ def notify_bot_offline(bot, update, args=None):
         except Suggestion.DoesNotExist:
             suggestion = Suggestion(user=user, action="offline", date=datetime.date.today(), subject=offline_bot)
             suggestion.save()
-        update.message.reply_text(util.success("Thank you! We will review your suggestion and set the bot offline."))
+        update.message.reply_text(util.success("Thank you! We will review your suggestion and set the bot offline.",
+                                               ), reply_to_message_id=reply_to)
     except Bot.DoesNotExist:
-        update.message.reply_text(util.action_hint("The bot you sent me is not in the @BotList."))
+        update.message.reply_text(
+            util.action_hint("The bot you sent me is not in the @BotList."), reply_to_message_id=reply_to)
     return ConversationHandler.END
 
 
@@ -356,6 +355,8 @@ def notify_bot_offline(bot, update, args=None):
 def new_bot_submission(bot, update, args=None):
     tg_user = update.message.from_user
     user = User.from_telegram_object(tg_user)
+    reply_to = util.original_reply_id(update)
+
     if args:
         text = ' '.join(args)
     else:
@@ -363,16 +364,21 @@ def new_bot_submission(bot, update, args=None):
         command_no_args = len(re.findall(r'^/new\s*$', text)) > 0 or text.lower().strip() == '/new@bot_list_bot'
         if command_no_args:
             update.message.reply_text(util.action_hint(
-                "Please use this command with an argument. For example:\n\n/new @mybot 🔎"))
+                "Please use this command with an argument. For example:\n/new @mybot 🔎"),
+                reply_to_message_id=reply_to)
             return
 
     # `#new` is already checked by handler
     try:
         username = re.match(const.REGEX_BOT_IN_TEXT, text).groups()[0]
+        if username == '@' + const.SELF_BOT_NAME:
+            log.info("Ignoring {}".format(text))
+            return
     except AttributeError:
         if args:
             update.message.reply_text(util.failure("Sorry, but you didn't send me a bot `@username`."), quote=True,
-                                      parse_mode=ParseMode.MARKDOWN)
+                                      parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
+        log.info("Ignoring {}".format(text))
         # no bot username, ignore update
         return
 
@@ -380,10 +386,12 @@ def new_bot_submission(bot, update, args=None):
         new_bot = Bot.by_username(username)
         if new_bot.approved:
             update.message.reply_text(
-                util.action_hint("Sorry fool, but {} is already in the @BotList 😉".format(new_bot.username)))
+                util.action_hint("Sorry fool, but {} is already in the @BotList 😉".format(new_bot.username)),
+                reply_to_message_id=reply_to)
         else:
             update.message.reply_text(
-                util.action_hint("{} has already been submitted. Please have patience...".format(new_bot.username)))
+                util.action_hint("{} has already been submitted. Please have patience...".format(new_bot.username)),
+                reply_to_message_id=reply_to)
         return
     except Bot.DoesNotExist:
         new_bot = Bot(approved=False, username=username, submitted_by=user)
@@ -409,7 +417,7 @@ def new_bot_submission(bot, update, args=None):
     log.info("New bot submission by {}: {}".format(new_bot.submitted_by, new_bot.username))
     new_bot.save()
     update.message.reply_text(util.success("You submitted {} for approval.{}".format(new_bot, description_notify)),
-                              parse_mode=ParseMode.MARKDOWN)
+                              parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
     return ConversationHandler.END
 
 
@@ -653,10 +661,9 @@ def inlinequery(bot, update):
 
     no_results = (not cat_results and not bot_results)
     if no_results:
-        # no search results -> add categories
-        # results_list.append(select_category_article())
+        # TODO
+        # results_list.append(no_results_article())
         results_list.append(new_bots_article())
-        # TODO: error-prone when clicking button
         categories = Category.select_all()
         for c in categories:
             results_list.append(category_article(c))
@@ -883,12 +890,10 @@ def main():
             CallbackQueryHandler(callback_router, pass_chat_data=True),
             CommandHandler('start', start, pass_args=True),
             CommandHandler("cancel", cancel)
-        ]
+        ],
     )
     conv_handler.allow_reentry = True
     dp.add_handler(conv_handler)
-
-    dp.add_handler(MessageHandler(Filters.reply, reply_router, pass_chat_data=True))
 
     dp.add_handler(CommandHandler('start', start, pass_args=True))
     dp.add_handler(CommandHandler("admin", admin.menu))
@@ -936,6 +941,7 @@ def main():
 
     dp.add_handler(CommandHandler("accesstoken", access_token))
 
+    dp.add_handler(MessageHandler(Filters.reply, reply_router, pass_chat_data=True))
     dp.add_handler(InlineQueryHandler(inlinequery))
     dp.add_error_handler(error)
     dp.add_handler(MessageHandler(Filters.text, plaintext, allow_edited=True))
@@ -951,6 +957,7 @@ def main():
     #         Bot.submitted_by, fn.COUNT(Bot.submitted_by).alias('num_submissions')
     #     ).group_by(Bot.submitted_by), on=Bot.submitted_by
     # )
+    # pprint(users)
 
 
     # JOBS
