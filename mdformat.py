@@ -9,6 +9,28 @@ from custemoji import Emoji
 
 MAX_LINE_CHARACTERS = 31
 
+def smallcaps(text):
+    SMALLCAPS_CHARS = 'ᴀʙᴄᴅᴇғɢʜɪᴊᴋʟᴍɴᴏᴘǫʀsᴛᴜᴠᴡxʏᴢ'
+    lowercase_ord = 96
+    uppercase_ord = 64
+
+    result = ''
+    for i in text:
+        index = ord(i)
+        if 122 >= index >= 97:
+            result += SMALLCAPS_CHARS[index - lowercase_ord - 1]
+        elif 90 >= index >= 65:
+            result += SMALLCAPS_CHARS[index - uppercase_ord - 1]
+        elif index == 32:
+            result += ' '
+
+    return result
+
+
+def strikethrough(text: str):
+    SPEC = '̶'
+    return ''.join([x + SPEC if x != ' ' else ' ' for x in text])
+
 def results_list(args, prefix=''):
     # TODO make this method recursive
     result = '```'

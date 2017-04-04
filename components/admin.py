@@ -16,7 +16,6 @@ import const
 import mdformat
 import messages
 import util
-from bot import log
 from const import *
 from const import BotStates, CallbackActions
 from custemoji import Emoji
@@ -32,16 +31,16 @@ log = logging.getLogger(__name__)
 
 @restricted
 def menu(bot, update):
-    chat_id = util.uid_from_update(update)
+    uid = util.uid_from_update(update)
 
-    buttons = _admin_buttons()
+    buttons = _admin_buttons(uid in const.ADMINS)
 
-    util.send_md_message(bot, chat_id, "🛃 Administration menu",
+    util.send_md_message(bot, uid, "🛃 Administration menu",
                          reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True))
     return BotStates.ADMIN_MENU
 
 
-def _admin_buttons():
+def _admin_buttons(send_botlist_button=True):
     n_unapproved = len(Bot.select().where(Bot.approved == False))
     n_suggestions = len(Suggestion.select_all())
 
@@ -54,11 +53,12 @@ def _admin_buttons():
     buttons = [[
         KeyboardButton(captions.EXIT)
     ], [
-        KeyboardButton(captions.SEND_BOTLIST)
-    ], [
         KeyboardButton(captions.FIND_OFFLINE),
         KeyboardButton(captions.SEND_CONFIG_FILES)
     ]]
+
+    if send_botlist_button:
+        buttons.insert(1, [KeyboardButton(captions.SEND_BOTLIST)])
 
     if len(second_row) > 0:
         buttons.insert(1, second_row)
@@ -452,7 +452,7 @@ def last_update_job(bot, job: Job):
         difference = today - last_update
 
         if difference > delta:
-            for a in const.ADMINS:
+            for a in const.MODERATORS:
                 try:
                     bot.sendMessage(a, "Last @BotList update was {} days ago. UPDATE NOW YOU CARNT! /admin".format(
                         difference.days))

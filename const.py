@@ -4,9 +4,10 @@ import os
 
 # PREFERENCES
 
+MODERATORS = [62056065, 918962, 7679610, 278941742, 127782573]
 ADMINS = [62056065, 918962]
 BOT_CONSIDERED_NEW = 14  # days
-SELF_BOT_NAME = "bot_list_bot"
+SELF_BOT_NAME = "botlistbot"
 SELF_BOT_ID = "182355371" if bool(os.environ.get("DEV")) else "265482650"
 SELF_CHANNEL_USERNAME = "botlist_testchannel" if bool(os.environ.get("DEV")) else "botlist"
 # SELF_CHANNEL_USERNAME =
@@ -43,8 +44,11 @@ class CallbackStates:
     SELECTING_BOT, \
     SELECTING_CATEGORY, \
     APPROVING_BOTS, \
-    DUMMY2, \
-    DUMMY3, \
+    *rest = big_range
+
+
+class DeepLinkingActions:
+    SEARCH, \
     *rest = big_range
 
 

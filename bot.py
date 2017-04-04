@@ -7,7 +7,7 @@ import os
 import re
 import sys
 import time
-from uuid import uuid4
+from pprint import pprint
 
 import emoji
 from peewee import fn
@@ -29,8 +29,9 @@ import util
 from components import admin
 from components import botlist
 from components import botproperties
+from components import eastereggs
 from components.botlist import new_channel_post
-from components.onboarding import start
+from components import inlinequery
 from const import BotStates, CallbackActions, CallbackStates
 from model import Category, Bot, Country
 from model import Keyword
@@ -40,8 +41,6 @@ from model.user import User
 from pwrtelegram import PWRTelegram
 from telegram import ForceReply
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram import InlineQueryResultArticle
-from telegram import InputTextMessageContent
 from telegram import KeyboardButton
 from telegram import ParseMode
 from telegram import ReplyKeyboardMarkup
@@ -50,6 +49,40 @@ from util import restricted, private_chat_only, track_groups
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
+
+
+@track_groups
+def start(bot, update, args):
+    tg_user = update.message.from_user
+    chat_id = tg_user.id
+
+    # Get or create the user from/in database
+    User.from_telegram_object(tg_user)
+
+    if len(args) > 0:
+        query = ' '.join(args)
+        # priority from highest to lowest
+
+        # CONTRIBUTING (from inlinequeries)
+        if query == 'contributing':
+            return contributing(bot, update, quote=False)
+
+        # CATEGORY BY ID
+        try:
+            cat = Category.get(Category.id == query)
+            return send_category(bot, update, cat)
+        except (ValueError, Category.DoesNotExist):
+            pass
+
+        # SEARCH QUERY
+        search_query(bot, update, query)
+
+    else:
+        help(bot, update)
+        util.wait(bot, update)
+        if util.is_private_message(update):
+            main_menu(bot, update)
+        return ConversationHandler.END
 
 
 def _main_menu_buttons(admin=False):
@@ -66,7 +99,7 @@ def _main_menu_buttons(admin=False):
 
 def main_menu(bot, update):
     chat_id = util.cid_from_update(update)
-    is_admin = chat_id in const.ADMINS
+    is_admin = chat_id in const.MODERATORS
     reply_markup = ReplyKeyboardMarkup(_main_menu_buttons(is_admin),
                                        resize_keyboard=True) if util.is_private_message(
         update) else ReplyKeyboardRemove()
@@ -91,6 +124,11 @@ def manage_subscription(bot, update):
     reply_markup = InlineKeyboardMarkup(buttons)
     util.send_md_message(bot, chat_id, msg, reply_markup=reply_markup)
     return ConversationHandler.END
+
+
+def send_random_bot(bot, update):
+    random_bot = Bot.select().where((Bot.approved == True), (Bot.description.is_null(False))).order_by(fn.Random()).limit(1)[0]
+    send_bot_details(bot, update, random_bot)
 
 
 def _new_bots_text():
@@ -141,7 +179,7 @@ def restart(bot, update):
 def search_query(bot, update, query, send_errors=True):
     chat_id = util.cid_from_update(update)
     results = search.search_bots(query)
-    is_admin = chat_id in const.ADMINS
+    is_admin = chat_id in const.MODERATORS
     print('Is group search query: {}'.format(not util.is_private_message(update)))
     reply_markup = ReplyKeyboardMarkup(_main_menu_buttons(is_admin)) if util.is_private_message(
         update) else ReplyKeyboardRemove()
@@ -149,7 +187,7 @@ def search_query(bot, update, query, send_errors=True):
         too_many_results = len(results) > const.MAX_SEARCH_RESULTS
 
         bots_list = ''
-        if chat_id in const.ADMINS:
+        if chat_id in const.MODERATORS:
             # append edit buttons
             bots_list += '\n'.join(["{} — /edit{} 🛃".format(b, b.id) for b in list(results)[:100]])
         else:
@@ -216,8 +254,8 @@ def help(bot, update):
     return ConversationHandler.END
 
 
-def contributing(bot, update):
-    update.message.reply_text(messages.CONTRIBUTING_MESSAGE, quote=True, parse_mode=ParseMode.MARKDOWN)
+def contributing(bot, update, quote=True):
+    update.message.reply_text(messages.CONTRIBUTING_MESSAGE, quote=quote, parse_mode=ParseMode.MARKDOWN)
     return ConversationHandler.END
 
 
@@ -266,7 +304,7 @@ def notify_bot_spam(bot, update, args=None):
         text = ' '.join(args)
     else:
         text = update.message.text
-        command_no_args = len(re.findall(r'^/spam\s*$', text)) > 0 or text.lower().strip() == '/spam@bot_list_bot'
+        command_no_args = len(re.findall(r'^/spam\s*$', text)) > 0 or text.lower().strip() == '/spam@botlistbot'
         if command_no_args:
             update.message.reply_text(
                 util.action_hint("Please use this command with an argument. For example:\n/spam @mybot"),
@@ -313,7 +351,7 @@ def notify_bot_offline(bot, update, args=None):
         text = ' '.join(args)
     else:
         text = update.message.text
-        command_no_args = len(re.findall(r'^/new\s*$', text)) > 0 or text.lower().strip() == '/offline@bot_list_bot'
+        command_no_args = len(re.findall(r'^/new\s*$', text)) > 0 or text.lower().strip() == '/offline@botlistbot'
         if command_no_args:
             update.message.reply_text(
                 util.action_hint("Please use this command with an argument. For example:\n/offline @mybot"),
@@ -361,7 +399,7 @@ def new_bot_submission(bot, update, args=None):
         text = ' '.join(args)
     else:
         text = update.message.text
-        command_no_args = len(re.findall(r'^/new\s*$', text)) > 0 or text.lower().strip() == '/new@bot_list_bot'
+        command_no_args = len(re.findall(r'^/new\s*$', text)) > 0 or text.lower().strip() == '/new@botlistbot'
         if command_no_args:
             update.message.reply_text(util.action_hint(
                 "Please use this command with an argument. For example:\n/new @mybot 🔎"),
@@ -462,7 +500,7 @@ def send_category(bot, update, category=None):
     ])
     txt = "There are *{}* bots in the category *{}*:\n\n".format(len(bot_list), str(category))
 
-    if chat_id in const.ADMINS and util.is_private_message(update):
+    if chat_id in const.MODERATORS and util.is_private_message(update):
         # append admin edit buttons
         txt += '\n'.join(["{} — /edit{} 🛃".format(b, b.id) for b in bot_list])
     else:
@@ -501,7 +539,7 @@ def send_bot_details(bot, update, item=None):
             CallbackActions.SELECT_BOT_FROM_CATEGORY, {'id': item.category.id}
         )))
 
-        if chat_id in const.ADMINS:
+        if chat_id in const.MODERATORS:
             buttons.append(InlineKeyboardButton(
                 "🛃 Edit", callback_data=util.callback_for_action(
                     CallbackActions.EDIT_BOT,
@@ -509,7 +547,7 @@ def send_bot_details(bot, update, item=None):
                 )))
     else:
         txt = '{} is currently pending to be accepted for the @BotList.'.format(item.username)
-        if chat_id in const.ADMINS:
+        if chat_id in const.MODERATORS:
             buttons.append(InlineKeyboardButton(
                 util.success("🛃 Accept"), callback_data=util.callback_for_action(
                     CallbackActions.ACCEPT_BOT,
@@ -538,145 +576,6 @@ def set_notifications(bot, update, value: bool):
     msg += '\nYou can always adjust this setting with the /subscribe command.'
     util.send_or_edit_md_message(bot, chat_id, msg, to_edit=util.mid_from_update(update))
     return ConversationHandler.END
-
-
-def inlinequery(bot, update):
-    query = update.inline_query.query.lower()
-    results_list = list()
-    QUERY_MIN_LENGTH = 3
-    MAX_BOTS = 30
-    query_too_short = 0 < len(query) < QUERY_MIN_LENGTH
-
-    cat_results = []
-    bot_results = []
-    if not query_too_short and len(query.strip()) > 0:
-        # there was a query input
-        cat_results = search.search_categories(query)
-        bot_results = list(search.search_bots(query))
-        n_bot_results = len(bot_results)
-        bot_results = bot_results[:MAX_BOTS]
-
-    def query_too_short_article():
-        txt = '[I am a stupid, crazy fool.](https://www.youtube.com/watch?v=DLzxrzFCyOs)'
-        return InlineQueryResultArticle(
-            id=uuid4(),
-            title=util.action_hint('Your search term must be at least {} characters long.'.format(QUERY_MIN_LENGTH)),
-            input_message_content=InputTextMessageContent(message_text=txt,
-                                                          parse_mode="Markdown",
-                                                          disable_web_page_preview=True)
-        )
-
-    def new_bots_article():
-        # append new bots list to result
-        msg_text = messages.PROMOTION_MESSAGE + '\n\n' + _new_bots_text()
-        return InlineQueryResultArticle(
-            id=uuid4(),
-            title='🆕 New Bots',
-            input_message_content=InputTextMessageContent(message_text=msg_text, parse_mode="Markdown"),
-            description='Bots added in the last {} days.'.format(const.BOT_CONSIDERED_NEW),
-            # thumb_url='http://www.colorcombos.com/images/colors/FF0000.png',
-        )
-
-    def category_article(cat):
-        bot_list = Bot.of_category(cat)
-        txt = messages.PROMOTION_MESSAGE + '\n\n'
-        txt += "There are *{}* bots in the category *{}*:\n\n".format(len(bot_list), str(cat))
-        txt += '\n'.join([str(b) for b in bot_list])
-        return InlineQueryResultArticle(
-            id=uuid4(),
-            title=emoji.emojize(cat.emojis, use_aliases=True) + cat.name,
-            input_message_content=InputTextMessageContent(message_text=txt, parse_mode=ParseMode.MARKDOWN),
-            description=cat.extra,
-            # thumb_url='https://pichoster.net/images/2017/03/13/cfa5e29e29e772373242bc177a9e5479.jpg'
-        )
-
-    def bot_article(b):
-        # bots_with_description = [b for b in bot_list if b.description is not None]
-        txt = messages.PROMOTION_MESSAGE + '\n\n'
-        txt += '▶️ {}'.format(b.detail_text)
-        return InlineQueryResultArticle(
-            id=uuid4(),
-            title=b.str_no_md,
-            input_message_content=InputTextMessageContent(message_text=txt, parse_mode=ParseMode.MARKDOWN),
-            description=b.description if b.description else b.name if b.name else None,
-            # thumb_url='http://www.colorcombos.com/images/colors/FF0000.png'
-        )
-
-    def all_bot_results_article(lst):
-        # bots_with_description = [b for b in bot_list if b.description is not None]
-        txt = messages.PROMOTION_MESSAGE + '\n\n'
-        txt += "You might like these *{}* bots:\n\n".format(len(lst))
-        txt += '\n'.join([str(b) for b in lst])
-        return InlineQueryResultArticle(
-            id=uuid4(),
-            title='{} {} ʙᴏᴛ ʀᴇsᴜʟᴛ{s}'.format(
-                'ᴍᴏʀᴇ ᴛʜᴀɴ' if n_bot_results > MAX_BOTS else '',
-                len(lst),
-                s='s' if len(lst) != 1 else ''),
-            input_message_content=InputTextMessageContent(message_text=txt, parse_mode=ParseMode.MARKDOWN),
-            # description=b.description if b.description else b.name if b.name else None,
-            # thumb_url='http://www.colorcombos.com/images/colors/FF0000.png'
-        )
-
-    # def select_category_article():
-    #     txt = messages.PROMOTION_MESSAGE + '\n\n'
-    #     txt += util.action_hint(messages.SELECT_CATEGORY)
-    #     reply_markup = InlineKeyboardMarkup(_select_category_buttons())
-    #     return InlineQueryResultArticle(
-    #         id=uuid4(),
-    #         title="ᴀʟʟ ᴄᴀᴛᴇɢᴏʀɪᴇs",
-    #         input_message_content=InputTextMessageContent(message_text=txt,
-    #                                                       parse_mode=ParseMode.MARKDOWN),
-    #         reply_markup=reply_markup,
-    #     )
-
-    if query == messages.NEW_BOTS_INLINEQUERY.lower() or query == 'new':
-        # user is searching for new bots
-        results_list.append(new_bots_article())
-        bot.answerInlineQuery(update.inline_query.id, results=results_list)
-        return
-
-    if query == 'contributing':
-        results_list.append(InlineQueryResultArticle(
-            id=uuid4(),
-            title='Contributing',
-            input_message_content=InputTextMessageContent(message_text=messages.CONTRIBUTING_MESSAGE,
-                                                          parse_mode="Markdown"),
-        ))
-        bot.answerInlineQuery(update.inline_query.id, results=results_list)
-        return
-
-    if query == 'examples':
-        results_list.append(InlineQueryResultArticle(
-            id=uuid4(),
-            title='Examples',
-            input_message_content=InputTextMessageContent(message_text=messages.EXAMPLES_MESSAGE,
-                                                          parse_mode="Markdown"),
-        ))
-        bot.answerInlineQuery(update.inline_query.id, results=results_list)
-        return
-
-    if query_too_short:
-        results_list.append(query_too_short_article())
-
-    no_results = (not cat_results and not bot_results)
-    if no_results:
-        # TODO
-        # results_list.append(no_results_article())
-        results_list.append(new_bots_article())
-        categories = Category.select_all()
-        for c in categories:
-            results_list.append(category_article(c))
-    else:
-        if bot_results:
-            results_list.append(all_bot_results_article(bot_results))
-        for c in cat_results:
-            results_list.append(category_article(c))
-
-        for b in bot_results:
-            results_list.append(bot_article(b))
-
-    bot.answerInlineQuery(update.inline_query.id, results=results_list)
 
 
 def bot_checker_job(bot, job):
@@ -934,6 +833,9 @@ def main():
     dp.add_handler(CommandHandler("contribute", contributing))
     dp.add_handler(CommandHandler("examples", examples))
 
+    dp.add_handler(CommandHandler('random', send_random_bot))
+    dp.add_handler(CommandHandler('easteregg', eastereggs.send_next, pass_args=True))
+
     dp.add_handler(CommandHandler("removekeyboard", remove_keyboard))
 
     dp.add_handler(CommandHandler("subscribe", manage_subscription))
@@ -942,7 +844,7 @@ def main():
     dp.add_handler(CommandHandler("accesstoken", access_token))
 
     dp.add_handler(MessageHandler(Filters.reply, reply_router, pass_chat_data=True))
-    dp.add_handler(InlineQueryHandler(inlinequery))
+    dp.add_handler(InlineQueryHandler(inlinequery.inlinequery_handler))
     dp.add_error_handler(error)
     dp.add_handler(MessageHandler(Filters.text, plaintext, allow_edited=True))
     dp.add_handler(MessageHandler(Filters.all, all_handler))

@@ -1,4 +1,6 @@
-import util
+import random
+
+import mdformat
 
 PROMOTION_MESSAGE = "*ᴊᴏɪɴ* @BotList\n*sʜᴀʀᴇ* ʏᴏᴜʀ ʙᴏᴛs ɪɴ @BotListChat"
 HELP_MESSAGE_ENGLISH = """*ɢʀᴇᴇᴛɪɴɢs ʜᴜᴍᴀɴᴏɪᴅs* 🤖
@@ -6,7 +8,7 @@ HELP_MESSAGE_ENGLISH = """*ɢʀᴇᴇᴛɪɴɢs ʜᴜᴍᴀɴᴏɪᴅs* 🤖
 I'm the bot in charge of maintaining the @BotList channel, the *most reliable and unbiased bot catalog* out there. I was built to simplify navigation and to automate the process of submitting, reviewing and publishing bots by the @BotListChat community.
 
 ▫️ Add me to your groups and subscribe to BotList updates.
-▫️ Send individual @BotList categories to your friends via inline search (i.e. type `@bot_list_bot music` in any chat).
+▫️ Send individual @BotList categories to your friends via inline search (i.e. type `@botlistbot music` in any chat).
 ▫️ Join the @BotListChat community and /contribute to the BotList: `#new @newbot🔎 - description`
 
 First steps: Start off by using the /category command and use the available buttons from there on.
@@ -17,22 +19,23 @@ First steps: Start off by using the /category command and use the available butt
 # Soy el bot encargado de mantener el canal @BotList y proporcionar a los usuarios de Telegram como tú el *catálogo de bot más fiable e imparcial* de una _manera interactiva_.
 #
 # ▫️ Agregame a tus grupos y recibe una notificación cuando se actualice el @BotList.
-# ▫️ Envíeme acategorías individuales del @BotList a tus amigos a través de búsqueda en línea (p.e: escribe @bot_list_bot música en cualquier chat).
+# ▫️ Envíeme acategorías individuales del @BotList a tus amigos a través de búsqueda en línea (p.e: escribe @botlistbot música en cualquier chat).
 # ▫️ Únete a la comunidad @BotListChat y contribuye al BotList: #new @ nuevobot🔎 - descripción
 #
 # Primeros pasos: Empieza con el comando /category y utiliza los botones disponibles en pantalla desde ahí.
 #
 # Un paso más cerca de la dominación mundial... 🤖
 # """
-CONTRIBUTING_MESSAGE = """You can use the following `#tag`s with a bot `@username` to contribute to the BotList:
+CONTRIBUTING_MESSAGE = """You can use the following `#tags` with a bot `@username` to contribute to the BotList:
 
-• #new — Submit a fresh bot. Use 🔎 if it supports inline queries and flag emojis to denote the language. Everything after the `-` character can be your description of the bot (see /examples).
+• #new — Submit a fresh bot. Use 🔎 if it supports inline queries and flag emojis to denote the language. Everything after the `-` character can be your description of the bot.
 • #offline — Mark a bot as offline.
 • #spam — Tell us that a bot spams too much.
 
 There are also the corresponding /new, /offline and /spam commands.
-
 The moderators will approve your submission as soon as possible.
+
+*Next step*: Have a look at the /examples!
 """
 EXAMPLES_MESSAGE = """*Examples for contributing to the BotList:*
 
@@ -63,7 +66,7 @@ There are {n_bots} new bots:
 {new_bots}
 
 Share your bots in @BotListChat"""
-SEARCH_MESSAGE = util.action_hint("What would you like to search for?")
+SEARCH_MESSAGE = mdformat.action_hint("What would you like to search for?")
 SEARCH_RESULTS = """I found *{num_results} bot{plural}* in the @BotList for *{query}*:\n
 {bots}
 """
@@ -81,3 +84,8 @@ KEYWORD_BEST_PRACTICES = """The following rules for keywords apply:
 NEW_BOTS_INLINEQUERY = "New Bots"
 SELECT_CATEGORY = "Please select a category"
 SHOW_IN_CATEGORY = "Show category"
+
+
+def random_call_to_action():
+    CHOICES = ["Check out", "You might like", "What about", "You should try", "Have a look at"]
+    return random.choice(CHOICES)

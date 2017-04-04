@@ -1,15 +1,16 @@
+import codecs
 import json
 import logging
 import re
+import urllib.parse
 from collections import OrderedDict
 from functools import wraps
 from pprint import pprint
 from typing import List, Dict
 
-from telegram import TelegramError
+from telegram import TelegramError, ReplyKeyboardRemove
 
 import helpers
-from telegram import ReplyKeyboardRemove
 
 import const
 from custemoji import Emoji
@@ -61,11 +62,12 @@ def restricted(func):
                     except (NameError, AttributeError):
                         logging.error("No chat_id available in update.")
                         return
-        if chat_id not in const.ADMINS:
+        if chat_id not in const.MODERATORS:
             try:
                 print("Unauthorized access denied for {}.".format(chat_id))
-                update.message.reply_text('*Available commands:*\n' + helpers.get_commands(),
-                                          parse_mode=ParseMode.MARKDOWN)
+                bot.sendPhoto(chat_id, open('assets/img/go_away_noob.png', 'rb'))
+                # update.message.reply_text('*Available commands:*\n' + helpers.get_commands(),
+                #                           parse_mode=ParseMode.MARKDOWN)
             except (TelegramError, AttributeError):
                 pass
             return
@@ -160,7 +162,18 @@ def uid_from_update(update):
     return chat_id
 
 
-def callback_for_action(action: object, params: object = None) -> object:
+# def deep_link_action_url(action: object, params: Dict = None) -> object:
+#     callback_data = {'a': action}
+#     if params:
+#         for key, value in params.items():
+#             callback_data[key] = value
+#     # s = urllib.parse.urlencode(callback_data)
+#     s = callback_str_from_dict(callback_data)
+#     print(s)
+#     return s
+
+
+def callback_for_action(action: object, params: Dict = None) -> object:
     callback_data = {'a': action}
     if params:
         for key, value in params.items():
@@ -262,6 +275,7 @@ def order_dict_lexi(d):
 
 def private_or_else_group_message(bot, chat_id, text):
     pass
+
 
 def send_or_edit_md_message(bot, chat_id, text, to_edit=None, **kwargs):
     if to_edit:
