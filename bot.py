@@ -6,9 +6,10 @@ import os
 import re
 import sys
 import time
+from pprint import pprint
 
+import datetime
 import emoji
-from peewee import fn
 from telegram.ext import CallbackQueryHandler
 from telegram.ext import Job
 from telegram.ext import MessageHandler, \
@@ -27,10 +28,11 @@ import util
 from components import admin
 from components import botlist
 from components import botproperties
+from components import contributions
 from components import eastereggs
+from components import help
 from components import inlinequery
 from components.botlist import new_channel_post
-from components import contributions
 from const import BotStates, CallbackActions, CallbackStates
 from model import Category, Bot, Country
 from model import Keyword
@@ -59,25 +61,28 @@ def start(bot, update, args):
     User.from_telegram_object(tg_user)
 
     if len(args) > 0:
-        query = ' '.join(args)
-        # priority from highest to lowest
-
-        # CONTRIBUTING (from inlinequeries)
-        if query == 'contributing':
-            return contributing(bot, update, quote=False)
-
         # CATEGORY BY ID
         try:
-            cat = Category.get(Category.id == query)
+            cat = Category.get(Category.id == args[0])
             return send_category(bot, update, cat)
         except (ValueError, Category.DoesNotExist):
             pass
+
+        query = ' '.join(args).lower()
+
+        # SPECIFIC QUERIES
+        if query == const.DeepLinkingActions.CONTRIBUTING:
+            return help.contributing(bot, update, quote=False)
+        if query == const.DeepLinkingActions.EXAMPLES:
+            return help.examples(bot, update, quote=False)
+        if query == const.DeepLinkingActions.RULES:
+            return help.rules(bot, update, quote=False)
 
         # SEARCH QUERY
         search_query(bot, update, query)
 
     else:
-        help(bot, update)
+        help.help(bot, update)
         util.wait(bot, update)
         if util.is_private_message(update):
             main_menu(bot, update)
@@ -107,10 +112,6 @@ def main_menu(bot, update):
                     reply_markup=reply_markup)
 
 
-def available_commands(bot, update):
-    update.message.reply_text('*Available commands:*\n' + helpers.get_commands(), parse_mode=ParseMode.MARKDOWN)
-
-
 def manage_subscription(bot, update):
     chat_id = util.cid_from_update(update)
     msg = "Would you like to be notified when new bots arrive at the @BotList?"
@@ -125,15 +126,10 @@ def manage_subscription(bot, update):
     return ConversationHandler.END
 
 
-def send_random_bot(bot, update):
-    random_bot = Bot.select().where((Bot.approved == True), (Bot.description.is_null(False))).order_by(fn.Random()).limit(1)[0]
-    send_bot_details(bot, update, random_bot)
-
-
 def _new_bots_text():
     new_bots = Bot.get_new_bots()
     if len(new_bots) > 0:
-        txt = "Newly added bots from the last {} days:\n\n{}".format(
+        txt = "Fresh new bots from the last {} days 💙:\n\n{}".format(
             const.BOT_CONSIDERED_NEW,
             Bot.get_new_bots_str())
     else:
@@ -179,7 +175,6 @@ def search_query(bot, update, query, send_errors=True):
     chat_id = util.cid_from_update(update)
     results = search.search_bots(query)
     is_admin = chat_id in const.MODERATORS
-    print('Is group search query: {}'.format(not util.is_private_message(update)))
     reply_markup = ReplyKeyboardMarkup(_main_menu_buttons(is_admin)) if util.is_private_message(
         update) else ReplyKeyboardRemove()
     if results:
@@ -244,25 +239,6 @@ def error(bot, update, error):
     log.error(error)
 
 
-@track_groups
-def help(bot, update):
-    reply_markup = InlineKeyboardMarkup(
-        [[InlineKeyboardButton('Try me inline!', switch_inline_query_current_chat='')]])
-    update.message.reply_text(messages.HELP_MESSAGE_ENGLISH, quote=False, parse_mode=ParseMode.MARKDOWN,
-                              reply_markup=reply_markup)
-    return ConversationHandler.END
-
-
-def contributing(bot, update, quote=True):
-    update.message.reply_text(messages.CONTRIBUTING_MESSAGE, quote=quote, parse_mode=ParseMode.MARKDOWN)
-    return ConversationHandler.END
-
-
-def examples(bot, update):
-    update.message.reply_text(messages.EXAMPLES_MESSAGE, quote=True, parse_mode=ParseMode.MARKDOWN)
-    return ConversationHandler.END
-
-
 def access_token(bot, update):
     update.message.reply_text(binascii.hexlify(os.urandom(32)).decode('utf-8'))
     return ConversationHandler.END
@@ -285,13 +261,23 @@ def plaintext(bot, update):
     if update.channel_post:
         return new_channel_post(bot, update)
 
-        # pprint(update.to_dict())
         # if util.is_private_message(update):
         #     if len(update.message.text) > 3:
         #         search_query(bot, update, update.message.text, send_errors=False)
 
 
-# def credits(bot, update):
+def t3chnostats(bot, update):
+    days = 30
+    txt = 'Bots approved by other people *in the last {} days*:\n\n'.format(days)
+    bots = Bot.select().where(
+        (Bot.approved_by != User.get(User.chat_id == 918962)) &
+        (Bot.date_added.between(
+            datetime.date.today() - datetime.timedelta(days=days),
+            datetime.date.today()
+        ))
+    )
+    txt += '\n'.join(['{} by @{}'.format(str(b), b.approved_by.username) for b in bots])
+    update.message.reply_text(txt, parse_mode=ParseMode.MARKDOWN)
 
 
 def show_new_bots(bot, update, back_button=False):
@@ -373,6 +359,7 @@ def send_bot_details(bot, update, item=None):
         buttons.insert(0, InlineKeyboardButton(captions.BACK, callback_data=util.callback_for_action(
             CallbackActions.SELECT_BOT_FROM_CATEGORY, {'id': item.category.id}
         )))
+        buttons.append(InlineKeyboardButton(captions.SHARE, switch_inline_query=item.username))
 
         if chat_id in const.MODERATORS:
             buttons.append(InlineKeyboardButton(
@@ -647,9 +634,9 @@ def main():
     dp.add_handler(RegexHandler(captions.CATEGORIES, select_category))
     dp.add_handler(RegexHandler(captions.NEW_BOTS, show_new_bots))
     dp.add_handler(RegexHandler(captions.SEARCH, search_handler))
-    dp.add_handler(RegexHandler(captions.CONTRIBUTING, contributing))
-    dp.add_handler(RegexHandler(captions.EXAMPLES, examples))
-    dp.add_handler(RegexHandler(captions.HELP, help))
+    dp.add_handler(RegexHandler(captions.CONTRIBUTING, help.contributing))
+    dp.add_handler(RegexHandler(captions.EXAMPLES, help.examples))
+    dp.add_handler(RegexHandler(captions.HELP, help.help))
 
     dp.add_handler(RegexHandler("^/edit\d+$", admin.edit_bot, pass_chat_data=True))
     dp.add_handler(CommandHandler('reject', admin.reject_bot_submission))
@@ -664,12 +651,14 @@ def main():
     dp.add_handler(RegexHandler('^{}$'.format(const.REGEX_BOT_ONLY), send_bot_details))
 
     dp.add_handler(CommandHandler('r', restart))
-    dp.add_handler(CommandHandler('help', help))
-    dp.add_handler(CommandHandler("contributing", contributing))
-    dp.add_handler(CommandHandler("contribute", contributing))
-    dp.add_handler(CommandHandler("examples", examples))
+    dp.add_handler(CommandHandler('help', help.help))
+    dp.add_handler(CommandHandler("contributing", help.contributing))
+    dp.add_handler(CommandHandler("contribute", help.contributing))
+    dp.add_handler(CommandHandler("examples", help.examples))
+    dp.add_handler(CommandHandler("rules", help.rules))
 
-    dp.add_handler(CommandHandler('random', send_random_bot))
+    dp.add_handler(CommandHandler('t3chno', t3chnostats))
+    dp.add_handler(CommandHandler('random', eastereggs.send_random_bot))
     dp.add_handler(CommandHandler('easteregg', eastereggs.send_next, pass_args=True))
 
     dp.add_handler(CommandHandler("removekeyboard", remove_keyboard))

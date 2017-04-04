@@ -14,6 +14,7 @@ SEND_CONFIG_FILES = "Config files"
 FIND_OFFLINE = "Find offline bots"
 APPROVE_SUGGESTIONS = "Approve Suggestions"
 DONE = "🔚 Done"
+SHARE = "Share"
 
 
 # main menu
@@ -24,3 +25,5 @@ CONTRIBUTING = "📤 Contributing"
 EXAMPLES = "📝 Examples"
 HELP = "❔ Help"
 ADMIN_MENU = "🛃 Admin Menu"
+SWITCH_PRIVATE = "📖️ Show in private"
+

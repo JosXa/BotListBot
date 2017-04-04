@@ -27,7 +27,8 @@ class Bot(BaseModel):
     spam = BooleanField(default=False)
 
     approved = BooleanField(default=True)
-    submitted_by = ForeignKeyField(User, null=True)
+    submitted_by = ForeignKeyField(User, null=True, related_name='submitted_by')
+    approved_by = ForeignKeyField(User, null=True, related_name='approved_by')
 
     @property
     def serialize(self):

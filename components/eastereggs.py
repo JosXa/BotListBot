@@ -1,6 +1,11 @@
 import random
 from pprint import pprint
 
+from peewee import fn
+
+from bot import send_bot_details
+from model import Bot
+
 from telegram import ReplyKeyboardMarkup
 
 import util
@@ -41,3 +46,8 @@ def send_next(bot, update, args=None):
     reply_markup = ReplyKeyboardMarkup(_crapPy_Tr0ll_kbmarkup(rows), one_time_keyboard=True, per_user=True)
     text = 'ɹoʇɐɹǝuǝb ǝɯɐuɹǝsn ɯɐɹbǝןǝʇ'
     util.send_md_message(bot, uid, text, reply_markup=reply_markup)
+
+
+def send_random_bot(bot, update):
+    random_bot = Bot.select().where((Bot.approved == True), (Bot.description.is_null(False))).order_by(fn.Random()).limit(1)[0]
+    send_bot_details(bot, update, random_bot)

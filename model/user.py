@@ -22,6 +22,28 @@ class User(BaseModel):
             u.save()
         return u
 
+    @staticmethod
+    def from_update(update):
+        try:
+            user = update.message.from_user
+        except (NameError, AttributeError):
+            try:
+                user = update.inline_query.from_user
+            except (NameError, AttributeError):
+                try:
+                    user = update.chosen_inline_result.from_user
+                except (NameError, AttributeError):
+                    try:
+                        user = update.callback_query.from_user
+                    except (NameError, AttributeError):
+                        raise ValueError("No user in update")
+        try:
+            u = User.get(User.chat_id == user.id)
+        except User.DoesNotExist:
+            u = User(chat_id=user.id, username=user.username, first_name=user.first_name, last_name=user.last_name)
+            u.save()
+        return u
+
     def __str__(self):
         text = ' '.join([
             '@' + self.username if self.username else '',

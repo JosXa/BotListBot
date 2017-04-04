@@ -20,7 +20,8 @@ from model import Keyword
 from model import Suggestion
 from model import User, Bot, Suggestion, Country
 from peewee import fn
-from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup, TelegramError, ParseMode
+from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup, TelegramError, \
+    ParseMode
 from telegram.ext import ConversationHandler, Job
 from util import restricted, track_groups
 
@@ -84,7 +85,7 @@ def notify_bot_offline(bot, update, args=None):
         text = ' '.join(args)
     else:
         text = update.message.text
-        command_no_args = len(re.findall(r'^/new\s*$', text)) > 0 or text.lower().strip() == '/offline@botlistbot'
+        command_no_args = len(re.findall(r'^/offline\s*$', text)) > 0 or text.lower().strip() == '/offline@botlistbot'
         if command_no_args:
             update.message.reply_text(
                 util.action_hint("Please use this command with an argument. For example:\n/offline @mybot"),
@@ -114,8 +115,14 @@ def notify_bot_offline(bot, update, args=None):
         except Suggestion.DoesNotExist:
             suggestion = Suggestion(user=user, action="offline", date=datetime.date.today(), subject=offline_bot)
             suggestion.save()
-        update.message.reply_text(util.success("Thank you! We will review your suggestion and set the bot offline.",
-                                               ), reply_to_message_id=reply_to)
+
+        if offline_bot.official:
+            update.message.reply_text(mdformat.none_action("Official bots usually don't go offline for a long time. "
+                                      "Just wait a couple hours and it will be back up ;)"),
+                                      reply_to_message_id=reply_to)
+        else:
+            update.message.reply_text(util.success("Thank you! We will review your suggestion and set the bot offline.",
+                                                   ), reply_to_message_id=reply_to)
     except Bot.DoesNotExist:
         update.message.reply_text(
             util.action_hint("The bot you sent me is not in the @BotList."), reply_to_message_id=reply_to)

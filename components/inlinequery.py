@@ -7,7 +7,6 @@ import mdformat
 import messages
 import search
 import util
-from bot import _new_bots_text
 from model import Bot, Category
 from telegram import InlineQueryResultArticle
 from telegram import InputTextMessageContent
@@ -16,8 +15,8 @@ from telegram import ParseMode
 # CONSTANTS
 MAX_BOTS = 30
 SEARCH_QUERY_MIN_LENGTH = 3
-CONTRIBUTING_QUERIES = ['contributing', 'ctrbt']
-EXAMPLES_QUERIES = ['example', 'examples']
+CONTRIBUTING_QUERIES = [const.DeepLinkingActions.CONTRIBUTING, 'ctrbt']
+EXAMPLES_QUERIES = ['example', const.DeepLinkingActions.EXAMPLES]
 
 
 def query_too_short_article():
@@ -33,6 +32,7 @@ def query_too_short_article():
 
 def new_bots_article():
     # append new bots list to result
+    from bot import _new_bots_text
     msg_text = messages.PROMOTION_MESSAGE + '\n\n' + _new_bots_text()
     return InlineQueryResultArticle(
         id=uuid4(),
@@ -130,7 +130,7 @@ def inlinequery_handler(bot, update):
         results_list.append(InlineQueryResultArticle(
             id=uuid4(),
             title='Contributing',
-            input_message_content=InputTextMessageContent(message_text=messages.CONTRIBUTING_MESSAGE,
+            input_message_content=InputTextMessageContent(message_text=messages.CONTRIBUTING,
                                                           parse_mode="Markdown"),
         ))
         bot.answerInlineQuery(update.inline_query.id, results=results_list)
@@ -140,11 +140,22 @@ def inlinequery_handler(bot, update):
         results_list.append(InlineQueryResultArticle(
             id=uuid4(),
             title='Examples',
-            input_message_content=InputTextMessageContent(message_text=messages.EXAMPLES_MESSAGE,
+            input_message_content=InputTextMessageContent(message_text=messages.EXAMPLES,
                                                           parse_mode="Markdown"),
         ))
         bot.answerInlineQuery(update.inline_query.id, results=results_list)
         return
+
+    if query == const.DeepLinkingActions.RULES:
+        results_list.append(InlineQueryResultArticle(
+            id=uuid4(),
+            title='@BotListChat Rules',
+            input_message_content=InputTextMessageContent(message_text=messages.BOTLISTCHAT_RULES,
+                                                          parse_mode="Markdown"),
+        ))
+        bot.answerInlineQuery(update.inline_query.id, results=results_list)
+        return
+
 
     invalid_search_term = query_too_short and not cat_results
     if invalid_search_term:

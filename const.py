@@ -9,6 +9,7 @@ ADMINS = [62056065, 918962]
 BOT_CONSIDERED_NEW = 14  # days
 SELF_BOT_NAME = "botlistbot"
 SELF_BOT_ID = "182355371" if bool(os.environ.get("DEV")) else "265482650"
+BOTLISTCHAT_ID = -1001067163791
 SELF_CHANNEL_USERNAME = "botlist_testchannel" if bool(os.environ.get("DEV")) else "botlist"
 # SELF_CHANNEL_USERNAME =
 REGEX_BOT_IN_TEXT = r'.*(@[a-zA-Z]+[a-zA-Z0-9_\-]{3,}).*'
@@ -48,8 +49,9 @@ class CallbackStates:
 
 
 class DeepLinkingActions:
-    SEARCH, \
-    *rest = big_range
+    RULES = 'rules'
+    CONTRIBUTING = 'contributing'
+    EXAMPLES = 'examples'
 
 
 class CallbackActions:

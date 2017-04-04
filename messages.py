@@ -2,7 +2,7 @@ import random
 
 import mdformat
 
-PROMOTION_MESSAGE = "*ᴊᴏɪɴ* @BotList\n*sʜᴀʀᴇ* ʏᴏᴜʀ ʙᴏᴛs ɪɴ @BotListChat"
+PROMOTION_MESSAGE = "*ᴊᴏɪɴ ᴛʜᴇ* @BotList 💙\n*sʜᴀʀᴇ* ʏᴏᴜʀ ʙᴏᴛs ɪɴ @BotListChat"
 HELP_MESSAGE_ENGLISH = """*ɢʀᴇᴇᴛɪɴɢs ʜᴜᴍᴀɴᴏɪᴅs* 🤖
 
 I'm the bot in charge of maintaining the @BotList channel, the *most reliable and unbiased bot catalog* out there. I was built to simplify navigation and to automate the process of submitting, reviewing and publishing bots by the @BotListChat community.
@@ -26,7 +26,7 @@ First steps: Start off by using the /category command and use the available butt
 #
 # Un paso más cerca de la dominación mundial... 🤖
 # """
-CONTRIBUTING_MESSAGE = """You can use the following `#tags` with a bot `@username` to contribute to the BotList:
+CONTRIBUTING = """You can use the following `#tags` with a bot `@username` to contribute to the BotList:
 
 • #new — Submit a fresh bot. Use 🔎 if it supports inline queries and flag emojis to denote the language. Everything after the `-` character can be your description of the bot.
 • #offline — Mark a bot as offline.
@@ -37,7 +37,7 @@ The moderators will approve your submission as soon as possible.
 
 *Next step*: Have a look at the /examples!
 """
-EXAMPLES_MESSAGE = """*Examples for contributing to the BotList:*
+EXAMPLES = """*Examples for contributing to the BotList:*
 
 • "Wow! I found this nice #new bot: @coolbot 🔎🇮🇹 - Cools your drinks in the fridge."
 • /new @coolbot 🔎🇮🇹 - Cools your drinks in the fridge.
@@ -84,7 +84,13 @@ KEYWORD_BEST_PRACTICES = """The following rules for keywords apply:
 NEW_BOTS_INLINEQUERY = "New Bots"
 SELECT_CATEGORY = "Please select a category"
 SHOW_IN_CATEGORY = "Show category"
+REROUTE_PRIVATE_CHAT = mdformat.action_hint("Please use this command in a private chat or make use of inlinequeries.")
+BOTLISTCHAT_RULES = """*Here are the rules for @BotListChat:*\n\nShare your bots, comment, test and have fun😜👍
 
+Rules: Speak in English, Don't spam/advertise channels or groups that aren't bot related, respect other members, use common sense. 🤖
+
+⭐️⭐️⭐️⭐️⭐️
+[Give @BotList a rating](https://goo.gl/rtSs5B)"""
 
 def random_call_to_action():
     CHOICES = ["Check out", "You might like", "What about", "You should try", "Have a look at"]

@@ -7,4 +7,5 @@ contributing - How to contribute to the BOTLIST
 examples - See contribution examples
 newbots - Get a list of newly added Bots
 subscribe - Get notified when BOTLIST updates
+rules - Show the rules of BotListChat
 help - Send help message

@@ -339,11 +339,13 @@ def edit_bot_category(bot, update, for_bot, callback_action=None):
 def accept_bot_submission(bot, update, of_bot: Bot, category):
     chat_id = util.uid_from_update(update)
     message_id = util.mid_from_update(update)
+    user = User.from_update(update)
 
     try:
         of_bot.category = category
         of_bot.date_added = datetime.date.today()
         of_bot.approved = True
+        of_bot.approved_by = user
         of_bot.save()
 
         buttons = [[InlineKeyboardButton("Edit {} details".format(of_bot.username),
