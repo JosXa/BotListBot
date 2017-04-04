@@ -2,25 +2,23 @@ from uuid import uuid4
 
 import emoji
 
-import mdformat
-from telegram import ParseMode
-
-from telegram import InputTextMessageContent
-
-from telegram import InlineQueryResultArticle
-
 import const
+import mdformat
 import messages
 import search
 import util
 from bot import _new_bots_text
 from model import Bot, Category
+from telegram import InlineQueryResultArticle
+from telegram import InputTextMessageContent
+from telegram import ParseMode
 
 # CONSTANTS
 MAX_BOTS = 30
 SEARCH_QUERY_MIN_LENGTH = 3
 CONTRIBUTING_QUERIES = ['contributing', 'ctrbt']
 EXAMPLES_QUERIES = ['example', 'examples']
+
 
 def query_too_short_article():
     txt = '[I am a stupid, crazy fool.](https://www.youtube.com/watch?v=DLzxrzFCyOs)'

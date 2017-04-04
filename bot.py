@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 import binascii
-import datetime
 import json
 import logging
 import os
 import re
 import sys
 import time
-from pprint import pprint
 
 import emoji
 from peewee import fn
@@ -30,8 +28,9 @@ from components import admin
 from components import botlist
 from components import botproperties
 from components import eastereggs
-from components.botlist import new_channel_post
 from components import inlinequery
+from components.botlist import new_channel_post
+from components import contributions
 from const import BotStates, CallbackActions, CallbackStates
 from model import Category, Bot, Country
 from model import Keyword
@@ -142,18 +141,18 @@ def _new_bots_text():
     return txt
 
 
-def select_language(bot, update):
-    chat_id = util.cid_from_update(update)
-    msg = util.action_hint("Choose a language")
-    buttons = [[
-        InlineKeyboardButton("🇬🇧 English",
-                             callback_data=util.callback_for_action(CallbackActions.SELECT_LANGUAGE,
-                                                                    {'lang': 'en'})),
-        InlineKeyboardButton("🇪🇸 Spanish", callback_data=util.callback_for_action(CallbackActions.SELECT_LANGUAGE,
-                                                                                    {'lang': 'es'}))]]
-    reply_markup = InlineKeyboardMarkup(buttons)
-    util.send_md_message(bot, chat_id, msg, reply_markup=reply_markup)
-    return ConversationHandler.END
+# def select_language(bot, update):
+#     chat_id = util.cid_from_update(update)
+#     msg = util.action_hint("Choose a language")
+#     buttons = [[
+#         InlineKeyboardButton("🇬🇧 English",
+#                              callback_data=util.callback_for_action(CallbackActions.SELECT_LANGUAGE,
+#                                                                     {'lang': 'en'})),
+#         InlineKeyboardButton("🇪🇸 Spanish", callback_data=util.callback_for_action(CallbackActions.SELECT_LANGUAGE,
+#                                                                                     {'lang': 'es'}))]]
+#     reply_markup = InlineKeyboardMarkup(buttons)
+#     util.send_md_message(bot, chat_id, msg, reply_markup=reply_markup)
+#     return ConversationHandler.END
 
 
 @track_groups
@@ -293,170 +292,6 @@ def plaintext(bot, update):
 
 
 # def credits(bot, update):
-
-
-def notify_bot_spam(bot, update, args=None):
-    tg_user = update.message.from_user
-    user = User.from_telegram_object(tg_user)
-    reply_to = util.original_reply_id(update)
-
-    if args:
-        text = ' '.join(args)
-    else:
-        text = update.message.text
-        command_no_args = len(re.findall(r'^/spam\s*$', text)) > 0 or text.lower().strip() == '/spam@botlistbot'
-        if command_no_args:
-            update.message.reply_text(
-                util.action_hint("Please use this command with an argument. For example:\n/spam @mybot"),
-                reply_to_message_id=reply_to)
-            return
-
-    # `#spam` is already checked by handler
-    try:
-        username = re.match(const.REGEX_BOT_IN_TEXT, text).groups()[0]
-        if username == '@' + const.SELF_BOT_NAME:
-            log.info("Ignoring {}".format(text))
-            return
-    except AttributeError:
-        if args:
-            update.message.reply_text(util.failure("Sorry, but you didn't send me a bot `@username`."), quote=True,
-                                      parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
-        else:
-            log.info("Ignoring {}".format(text))
-            # no bot username, ignore update
-            pass
-        return
-
-    try:
-        spam_bot = Bot.get(fn.lower(Bot.username) ** username.lower(), Bot.approved == True)
-        try:
-            Suggestion.get(action="spam", subject=spam_bot)
-        except Suggestion.DoesNotExist:
-            suggestion = Suggestion(user=user, action="spam", date=datetime.date.today(), subject=spam_bot)
-            suggestion.save()
-        update.message.reply_text(util.success("Thank you! We will review your suggestion and mark the bot as spammy."),
-                                  reply_to_message_id=reply_to)
-    except Bot.DoesNotExist:
-        update.message.reply_text(util.action_hint("The bot you sent me is not in the @BotList."),
-                                  reply_to_message_id=reply_to)
-    return ConversationHandler.END
-
-
-def notify_bot_offline(bot, update, args=None):
-    tg_user = update.message.from_user
-    user = User.from_telegram_object(tg_user)
-    reply_to = util.original_reply_id(update)
-
-    if args:
-        text = ' '.join(args)
-    else:
-        text = update.message.text
-        command_no_args = len(re.findall(r'^/new\s*$', text)) > 0 or text.lower().strip() == '/offline@botlistbot'
-        if command_no_args:
-            update.message.reply_text(
-                util.action_hint("Please use this command with an argument. For example:\n/offline @mybot"),
-                reply_to_message_id=reply_to)
-            return
-
-    # `#offline` is already checked by handler
-    try:
-        username = re.match(const.REGEX_BOT_IN_TEXT, text).groups()[0]
-        if username == '@' + const.SELF_BOT_NAME:
-            log.info("Ignoring {}".format(text))
-            return
-    except AttributeError:
-        if args:
-            update.message.reply_text(util.failure("Sorry, but you didn't send me a bot `@username`."), quote=True,
-                                      parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
-        else:
-            log.info("Ignoring {}".format(text))
-            # no bot username, ignore update
-            pass
-        return
-
-    try:
-        offline_bot = Bot.get(fn.lower(Bot.username) ** username.lower(), Bot.approved == True)
-        try:
-            Suggestion.get(action="offline", subject=offline_bot)
-        except Suggestion.DoesNotExist:
-            suggestion = Suggestion(user=user, action="offline", date=datetime.date.today(), subject=offline_bot)
-            suggestion.save()
-        update.message.reply_text(util.success("Thank you! We will review your suggestion and set the bot offline.",
-                                               ), reply_to_message_id=reply_to)
-    except Bot.DoesNotExist:
-        update.message.reply_text(
-            util.action_hint("The bot you sent me is not in the @BotList."), reply_to_message_id=reply_to)
-    return ConversationHandler.END
-
-
-@track_groups
-def new_bot_submission(bot, update, args=None):
-    tg_user = update.message.from_user
-    user = User.from_telegram_object(tg_user)
-    reply_to = util.original_reply_id(update)
-
-    if args:
-        text = ' '.join(args)
-    else:
-        text = update.message.text
-        command_no_args = len(re.findall(r'^/new\s*$', text)) > 0 or text.lower().strip() == '/new@botlistbot'
-        if command_no_args:
-            update.message.reply_text(util.action_hint(
-                "Please use this command with an argument. For example:\n/new @mybot 🔎"),
-                reply_to_message_id=reply_to)
-            return
-
-    # `#new` is already checked by handler
-    try:
-        username = re.match(const.REGEX_BOT_IN_TEXT, text).groups()[0]
-        if username == '@' + const.SELF_BOT_NAME:
-            log.info("Ignoring {}".format(text))
-            return
-    except AttributeError:
-        if args:
-            update.message.reply_text(util.failure("Sorry, but you didn't send me a bot `@username`."), quote=True,
-                                      parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
-        log.info("Ignoring {}".format(text))
-        # no bot username, ignore update
-        return
-
-    try:
-        new_bot = Bot.by_username(username)
-        if new_bot.approved:
-            update.message.reply_text(
-                util.action_hint("Sorry fool, but {} is already in the @BotList 😉".format(new_bot.username)),
-                reply_to_message_id=reply_to)
-        else:
-            update.message.reply_text(
-                util.action_hint("{} has already been submitted. Please have patience...".format(new_bot.username)),
-                reply_to_message_id=reply_to)
-        return
-    except Bot.DoesNotExist:
-        new_bot = Bot(approved=False, username=username, submitted_by=user)
-
-    new_bot.inlinequeries = "🔎" in text
-    new_bot.official = "🔹" in text
-
-    # find language
-    languages = Country.select().execute()
-    for lang in languages:
-        if lang.emoji in text:
-            new_bot.country = lang
-
-    new_bot.date_added = datetime.date.today()
-
-    description_reg = re.match(const.REGEX_BOT_IN_TEXT + ' -\s?(.*)', text)
-    description_notify = ''
-    if description_reg:
-        description = description_reg.group(2)
-        new_bot.description = description
-        description_notify = ' Your description was included.'
-
-    log.info("New bot submission by {}: {}".format(new_bot.submitted_by, new_bot.username))
-    new_bot.save()
-    update.message.reply_text(util.success("You submitted {} for approval.{}".format(new_bot, description_notify)),
-                              parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
-    return ConversationHandler.END
 
 
 def show_new_bots(bot, update, back_button=False):
@@ -817,14 +652,15 @@ def main():
     dp.add_handler(RegexHandler(captions.HELP, help))
 
     dp.add_handler(RegexHandler("^/edit\d+$", admin.edit_bot, pass_chat_data=True))
-    dp.add_handler(CommandHandler('new', new_bot_submission, pass_args=True))
-    dp.add_handler(RegexHandler('.*#new.*', new_bot_submission))
     dp.add_handler(CommandHandler('reject', admin.reject_bot_submission))
     dp.add_handler(CommandHandler('rej', admin.reject_bot_submission))
-    dp.add_handler(CommandHandler('offline', notify_bot_offline, pass_args=True))
-    dp.add_handler(RegexHandler('.*#offline.*', notify_bot_offline))
-    dp.add_handler(CommandHandler('spam', notify_bot_spam, pass_args=True))
-    dp.add_handler(RegexHandler('.*#spam.*', notify_bot_spam))
+
+    dp.add_handler(CommandHandler('new', contributions.new_bot_submission, pass_args=True))
+    dp.add_handler(RegexHandler('.*#new.*', contributions.new_bot_submission))
+    dp.add_handler(CommandHandler('offline', contributions.notify_bot_offline, pass_args=True))
+    dp.add_handler(RegexHandler('.*#offline.*', contributions.notify_bot_offline))
+    dp.add_handler(CommandHandler('spam', contributions.notify_bot_spam, pass_args=True))
+    dp.add_handler(RegexHandler('.*#spam.*', contributions.notify_bot_spam))
     dp.add_handler(RegexHandler('^{}$'.format(const.REGEX_BOT_ONLY), send_bot_details))
 
     dp.add_handler(CommandHandler('r', restart))
