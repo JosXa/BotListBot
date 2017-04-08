@@ -8,6 +8,7 @@ from model.keywordmodel import Keyword
 from model.notifications import Notifications
 from model.user import User
 from model.suggestion import Suggestion
+from model.favorite import Favorite
 
 if __name__ == "__main__":
     Category.create_table(fail_silently=True)
@@ -19,6 +20,7 @@ if __name__ == "__main__":
     Group.create_table(fail_silently=True)
     Notifications.create_table(fail_silently=True)
     Keyword.create_table(fail_silently=True)
+    Favorite.create_table(fail_silently=True)
     APIAccess.create_table(fail_silently=True)
 
     APIAccess.insert({

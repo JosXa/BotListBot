@@ -30,11 +30,13 @@ from components import botlist
 from components import botproperties
 from components import contributions
 from components import eastereggs
+from components import favorites
 from components import help
 from components import inlinequery
 from components.botlist import new_channel_post
 from const import BotStates, CallbackActions, CallbackStates
 from model import Category, Bot, Country
+from model import Favorite
 from model import Keyword
 from model import Notifications
 from model.suggestion import Suggestion
@@ -73,10 +75,12 @@ def start(bot, update, args):
         # SPECIFIC QUERIES
         if query == const.DeepLinkingActions.CONTRIBUTING:
             return help.contributing(bot, update, quote=False)
-        if query == const.DeepLinkingActions.EXAMPLES:
+        elif query == const.DeepLinkingActions.EXAMPLES:
             return help.examples(bot, update, quote=False)
-        if query == const.DeepLinkingActions.RULES:
+        elif query == const.DeepLinkingActions.RULES:
             return help.rules(bot, update, quote=False)
+        elif query == const.DeepLinkingActions.SEARCH:
+            return search_handler(bot, update)
 
         # SEARCH QUERY
         search_query(bot, update, query)
@@ -93,7 +97,6 @@ def _main_menu_buttons(admin=False):
     buttons = [
         [KeyboardButton(captions.CATEGORIES)],
         [KeyboardButton(captions.NEW_BOTS), KeyboardButton(captions.SEARCH)],
-        [KeyboardButton(captions.CONTRIBUTING), KeyboardButton(captions.EXAMPLES)],
         [KeyboardButton(captions.HELP)],
     ]
     if admin:
@@ -154,10 +157,11 @@ def _new_bots_text():
 @track_groups
 def all_handler(bot, update):
     chat_id = util.cid_from_update(update)
-    if update.message and update.message.new_chat_member and update.message.new_chat_member.id == int(
+    if update.message and update.message.new_chat_member:
+        if update.message.new_chat_member.id == int(
             const.SELF_BOT_ID):
-        # bot was added to a group
-        start(bot, update)
+            # bot was added to a group
+            start(bot, update)
     return ConversationHandler.END
 
 
@@ -178,6 +182,8 @@ def search_query(bot, update, query, send_errors=True):
     reply_markup = ReplyKeyboardMarkup(_main_menu_buttons(is_admin)) if util.is_private_message(
         update) else ReplyKeyboardRemove()
     if results:
+        if len(results) == 1:
+            return send_bot_details(bot, update, results[0])
         too_many_results = len(results) > const.MAX_SEARCH_RESULTS
 
         bots_list = ''
@@ -195,7 +201,7 @@ def search_query(bot, update, query, send_errors=True):
         if send_errors:
             update.message.reply_text(
                 util.failure("Sorry, I couldn't find anything related "
-                             "to *{}* in the @BotList.".format(util.escape_markdown(query))),
+                             "to *{}* in the @BotList. /search".format(util.escape_markdown(query))),
                 parse_mode=ParseMode.MARKDOWN,
                 reply_markup=reply_markup)
     return ConversationHandler.END
@@ -206,8 +212,25 @@ def search_handler(bot, update, args=None):
         search_query(bot, update, ' '.join(args))
     else:
         # no search term
-        update.message.reply_text(messages.SEARCH_MESSAGE,
-                                  reply_markup=ForceReply(selective=True))
+        if util.is_group_message(update):
+            action = const.DeepLinkingActions.SEARCH
+            update.message.reply_text(
+                "Please use the search command with arguments or continue in private. "
+                "Example: `/search awesome bot`",
+                quote=True,
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=InlineKeyboardMarkup(
+                    [[InlineKeyboardButton(
+                        captions.SWITCH_PRIVATE,
+                        url="https://t.me/{}?start={}".format(
+                            const.SELF_BOT_NAME,
+                            action)),
+                        InlineKeyboardButton('🔎 Search inline', switch_inline_query_current_chat='')
+                    ]]
+                ))
+        else:
+            update.message.reply_text(messages.SEARCH_MESSAGE,
+                                      reply_markup=ForceReply(selective=True))
     return ConversationHandler.END
 
 
@@ -336,8 +359,9 @@ def send_category(bot, update, category=None):
 
 @private_chat_only
 def send_bot_details(bot, update, item=None):
-    chat_id = util.uid_from_update(update)
-    buttons = list()
+    uid = util.uid_from_update(update)
+    user = User.from_update(update)
+    first_row = list()
 
     if item is None:
         try:
@@ -356,28 +380,36 @@ def send_bot_details(bot, update, item=None):
         txt = item.detail_text
         if item.description is None and not Keyword.select().where(Keyword.entity == item).exists():
             txt += ' is in the @BotList.'
-        buttons.insert(0, InlineKeyboardButton(captions.BACK, callback_data=util.callback_for_action(
+        first_row.insert(0, InlineKeyboardButton(captions.BACK_TO_CATEGORY, callback_data=util.callback_for_action(
             CallbackActions.SELECT_BOT_FROM_CATEGORY, {'id': item.category.id}
         )))
-        buttons.append(InlineKeyboardButton(captions.SHARE, switch_inline_query=item.username))
+        first_row.append(InlineKeyboardButton(captions.SHARE, switch_inline_query=item.username))
 
-        if chat_id in const.MODERATORS:
-            buttons.append(InlineKeyboardButton(
+        if uid in const.MODERATORS:
+            first_row.append(InlineKeyboardButton(
                 "🛃 Edit", callback_data=util.callback_for_action(
                     CallbackActions.EDIT_BOT,
                     {'id': item.id}
                 )))
     else:
         txt = '{} is currently pending to be accepted for the @BotList.'.format(item.username)
-        if chat_id in const.MODERATORS:
-            buttons.append(InlineKeyboardButton(
+        if uid in const.MODERATORS:
+            first_row.append(InlineKeyboardButton(
                 util.success("🛃 Accept"), callback_data=util.callback_for_action(
                     CallbackActions.ACCEPT_BOT,
                     {'id': item.id}
                 )))
 
-    reply_markup = InlineKeyboardMarkup([buttons])
-    util.send_or_edit_md_message(bot, chat_id,
+    buttons = [first_row]
+    favs = [f.bot for f in Favorite.select_all(user)]
+    if item not in favs:
+        buttons.append([
+            InlineKeyboardButton(captions.ADD_TO_FAVORITES,
+                                 callback_data=util.callback_for_action(CallbackActions.ADD_TO_FAVORITES,
+                                                                        {'id': item.id}))
+        ])
+    reply_markup = InlineKeyboardMarkup(buttons)
+    util.send_or_edit_md_message(bot, uid,
                                  txt,
                                  to_edit=util.mid_from_update(update),
                                  reply_markup=reply_markup
@@ -421,19 +453,55 @@ def cancel(bot, update):
     return ConversationHandler.END
 
 
-def reply_router(bot, update, chat_data):
+def forward_router(bot, update):
+    text = update.message.text
+    uid = util.uid_from_update(update)
+
+    # match first username in forwarded message
+    try:
+        username = re.match(const.REGEX_BOT_IN_TEXT, text).groups()[0]
+        if username == '@' + const.SELF_BOT_NAME:
+            return  # ignore
+
+        item = Bot.get(Bot.username == username)
+
+        send_bot_details(bot, update, item)
+
+    except (AttributeError, Bot.DoesNotExist):
+        pass  # no valid username in forwarded message
+
+
+def reply_router(bot, update):
     text = update.message.reply_to_message.text
 
+    if text == messages.ADD_FAVORITE:
+        query = update.message.text
+        favorites.add_favorite_handler(bot, update, query)
     if text == messages.SEARCH_MESSAGE:
         query = update.message.text
         search_query(bot, update, query)
+    if text == messages.BAN_MESSAGE:
+        query = update.message.text
+        admin.ban_handler(bot, update, query, True)
+    if text == messages.UNBAN_MESSAGE:
+        query = update.message.text
+        admin.ban_handler(bot, update, query, False)
 
 
 def callback_router(bot, update, chat_data):
     obj = json.loads(str(update.callback_query.data))
+    user = User.from_update(update)
+
     if 'a' in obj:
         action = obj['a']
 
+        # HELP
+        if action == CallbackActions.HELP:
+            help.help(bot, update)
+        if action == CallbackActions.CONTRIBUTING:
+            help.contributing(bot, update)
+        if action == CallbackActions.EXAMPLES:
+            help.examples(bot, update)
         # BASIC QUERYING
         if action == CallbackActions.SELECT_CATEGORY:
             select_category(bot, update)
@@ -443,16 +511,23 @@ def callback_router(bot, update, chat_data):
         if action == CallbackActions.SEND_BOT_DETAILS:
             item = Bot.get(id=obj['id'])
             send_bot_details(bot, update, item)
-        # if action == CallbackActions.PERMALINK:
-        #     category = Category.get(id=obj['cid'])
-        #     category_permalink(bot, update, category)
-        # SEND BOTLIST
-        if action == CallbackActions.SEND_BOTLIST:
-            silent = obj.get('silent', False)
-            re_send = obj.get('re', False)
-            components.botlist.send_botlist(bot, update, resend=re_send, silent=silent)
-        if action == CallbackActions.RESEND_BOTLIST:
-            components.botlist.send_botlist(bot, update, resend=True)
+        # FAVORITES
+        if action == CallbackActions.ADD_FAVORITE:
+            favorites.add_favorite_handler(bot, update)
+        if action == CallbackActions.REMOVE_FAVORITE_MENU:
+            favorites.remove_favorite_menu(bot, update)
+        if action == CallbackActions.REMOVE_FAVORITE:
+            to_remove = Favorite.get(id=obj['id'])
+            to_remove.delete_instance()
+            favorites.remove_favorite_menu(bot, update)
+        if action == CallbackActions.SEND_FAVORITES_LIST:
+            favorites.send_favorites_list(bot, update)
+        if action == CallbackActions.ADD_ANYWAY:
+            favorites.add_custom(bot, update, obj['u'])
+        if action == CallbackActions.ADD_TO_FAVORITES:
+            discreet = obj.get('discreet', False)
+            item = Bot.get(id=obj['id'])
+            favorites.add_favorite(bot, update, item, callback_alert=discreet)
         # ACCEPT/REJECT BOT SUBMISSIONS
         if action == CallbackActions.ACCEPT_BOT:
             to_accept = Bot.get(id=obj['id'])
@@ -562,7 +637,15 @@ def callback_router(bot, update, chat_data):
         if action == CallbackActions.ABORT_SETTING_KEYWORDS:
             to_edit = Bot.get(id=obj['id'])
             admin.edit_bot(bot, update, chat_data, to_edit)
-            return ConversationHandler.END
+        # SEND BOTLIST
+        if action == CallbackActions.SEND_BOTLIST:
+            silent = obj.get('silent', False)
+            re_send = obj.get('re', False)
+            components.botlist.send_botlist(bot, update, resend=re_send, silent=silent)
+        if action == CallbackActions.RESEND_BOTLIST:
+            components.botlist.send_botlist(bot, update, resend=True)
+
+        return ConversationHandler.END
 
 
 def main():
@@ -616,6 +699,9 @@ def main():
     conv_handler.allow_reentry = True
     dp.add_handler(conv_handler)
 
+    dp.add_handler(MessageHandler(Filters.reply, reply_router))
+    dp.add_handler(MessageHandler(Filters.forwarded, forward_router))
+
     dp.add_handler(CommandHandler('start', start, pass_args=True))
     dp.add_handler(CommandHandler("admin", admin.menu))
     dp.add_handler(CommandHandler("a", admin.menu))
@@ -657,6 +743,16 @@ def main():
     dp.add_handler(CommandHandler("examples", help.examples))
     dp.add_handler(CommandHandler("rules", help.rules))
 
+    dp.add_handler(CommandHandler("addfavorite", favorites.send_favorites_list))
+    dp.add_handler(CommandHandler("addfav", favorites.add_favorite_handler, pass_args=True))
+    dp.add_handler(CommandHandler("f", favorites.send_favorites_list))
+    dp.add_handler(CommandHandler("fav", favorites.send_favorites_list))
+    dp.add_handler(CommandHandler("favorites", favorites.send_favorites_list))
+
+    dp.add_handler(CommandHandler('ban', lambda bot, update, args: admin.ban_handler(
+        bot, update, args, True), pass_args=True))
+    dp.add_handler(CommandHandler('unban', lambda bot, update, args: admin.ban_handler(
+        bot, update, args, False), pass_args=True))
     dp.add_handler(CommandHandler('t3chno', t3chnostats))
     dp.add_handler(CommandHandler('random', eastereggs.send_random_bot))
     dp.add_handler(CommandHandler('easteregg', eastereggs.send_next, pass_args=True))
@@ -668,7 +764,6 @@ def main():
 
     dp.add_handler(CommandHandler("accesstoken", access_token))
 
-    dp.add_handler(MessageHandler(Filters.reply, reply_router, pass_chat_data=True))
     dp.add_handler(InlineQueryHandler(inlinequery.inlinequery_handler))
     dp.add_error_handler(error)
     dp.add_handler(MessageHandler(Filters.text, plaintext, allow_edited=True))

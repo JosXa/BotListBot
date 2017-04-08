@@ -9,7 +9,7 @@ I'm the bot in charge of maintaining the @BotList channel, the *most reliable an
 
 ▫️ Add me to your groups and subscribe to BotList updates.
 ▫️ Send individual @BotList categories to your friends via inline search (i.e. type `@botlistbot music` in any chat).
-▫️ Join the @BotListChat community and /contribute to the BotList: `#new @newbot🔎 - description`
+▫️ Join the @BotListChat community and contribute to the BotList: `#new @newbot🔎 - description`
 
 First steps: Start off by using the /category command and use the available buttons from there on.
 
@@ -54,8 +54,9 @@ It does not suffice the standards we impose for inclusion in the @BotList for on
 
 ▫️A better bot with the same functionality is already in the @BotList.
 ▫️The user interface is bad in terms of usability and/or simplicity.
+▫The bot is still in an early development stage
 ▫️Contains ads or adult content
-▫️English language not supported per default
+▫️English language not supported per default (exceptions are possible)
 ▫NO MANYBOTS!!! 👺
 
 For further information, please ask in the @BotListChat."""
@@ -91,6 +92,11 @@ Rules: Speak in English, Don't spam/advertise channels or groups that aren't bot
 
 ⭐️⭐️⭐️⭐️⭐️
 [Give @BotList a rating](https://goo.gl/rtSs5B)"""
+BAN_MESSAGE = mdformat.action_hint("Please send me the username to ban and remove all bot submissions")
+UNBAN_MESSAGE = mdformat.action_hint("Please send me the username of the user to revoke ban state for")
+FAVORITES_HEADLINE = "*🔽 My* @BotList 💖 *Favorites 🔽*"
+ADD_FAVORITE = mdformat.action_hint("Please send me the @username of a bot to add to your favorites")
+
 
 def random_call_to_action():
     CHOICES = ["Check out", "You might like", "What about", "You should try", "Have a look at"]

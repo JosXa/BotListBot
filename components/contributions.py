@@ -32,6 +32,8 @@ log = logging.getLogger(__name__)
 def notify_bot_spam(bot, update, args=None):
     tg_user = update.message.from_user
     user = User.from_telegram_object(tg_user)
+    if util.stop_banned(update, user):
+        return
     reply_to = util.original_reply_id(update)
 
     if args:
@@ -79,6 +81,8 @@ def notify_bot_spam(bot, update, args=None):
 def notify_bot_offline(bot, update, args=None):
     tg_user = update.message.from_user
     user = User.from_telegram_object(tg_user)
+    if util.stop_banned(update, user):
+        return
     reply_to = util.original_reply_id(update)
 
     if args:
@@ -133,6 +137,8 @@ def notify_bot_offline(bot, update, args=None):
 def new_bot_submission(bot, update, args=None):
     tg_user = update.message.from_user
     user = User.from_telegram_object(tg_user)
+    if util.stop_banned(update, user):
+        return
     reply_to = util.original_reply_id(update)
 
     if args:
@@ -194,6 +200,10 @@ def new_bot_submission(bot, update, args=None):
 
     log.info("New bot submission by {}: {}".format(new_bot.submitted_by, new_bot.username))
     new_bot.save()
-    update.message.reply_text(util.success("You submitted {} for approval.{}".format(new_bot, description_notify)),
-                              parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
+    if util.is_private_message(update) and util.uid_from_update(update) in const.MODERATORS:
+        from bot import send_bot_details
+        send_bot_details(bot, update, new_bot)
+    else:
+        update.message.reply_text(util.success("You submitted {} for approval.{}".format(new_bot, description_notify)),
+                                  parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
     return ConversationHandler.END

@@ -9,6 +9,7 @@ from custemoji import Emoji
 
 MAX_LINE_CHARACTERS = 31
 
+
 def smallcaps(text):
     SMALLCAPS_CHARS = 'ᴀʙᴄᴅᴇғɢʜɪᴊᴋʟᴍɴᴏᴘǫʀsᴛᴜᴠᴡxʏᴢ'
     lowercase_ord = 96
@@ -30,6 +31,7 @@ def smallcaps(text):
 def strikethrough(text: str):
     SPEC = '̶'
     return ''.join([x + SPEC if x != ' ' else ' ' for x in text])
+
 
 def results_list(args, prefix=''):
     # TODO make this method recursive
@@ -55,6 +57,10 @@ def centered(text):
 
 def success(text):
     return '{} {}'.format(Emoji.WHITE_HEAVY_CHECK_MARK, text, hide_keyboard=True)
+
+
+def love(text):
+    return '💖 {}'.format(text, hide_keyboard=True)
 
 
 def failure(text):

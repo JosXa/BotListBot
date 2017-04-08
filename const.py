@@ -12,8 +12,8 @@ SELF_BOT_ID = "182355371" if bool(os.environ.get("DEV")) else "265482650"
 BOTLISTCHAT_ID = -1001067163791
 SELF_CHANNEL_USERNAME = "botlist_testchannel" if bool(os.environ.get("DEV")) else "botlist"
 # SELF_CHANNEL_USERNAME =
-REGEX_BOT_IN_TEXT = r'.*(@[a-zA-Z]+[a-zA-Z0-9_\-]{3,}).*'
-REGEX_BOT_ONLY = r'(@[a-zA-Z]+[a-zA-Z0-9_\-]{3,})'
+REGEX_BOT_IN_TEXT = r'.*(@[a-zA-Z]+[a-zA-Z0-9_\-]{2,}).*'
+REGEX_BOT_ONLY = r'(@[a-zA-Z]+[a-zA-Z0-9_\-]{2,})'
 PAGE_SIZE_SUGGESTIONS_LIST = 10
 PAGE_SIZE_APPROVALS_LIST = 10
 MAX_SEARCH_RESULTS = 25
@@ -49,12 +49,23 @@ class CallbackStates:
 
 
 class DeepLinkingActions:
+    FAVORITES = 'favorites'
+    SEARCH = 'search'
     RULES = 'rules'
     CONTRIBUTING = 'contributing'
     EXAMPLES = 'examples'
 
 
 class CallbackActions:
+    HELP, \
+    CONTRIBUTING, \
+    EXAMPLES, \
+    ADD_TO_FAVORITES, \
+    SEND_FAVORITES_LIST, \
+    REMOVE_FAVORITE, \
+    ADD_ANYWAY, \
+    ADD_FAVORITE, \
+    REMOVE_FAVORITE_MENU, \
     INLINE_QUERY_CATEGORIES, \
     EDIT_BOT_SPAM, \
     ABORT_SETTING_KEYWORDS, \

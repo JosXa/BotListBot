@@ -2,21 +2,31 @@ import codecs
 import json
 import logging
 import re
+import time
 import urllib.parse
 from collections import OrderedDict
 from functools import wraps
 from pprint import pprint
 from typing import List, Dict
 
-from telegram import TelegramError, ReplyKeyboardRemove
-
-import helpers
-
+import captions
 import const
+import helpers
+import messages
 from custemoji import Emoji
 from telegram import ChatAction, ReplyKeyboardHide
+from telegram import InlineKeyboardButton
+from telegram import InlineKeyboardMarkup
+from telegram import MessageEntity
 from telegram import ParseMode
-import time
+from telegram import TelegramError, ReplyKeyboardRemove
+
+
+def stop_banned(update, user):
+    if user.banned:
+        update.message.reply_text(failure("Sorry, but you are banned from contributing."))
+        return True
+    return False
 
 
 def track_groups(func):
@@ -39,7 +49,7 @@ def track_groups(func):
                     if update.message.new_chat_member.id == const.SELF_BOT_ID:
                         Group.from_telegram_object(update.callback_query.message.chat)
                 except (NameError, AttributeError):
-                    logging.error("No chat_id available in update.")
+                    logging.error("No chat_id available in update for track_groups.")
         return func(bot, update, *args, **kwargs)
 
     return wrapped
@@ -60,7 +70,7 @@ def restricted(func):
                     try:
                         chat_id = update.callback_query.from_user.id
                     except (NameError, AttributeError):
-                        logging.error("No chat_id available in update.")
+                        logging.error("No user_id available in update.")
                         return
         if chat_id not in const.MODERATORS:
             try:
@@ -135,7 +145,7 @@ def cid_from_update(update):
         try:
             chat_id = update.callback_query.message.chat_id
         except (NameError, AttributeError):
-            logging.error("No chat_id available in update.")
+            logging.error("No chat_id available in update (cid_from_update).")
     return chat_id
 
 
@@ -171,6 +181,10 @@ def uid_from_update(update):
 #     s = callback_str_from_dict(callback_data)
 #     print(s)
 #     return s
+
+
+def encode_base64(query):
+    return re.sub(r'[^a-zA-Z0-9+/]', '', query)
 
 
 def callback_for_action(action: object, params: Dict = None) -> object:
@@ -328,3 +342,5 @@ def failure(text):
 
 def action_hint(text):
     return '{} {}'.format(Emoji.THOUGHT_BALLOON, text)
+
+

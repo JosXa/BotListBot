@@ -5,6 +5,7 @@ from pprint import pprint
 
 import datetime
 import emoji
+from telegram import ForceReply
 from telegram.ext import ConversationHandler, Job
 
 import helpers
@@ -337,7 +338,7 @@ def edit_bot_category(bot, update, for_bot, callback_action=None):
 
 @restricted
 def accept_bot_submission(bot, update, of_bot: Bot, category):
-    chat_id = util.uid_from_update(update)
+    uid = util.uid_from_update(update)
     message_id = util.mid_from_update(update)
     user = User.from_update(update)
 
@@ -353,20 +354,23 @@ def accept_bot_submission(bot, update, of_bot: Bot, category):
                                                                                 {'id': of_bot.id}))]]
         reply_markup = InlineKeyboardMarkup(buttons)
 
-        util.send_or_edit_md_message(bot, chat_id, "{} has been accepted to the Botlist.".format(of_bot),
+        util.send_or_edit_md_message(bot, uid, "{} has been accepted to the Botlist.".format(of_bot),
                                      to_edit=message_id, reply_markup=reply_markup)
 
-        log_msg = "{} accepted by {}.".format(of_bot.username, chat_id)
+        log_msg = "{} accepted by {}.".format(of_bot.username, uid)
+
         # notify submittant
-        try:
-            bot.sendMessage(of_bot.submitted_by.chat_id,
-                            util.success(messages.ACCEPTANCE_PRIVATE_MESSAGE.format(of_bot.username)))
-            log_msg += "\nUser {} was notified.".format(str(of_bot.submitted_by))
-        except TelegramError:
-            log_msg += "\nUser {} could NOT be contacted/notified in private.".format(str(of_bot.submitted_by))
+        if of_bot.submitted_by != user:
+            try:
+                bot.sendMessage(of_bot.submitted_by.chat_id,
+                                util.success(messages.ACCEPTANCE_PRIVATE_MESSAGE.format(of_bot.username)))
+                log_msg += "\nUser {} was notified.".format(str(of_bot.submitted_by))
+            except TelegramError:
+                log_msg += "\nUser {} could NOT be contacted/notified in private.".format(str(of_bot.submitted_by))
+
         log.info(log_msg)
     except:
-        util.send_message_failure(bot, chat_id, "An error has occured. Bot not added.")
+        util.send_message_failure(bot, uid, "An error has occured. Bot not added.")
 
 
 @restricted
@@ -395,6 +399,7 @@ def send_offline(bot, update):
 @restricted
 def reject_bot_submission(bot, update, to_reject=None, verbose=True, notify_submittant=True):
     uid = util.uid_from_update(update)
+    user = User.from_update(update)
 
     if to_reject is None:
         if not update.message.reply_to_message:
@@ -420,7 +425,7 @@ def reject_bot_submission(bot, update, to_reject=None, verbose=True, notify_subm
                 "{} has already been accepted, so it cannot be rejected anymore.".format(username)))
             return
 
-    log_msg = "{} rejected by {}.".format(to_reject.username, uid)
+    log_msg = "{} rejected by {}.".format(to_reject.username, user)
     if notify_submittant:
         try:
             bot.sendMessage(to_reject.submitted_by.chat_id,
@@ -432,6 +437,47 @@ def reject_bot_submission(bot, update, to_reject=None, verbose=True, notify_subm
     log.info(log_msg)
     if verbose:
         bot.sendMessage(uid, util.success("{} rejected.".format(to_reject.username)))
+
+
+@restricted
+def ban_handler(bot, update, args, ban_state: bool):
+    if args:
+        query = ' '.join(args) if isinstance(args, list) else args
+
+        try:
+            user = User.by_username(query)
+        except User.DoesNotExist:
+            update.message.reply_text("This user does not exist.")
+            return
+
+        ban_user(bot, update, user, ban_state)
+    else:
+        # no search term
+        update.message.reply_text(messages.UNBAN_MESSAGE if ban_state else messages.BAN_MESSAGE,
+                                  reply_markup=ForceReply(selective=True))
+    return ConversationHandler.END
+
+
+@restricted
+def ban_user(bot, update, user: User, ban_state: bool):
+    if user.banned and ban_state is True:
+        update.message.reply_text(mdformat.none_action("User {} is already banned.".format(user)))
+        return
+    if not user.banned and ban_state is False:
+        update.message.reply_text(mdformat.none_action("User {} is not banned.".format(user)))
+        return
+    user.banned = ban_state
+    if ban_state is True:
+        users_bots = Bot.select().where(
+            (Bot.approved == False) &
+            (Bot.submitted_by == user)
+        )
+        for b in users_bots:
+            b.delete_instance()
+        update.message.reply_text(mdformat.success("User {} banned and all bot submissions removed.".format(user)))
+    else:
+        update.message.reply_text(mdformat.success("User {} unbanned.".format(user)))
+    user.save()
 
 
 def last_update_job(bot, job: Job):

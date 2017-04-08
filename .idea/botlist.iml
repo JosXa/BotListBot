@@ -4,7 +4,6 @@
     <content url="file://$MODULE_DIR$" />
     <orderEntry type="jdk" jdkName="Python 3.6.0 (/usr/bin/python3.6)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="python-telegram-bot" />
     <orderEntry type="module" module-name="jeffDeanBot" />
     <orderEntry type="module" module-name="eventBot" />
     <orderEntry type="module" module-name="better-markdown" />

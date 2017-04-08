@@ -1,6 +1,12 @@
 import logging
 from pprint import pprint
 
+import captions
+import const
+import messages
+import util
+from telegram import ParseMode, InlineKeyboardMarkup, InlineKeyboardButton
+
 from const import SELF_CHANNEL_USERNAME
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
@@ -42,5 +48,33 @@ def format_keyword(kw):
     kw = kw[1:] if kw[0] == '#' else kw
     kw = kw.replace(' ', '_')
     kw = kw.replace('-', '_')
+    kw = kw.replace('\'', '_')
     kw = kw.lower()
     return kw
+
+
+def reroute_private_chat(bot, update, quote, action, message, redirect_message=None, reply_markup=None):
+    cid = util.cid_from_update(update)
+    mid = util.mid_from_update(update)
+    if redirect_message is None:
+        redirect_message = messages.REROUTE_PRIVATE_CHAT
+
+    if util.is_group_message(update):
+        update.message.reply_text(
+            redirect_message,
+            quote=quote,
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup(
+                [[InlineKeyboardButton(
+                    captions.SWITCH_PRIVATE,
+                    url="https://t.me/{}?start={}".format(
+                        const.SELF_BOT_NAME,
+                        action)),
+                    InlineKeyboardButton('🔎 Switch to inline', switch_inline_query=action)
+                ]]
+            ))
+    else:
+        if mid:
+            util.send_or_edit_md_message(bot, cid, message, mid, reply_markup=reply_markup)
+        else:
+            update.message.reply_text(message, quote=quote, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)

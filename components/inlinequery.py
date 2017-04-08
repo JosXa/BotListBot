@@ -1,13 +1,22 @@
+import base64
+from pprint import pprint
 from uuid import uuid4
 
 import emoji
+from telegram import InlineKeyboardButton
 
+from telegram import InlineKeyboardMarkup
+
+import captions
 import const
 import mdformat
 import messages
 import search
 import util
+from components import favorites
 from model import Bot, Category
+from model import Favorite
+from model import User
 from telegram import InlineQueryResultArticle
 from telegram import InputTextMessageContent
 from telegram import ParseMode
@@ -58,14 +67,18 @@ def category_article(cat):
 
 
 def bot_article(b):
-    # bots_with_description = [b for b in bot_list if b.description is not None]
     txt = '{} ▶️ {}'.format(messages.random_call_to_action(), b.detail_text)
     txt += '\n\n' + messages.PROMOTION_MESSAGE
+    buttons = [[InlineKeyboardButton(captions.ADD_TO_FAVORITES, callback_data=util.callback_for_action(
+        const.CallbackActions.ADD_TO_FAVORITES, {'id': b.id, 'discreet': True}))]]
+    reply_markup = InlineKeyboardMarkup(buttons)
     return InlineQueryResultArticle(
         id=uuid4(),
         title=b.str_no_md,
-        input_message_content=InputTextMessageContent(message_text=txt, parse_mode=ParseMode.MARKDOWN),
+        input_message_content=InputTextMessageContent(message_text=txt,
+                                                      parse_mode=ParseMode.MARKDOWN),
         description=b.description if b.description else b.name if b.name else None,
+        reply_markup=reply_markup
         # thumb_url='http://www.colorcombos.com/images/colors/FF0000.png'
     )
 
@@ -86,6 +99,17 @@ def all_bot_results_article(lst, too_many_results):
     )
 
 
+def favorites_article(user):
+    fav_list = Favorite.select_all(user)
+    text = favorites._favorites_categories_md(fav_list) + '\n\n' + messages.PROMOTION_MESSAGE
+    return InlineQueryResultArticle(
+        id=uuid4(),
+        title='My ' + captions.FAVORITES,
+        input_message_content=InputTextMessageContent(message_text=text,
+                                                      parse_mode="Markdown"),
+    )
+
+
 # def select_category_article():
 #     txt = messages.PROMOTION_MESSAGE + '\n\n'
 #     txt += util.action_hint(messages.SELECT_CATEGORY)
@@ -100,6 +124,7 @@ def all_bot_results_article(lst, too_many_results):
 
 def inlinequery_handler(bot, update):
     query = update.inline_query.query.lower()
+    user = User.from_update(update)
     results_list = list()
 
     input_given = len(query.strip()) > 0
@@ -133,7 +158,7 @@ def inlinequery_handler(bot, update):
             input_message_content=InputTextMessageContent(message_text=messages.CONTRIBUTING,
                                                           parse_mode="Markdown"),
         ))
-        bot.answerInlineQuery(update.inline_query.id, results=results_list)
+        bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=600)
         return
 
     if query in EXAMPLES_QUERIES:
@@ -143,7 +168,7 @@ def inlinequery_handler(bot, update):
             input_message_content=InputTextMessageContent(message_text=messages.EXAMPLES,
                                                           parse_mode="Markdown"),
         ))
-        bot.answerInlineQuery(update.inline_query.id, results=results_list)
+        bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=600)
         return
 
     if query == const.DeepLinkingActions.RULES:
@@ -153,9 +178,13 @@ def inlinequery_handler(bot, update):
             input_message_content=InputTextMessageContent(message_text=messages.BOTLISTCHAT_RULES,
                                                           parse_mode="Markdown"),
         ))
-        bot.answerInlineQuery(update.inline_query.id, results=results_list)
+        bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=600)
         return
 
+    if query == const.DeepLinkingActions.FAVORITES:
+        results_list.append(favorites_article(user))
+        bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=0, is_personal=True)
+        return
 
     invalid_search_term = query_too_short and not cat_results
     if invalid_search_term:
@@ -173,18 +202,19 @@ def inlinequery_handler(bot, update):
         if len(bot_results) > 0:
             bot.answerInlineQuery(update.inline_query.id, results=results_list,
                                   switch_pm_text="See all results" if too_many_results else "Search in private chat",
-                                  switch_pm_parameter=query)
+                                  switch_pm_parameter=util.encode_base64(query), cache_time=0, is_personal=True)
         else:
-            bot.answerInlineQuery(update.inline_query.id, results=results_list)
+            bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=0, is_personal=True)
     else:
+        results_list.append(favorites_article(user))
         results_list.append(new_bots_article())
         categories = Category.select_all()
         for c in categories:
             results_list.append(category_article(c))
 
         if invalid_search_term or not input_given:
-            bot.answerInlineQuery(update.inline_query.id, results=results_list)
+            bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=0, is_personal=True)
         else:
             bot.answerInlineQuery(update.inline_query.id, results=results_list,
                                   switch_pm_text="No results. Contribute a bot?",
-                                  switch_pm_parameter='contributing')
+                                  switch_pm_parameter='contributing', cache_time=0, is_personal=True)

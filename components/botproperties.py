@@ -67,10 +67,11 @@ def set_country(bot, update, to_edit):
 
 @restricted
 def set_description(bot, update, chat_data, to_edit=None):
+    # TODO: parse markdown with PTB 6.0
     uid = util.uid_from_update(update)
     if to_edit:
         util.send_action_hint(bot, uid, "Please send me a description to use for {}. `x` to drop | /cancel".format(
-            to_edit.username))
+            util.escape_markdown(to_edit.username)))
         chat_data['edit_bot'] = to_edit
         return BotStates.SENDING_DESCRIPTION
     elif update.message:
@@ -271,7 +272,7 @@ def delete_bot(bot, update, to_edit):
 def change_category(bot, update, to_edit, category):
     uid = util.uid_from_update(update)
     user = User.get(User.chat_id == uid)
-    if uid == 62056065:
+    if uid in const.MODERATORS and not uid == 918962:
         sugg = Suggestion(user=user, action='change_category', date=datetime.date.today(), subject=to_edit,
                           value=category.id)
         sugg.save()

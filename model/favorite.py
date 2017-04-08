@@ -6,6 +6,7 @@ from peewee import *
 
 import helpers
 import util
+from model import Bot
 from model.basemodel import BaseModel
 from model.category import Category
 from model.country import Country
@@ -14,95 +15,33 @@ from model.user import User
 
 class Favorite(BaseModel):
     id = PrimaryKeyField()
+    user = ForeignKeyField(User)
+    bot = ForeignKeyField(Bot, null=True)
+    custom_bot = CharField(null=True)
     date_added = DateField()
 
-    @property
-    def serialize(self):
-        return {
-            'id': self.id,
-            'category_id': self.category.id,
-            # 'name': self.name,
-            'username': self.username,
-            'description': self.description,
-            'date_added': self.date_added,
-            'inlinequeries': self.inlinequeries,
-            'official': self.official,
-            'extra_text': self.extra,
-            'offline': self.offline,
-            'spam': self.spam,
-            'botlist_url': helpers.botlist_url_for_category(self.category),
-        }
-
-    @property
-    def is_new(self):
-        import const
-        today = datetime.date.today()
-        delta = datetime.timedelta(days=const.BOT_CONSIDERED_NEW)
-        result = today - self.date_added < delta
-        return result
-
-    def __str__(self):
-        return util.escape_markdown(self.str_no_md).encode('utf-8').decode('utf-8')
-
-    @property
-    def detail_text(self):
-        from model import Keyword
-        keywords = Keyword.select().where(Keyword.entity == self)
-        txt = '{}'.format(self.__str__())
-        txt += '\n_{}_'.format(util.escape_markdown(self.name)) if self.name else ''
-        txt += '\n\n{}'.format(self.description) if self.description else ''
-        txt += util.escape_markdown(
-            '\n\nKeywords: {}'.format(', '.join([str(k) for k in keywords])) if keywords else '')
-        return txt
-
-    @property
-    def str_no_md(self):
-        return ('💤 ' if self.offline else '') + \
-               ('🚮 ' if self.spam else '') + \
-               ('🆕 ' if self.is_new else '') + \
-               self.username + \
-               (' ' if any([self.inlinequeries, self.official, self.country]) else '') + \
-               ('🔎' if self.inlinequeries else '') + \
-               ('🔹' if self.official else '') + \
-               (self.country.emoji if self.country else '') + \
-               (' ' + self.extra if self.extra else '')
+    CUSTOM_CATEGORY = Category(id=1000, order=1000, emojis='👤', name='Other')
 
     @staticmethod
-    def by_username(username: str):
-        result = Bot.select().where(fn.lower(Bot.username) == username.lower())
-        if len(result) > 0:
-            return result[0]
-        else:
-            raise Bot.DoesNotExist()
+    def add(user, item: Bot):
+        """
+        :return: Tuple of (Favorite, created: Boolean)
+        """
+        try:
+            fav = Favorite.get(Favorite.bot == item, Favorite.user == user)
+            return fav, False
+        except Favorite.DoesNotExist:
+            fav = Favorite(user=user, bot=item, date_added=datetime.date.today())
+            fav.save()
+            return fav, True
 
     @staticmethod
-    def many_by_usernames(names: List):
-        results = Bot.select().where(fn.lower(Bot.username) << [n.lower() for n in names])
-        if len(results) > 0:
-            return results
-        else:
-            raise Bot.DoesNotExist()
-
-    @staticmethod
-    def of_category(category):
-        return Bot.select().where(Bot.category == category, Bot.approved == True).order_by(fn.Lower(Bot.username))
-
-    @staticmethod
-    def get_new_bots():
-        import const
-        return Bot.select().where(
-            (Bot.approved == True) & (
-                Bot.date_added.between(
-                    datetime.date.today() - datetime.timedelta(days=const.BOT_CONSIDERED_NEW),
-                    datetime.date.today()
-                )
-            ))
-
-    @staticmethod
-    def get_new_bots_str():
-        return '\n'.join(['     {}'.format(str(b)) for b in Bot.get_new_bots()])
-
-    @property
-    def keywords(self):
-        from model.keywordmodel import Keyword
-        return Keyword.select().where(Keyword.entity == self)
+    def select_all(user):
+        user_favs = list(Favorite.select().where(Favorite.user == user))
+        for n, f in enumerate(user_favs):
+            if f.bot is None:
+                bot = Bot(category=Favorite.CUSTOM_CATEGORY, username=f.custom_bot, approved=True,
+                          date_added=datetime.date.today())
+                f.bot = bot
+                user_favs[n] = f
+        return user_favs

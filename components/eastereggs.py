@@ -3,7 +3,6 @@ from pprint import pprint
 
 from peewee import fn
 
-from bot import send_bot_details
 from model import Bot
 
 from telegram import ReplyKeyboardMarkup

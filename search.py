@@ -28,10 +28,13 @@ def search_bots(query):
     # many @usernames
     usernames = re.findall(const.REGEX_BOT_ONLY, query)
     if usernames:
-        bots = Bot.many_by_usernames(usernames)
-        results.update(bots)
+        try:
+            bots = Bot.many_by_usernames(usernames)
+            results.update(bots)
+        except Bot.DoesNotExist:
+            pass
 
-    return results
+    return list(results)
 
 
 def search_categories(query):
