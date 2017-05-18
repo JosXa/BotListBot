@@ -20,7 +20,7 @@ class Favorite(BaseModel):
     custom_bot = CharField(null=True)
     date_added = DateField()
 
-    CUSTOM_CATEGORY = Category(id=1000, order=1000, emojis='👤', name='Other')
+    CUSTOM_CATEGORY = Category(id=1000, order=1000, emojis='👤', name='Others')
 
     @staticmethod
     def add(user, item: Bot):
@@ -44,4 +44,10 @@ class Favorite(BaseModel):
                           date_added=datetime.date.today())
                 f.bot = bot
                 user_favs[n] = f
+            if f.bot.category is None:
+                f.bot.category = Favorite.CUSTOM_CATEGORY
         return user_favs
+
+    @staticmethod
+    def get_oldest(user):
+        return Favorite.select().where(Favorite.user == user).order_by(Favorite.date_added).first()

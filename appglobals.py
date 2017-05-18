@@ -1,5 +1,6 @@
 import os
 from peewee import *
+from playhouse.sqlite_ext import SqliteExtDatabase
 
 _db = None
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -10,7 +11,7 @@ def db():
     global _db
     if not _db:
         db_path = os.path.join(ROOT_DIR, DB_NAME)
-        _db = SqliteDatabase(db_path)
+        _db = SqliteExtDatabase(db_path)
     return _db
 
 

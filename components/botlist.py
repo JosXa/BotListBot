@@ -281,35 +281,6 @@ def send_botlist(bot, update, resend=False, silent=False):
         util.send_or_edit_md_message(bot, chat_id, text, to_edit=message_id)
 
 
-def preview_promo_message(bot, update):
-    util.send_md_message(bot, update.message.chat_id, "lelel")
-
-
-def _promo_message():
-    text = """
-🔝 *Category of the week:*
-       •🎰🎮Gaming - Juegos
-    🆕 @MyTetrisBot 🔎
-    🆕 @thumbattle\_bot 🔎
-    🆕 @DERPAssassinBot
-
-`-------------------------------`
-
-📬 *Fresh reviews:*
-
-🔽🔽🔽 @Vote🔎🔹 🔽🔽🔽
-Allows you to create votes with buttons for every question you have.
-Great bot because xxx and yyy.
-
-🔽🔽🔽 @electroeventsbot🔎 🔽🔽🔽
-Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
-
-🔽🔽🔽 @BNoteBot 🔎🔹 🔽🔽🔽
-Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua.
-"""
-    return text
-
-
 def new_channel_post(bot, update, photo=None):
     post = update.channel_post
     if post.chat.username != const.SELF_CHANNEL_USERNAME:

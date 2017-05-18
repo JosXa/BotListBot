@@ -104,23 +104,11 @@ def favorites_article(user):
     text = favorites._favorites_categories_md(fav_list) + '\n\n' + messages.PROMOTION_MESSAGE
     return InlineQueryResultArticle(
         id=uuid4(),
-        title='My ' + captions.FAVORITES,
+        title=captions.FAVORITES,
         input_message_content=InputTextMessageContent(message_text=text,
                                                       parse_mode="Markdown"),
     )
 
-
-# def select_category_article():
-#     txt = messages.PROMOTION_MESSAGE + '\n\n'
-#     txt += util.action_hint(messages.SELECT_CATEGORY)
-#     reply_markup = InlineKeyboardMarkup(_select_category_buttons())
-#     return InlineQueryResultArticle(
-#         id=uuid4(),
-#         title="ᴀʟʟ ᴄᴀᴛᴇɢᴏʀɪᴇs",
-#         input_message_content=InputTextMessageContent(message_text=txt,
-#                                                       parse_mode=ParseMode.MARKDOWN),
-#         reply_markup=reply_markup,
-#     )
 
 def inlinequery_handler(bot, update):
     query = update.inline_query.query.lower()

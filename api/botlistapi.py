@@ -1,19 +1,42 @@
 import datetime
 from flask import Flask, request, jsonify
 from flask import abort
+from flask.ext.admin import Admin
+from flask.ext.admin.contrib.peewee import ModelView
 from peewee import SelectQuery
 
 from model import Bot
 from model import Category
 from flask_autodoc import Autodoc
 
+from model import Channel
+from model import Favorite
+from model import Group
+from model import Suggestion
 from model import User
 from model.apiaccess import APIAccess
+from gevent.wsgi import WSGIServer
 
 app = Flask(__name__)
 auto = Autodoc(app)
+admin = Admin(app, name='botlist', template_mode='bootstrap3')
+
+admin.add_view(ModelView(Bot))
+admin.add_view(ModelView(Category))
+admin.add_view(ModelView(Channel))
+admin.add_view(ModelView(Favorite))
+admin.add_view(ModelView(Group))
+admin.add_view(ModelView(Suggestion))
 
 app.config['APPLICATION_ROOT'] = '/botlist/api/v1'
+
+
+# Open inceptionhosting ports for me:
+# 2601-2620
+
+def start_server():
+    http_server = WSGIServer(('', 8080), app)
+    return http_server.serve_forever()
 
 
 def _error(message):

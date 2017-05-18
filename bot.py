@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import binascii
+from threading import Thread
+from api import botlistapi
 import json
 import logging
 import os
@@ -95,7 +97,7 @@ def start(bot, update, args):
 
 def _main_menu_buttons(admin=False):
     buttons = [
-        [KeyboardButton(captions.CATEGORIES)],
+        [KeyboardButton(captions.CATEGORIES), KeyboardButton(captions.FAVORITES)],
         [KeyboardButton(captions.NEW_BOTS), KeyboardButton(captions.SEARCH)],
         [KeyboardButton(captions.HELP)],
     ]
@@ -392,7 +394,7 @@ def send_bot_details(bot, update, item=None):
                     {'id': item.id}
                 )))
     else:
-        txt = '{} is currently pending to be accepted for the @BotList.'.format(item.username)
+        txt = '{} is currently pending to be accepted for the @BotList.'.format(item)
         if uid in const.MODERATORS:
             first_row.append(InlineKeyboardButton(
                 util.success("🛃 Accept"), callback_data=util.callback_for_action(
@@ -649,7 +651,9 @@ def callback_router(bot, update, chat_data):
 
 
 def main():
-    # TODO: start api
+    # Start BotList API
+    thread = Thread(target = botlistapi.start_server)
+    thread.start()
 
     try:
         BOT_TOKEN = str(os.environ['TG_TOKEN'])
@@ -665,9 +669,10 @@ def main():
         entry_points=[
             CallbackQueryHandler(callback_router, pass_chat_data=True),
             CommandHandler('category', select_category),
+            CommandHandler('categories', select_category),
+            CommandHandler('cat', select_category),
             CommandHandler('search', search_handler, pass_args=True),
             CommandHandler('s', search_handler, pass_args=True),
-            CommandHandler('cat', select_category),
             # CallbackQueryHandler(callback_router, pass_chat_data=True)
         ],
         states={
@@ -695,6 +700,7 @@ def main():
             CommandHandler('start', start, pass_args=True),
             CommandHandler("cancel", cancel)
         ],
+        per_message=True
     )
     conv_handler.allow_reentry = True
     dp.add_handler(conv_handler)
@@ -703,9 +709,9 @@ def main():
     dp.add_handler(MessageHandler(Filters.forwarded, forward_router))
 
     dp.add_handler(CommandHandler('start', start, pass_args=True))
+    dp.add_handler(CommandHandler("menu", main_menu))
     dp.add_handler(CommandHandler("admin", admin.menu))
     dp.add_handler(CommandHandler("a", admin.menu))
-    dp.add_handler(CommandHandler("promo", botlist.preview_promo_message))
 
     # admin menu
     dp.add_handler(RegexHandler(captions.EXIT, main_menu))
@@ -718,6 +724,7 @@ def main():
     # main menu
     dp.add_handler(RegexHandler(captions.ADMIN_MENU, admin.menu))
     dp.add_handler(RegexHandler(captions.CATEGORIES, select_category))
+    dp.add_handler(RegexHandler(captions.FAVORITES, favorites.send_favorites_list))
     dp.add_handler(RegexHandler(captions.NEW_BOTS, show_new_bots))
     dp.add_handler(RegexHandler(captions.SEARCH, search_handler))
     dp.add_handler(RegexHandler(captions.CONTRIBUTING, help.contributing))
@@ -785,7 +792,7 @@ def main():
     # JOBS
     # TIME = 60 * 60
     # updater.job_queue.put(Job(channel_checker_job, TIME), next_t=0)
-    updater.job_queue.put(Job(admin.last_update_job, 60 * 60 * 10), next_t=60 * 60)  # 60*60
+    updater.job_queue.run_repeating(admin.last_update_job, interval=60*60)  # 60*60
 
     updater.start_polling()
 

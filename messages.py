@@ -1,5 +1,6 @@
 import random
 
+import captions
 import mdformat
 
 PROMOTION_MESSAGE = "*ᴊᴏɪɴ ᴛʜᴇ* @BotList 💙\n*sʜᴀʀᴇ* ʏᴏᴜʀ ʙᴏᴛs ɪɴ @BotListChat"
@@ -55,7 +56,7 @@ It does not suffice the standards we impose for inclusion in the @BotList for on
 ▫️A better bot with the same functionality is already in the @BotList.
 ▫️The user interface is bad in terms of usability and/or simplicity.
 ▫The bot is still in an early development stage
-▫️Contains ads or adult content
+▫️Contains ads or exclusively adult content
 ▫️English language not supported per default (exceptions are possible)
 ▫NO MANYBOTS!!! 👺
 
@@ -94,7 +95,7 @@ Rules: Speak in English, Don't spam/advertise channels or groups that aren't bot
 [Give @BotList a rating](https://goo.gl/rtSs5B)"""
 BAN_MESSAGE = mdformat.action_hint("Please send me the username to ban and remove all bot submissions")
 UNBAN_MESSAGE = mdformat.action_hint("Please send me the username of the user to revoke ban state for")
-FAVORITES_HEADLINE = "*🔽 My* @BotList 💖 *Favorites 🔽*"
+FAVORITES_HEADLINE = "*{}* 🔽\n_― from_ @BotList".format(captions.FAVORITES)
 ADD_FAVORITE = mdformat.action_hint("Please send me the @username of a bot to add to your favorites")
 
 

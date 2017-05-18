@@ -7,3 +7,5 @@ peewee==2.8.5
 flask
 flask-autodoc
 flask-security
+flask-admin==1.5.0
+wtf-peewee==0.2.6

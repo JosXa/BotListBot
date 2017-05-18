@@ -13,3 +13,6 @@ class Country(BaseModel):
     @property
     def emojized(self):
         return emoji.emojize(self.emoji, use_aliases=True)
+
+    def __str__(self):
+        return self.name + ' ' + self.emojized
