@@ -2,26 +2,24 @@ import datetime
 import re
 import threading
 
-from telegram import ReplyMarkup
-from telegram.ext import ConversationHandler
-
 import captions
 import const
 import mdformat
-import messages
 import util
 from const import CallbackActions, DeepLinkingActions
+from dialog import messages
 from model import Bot
 from model import User
 from model.favorite import Favorite
 from telegram import ForceReply
 from telegram import InlineKeyboardButton
 from telegram import InlineKeyboardMarkup, ReplyKeyboardMarkup
+from telegram.ext import ConversationHandler
 
 
 def add_favorite_handler(bot, update, args=None):
     uid = util.uid_from_update(update)
-    from bot import _main_menu_buttons
+    from components.basic import _main_menu_buttons
     main_menu_markup = ReplyKeyboardMarkup(_main_menu_buttons(uid in const.MODERATORS))
 
     if args:
@@ -64,7 +62,7 @@ def add_favorite(bot, update, item: Bot, callback_alert=None):
     user = User.from_update(update)
     uid = util.uid_from_update(update)
     mid = util.mid_from_update(update)
-    from bot import _main_menu_buttons
+    from components.basic import _main_menu_buttons
     main_menu_markup = ReplyKeyboardMarkup(_main_menu_buttons(uid in const.MODERATORS))
 
     fav, created = Favorite.add(user=user, item=item)
@@ -192,7 +190,7 @@ def add_custom(bot, update, username):
     uid = util.uid_from_update(update)
     user = User.from_update(update)
     mid = util.mid_from_update(update)
-    from bot import _main_menu_buttons
+    from components.basic import _main_menu_buttons
     main_menu_markup = ReplyKeyboardMarkup(_main_menu_buttons(uid in const.MODERATORS))
 
     try:

@@ -1,29 +1,22 @@
 # -*- coding: utf-8 -*-
 import datetime
+import time
 import logging
 import re
-from pprint import pprint
 
-import captions
-import const
-import emoji
-import helpers
-import mdformat
-import messages
-import util
-from const import *
-from const import BotStates, CallbackActions
-from custemoji import Emoji
-from model import Bot
-from model import Category
-from model import Keyword
-from model import Suggestion
-from model import User, Bot, Suggestion, Country
 from peewee import fn
-from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup, TelegramError, \
-    ParseMode
-from telegram.ext import ConversationHandler, Job
-from util import restricted, track_groups
+
+import const
+import mdformat
+import util
+from dialog import messages
+from model import User, Bot, Suggestion, Country
+from telegram import InlineKeyboardButton
+from telegram import InlineKeyboardMarkup
+from telegram import ParseMode
+from telegram.ext import ConversationHandler
+from telegram.ext.dispatcher import run_async
+from util import track_groups
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -122,7 +115,7 @@ def notify_bot_offline(bot, update, args=None):
 
         if offline_bot.official:
             update.message.reply_text(mdformat.none_action("Official bots usually don't go offline for a long time. "
-                                      "Just wait a couple hours and it will be back up ;)"),
+                                                           "Just wait a couple hours and it will be back up ;)"),
                                       reply_to_message_id=reply_to)
         else:
             update.message.reply_text(util.success("Thank you! We will review your suggestion and set the bot offline.",
@@ -207,3 +200,36 @@ def new_bot_submission(bot, update, args=None):
         update.message.reply_text(util.success("You submitted {} for approval.{}".format(new_bot, description_notify)),
                                   parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
     return ConversationHandler.END
+
+
+def _submission_accepted_markup(accepted_bot, count=0):
+    count_caption = '' if count == 0 else mdformat.number_as_emoji(count)
+    button = InlineKeyboardButton('{} {}'.format(
+        messages.rand_thank_you_slang(),
+        count_caption
+    ), callback_data=util.callback_for_action(
+        const.CallbackActions.COUNT_THANK_YOU,
+        {'id': accepted_bot.id, 'count': count + 1}
+    ))
+    return InlineKeyboardMarkup([[button]])
+
+
+@run_async
+def bot_submission_accepted(bot, update, accepted_bot):
+    # Notify the group after 1 minute, giving the admin enough time to edit details.
+    time.sleep(60)
+
+    # check if the bot still exists
+    accepted_bot = Bot.get(id=accepted_bot.id)
+
+    text = "🆕 The bot submission by {} was accepted. This is his {} contribution.\n    *Welcome* {} *to the BotList!*".format(
+        accepted_bot.submitted_by,
+        accepted_bot.submitted_by.contributions_ordinal,
+        accepted_bot.username
+    )
+    util.send_md_message(bot, const.BOTLISTCHAT_ID, text, reply_markup=_submission_accepted_markup(accepted_bot, 0))
+
+
+def count_thank_you(bot, update, accepted_bot, count):
+    cid = update.effective_chat.id
+    update.effective_message.edit_reply_markup(reply_markup=_submission_accepted_markup(accepted_bot, count))

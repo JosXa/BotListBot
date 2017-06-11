@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+import inflect
 from peewee import *
+
 from telegram import User as TelegramUser
 import util
 from model.basemodel import BaseModel
@@ -45,11 +47,21 @@ class User(BaseModel):
             u.save()
         return u
 
+    @property
+    def num_contributions(self):
+        from model import Bot
+        return Bot.select().where(Bot.submitted_by == self).count()
+
+    @property
+    def contributions_ordinal(self):
+        p = inflect.engine()
+        return p.ordinal(self.num_contributions)
+
     def __str__(self):
         text = ' '.join([
-            '@' + self.username if self.username else '',
             self.first_name if self.first_name else '',
-            self.last_name if self.last_name else ''
+            self.last_name if self.last_name else '',
+            '(@' + self.username + ')' if self.username else ''
         ])
         return util.escape_markdown(text).encode('utf-8').decode('utf-8')
 
@@ -64,4 +76,3 @@ class User(BaseModel):
             return result[0]
         else:
             raise User.DoesNotExist()
-

@@ -1,29 +1,26 @@
-import base64
-from pprint import pprint
 from uuid import uuid4
 
 import emoji
-from telegram import InlineKeyboardButton
-
-from telegram import InlineKeyboardMarkup
 
 import captions
 import const
 import mdformat
-import messages
 import search
 import util
 from components import favorites
+from dialog import messages
 from model import Bot, Category
 from model import Favorite
 from model import User
+from telegram import InlineKeyboardButton
+from telegram import InlineKeyboardMarkup
 from telegram import InlineQueryResultArticle
 from telegram import InputTextMessageContent
 from telegram import ParseMode
 
 # CONSTANTS
 MAX_BOTS = 30
-SEARCH_QUERY_MIN_LENGTH = 3
+SEARCH_QUERY_MIN_LENGTH = 2
 CONTRIBUTING_QUERIES = [const.DeepLinkingActions.CONTRIBUTING, 'ctrbt']
 EXAMPLES_QUERIES = ['example', const.DeepLinkingActions.EXAMPLES]
 
@@ -67,7 +64,7 @@ def category_article(cat):
 
 
 def bot_article(b):
-    txt = '{} ▶️ {}'.format(messages.random_call_to_action(), b.detail_text)
+    txt = '{} ▶️ {}'.format(messages.rand_call_to_action(), b.detail_text)
     txt += '\n\n' + messages.PROMOTION_MESSAGE
     buttons = [[InlineKeyboardButton(captions.ADD_TO_FAVORITES, callback_data=util.callback_for_action(
         const.CallbackActions.ADD_TO_FAVORITES, {'id': b.id, 'discreet': True}))]]
@@ -86,7 +83,7 @@ def bot_article(b):
 def all_bot_results_article(lst, too_many_results):
     # bots_with_description = [b for b in bot_list if b.description is not None]
     txt = messages.PROMOTION_MESSAGE + '\n\n'
-    txt += "{} one of these {} bots:\n\n".format(messages.random_call_to_action(), len(lst))
+    txt += "{} one of these {} bots:\n\n".format(messages.rand_call_to_action(), len(lst))
     txt += '\n'.join([str(b) for b in lst])
     return InlineQueryResultArticle(
         id=uuid4(),

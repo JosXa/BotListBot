@@ -1,13 +1,11 @@
 import logging
-from pprint import pprint
 
 import captions
 import const
-import messages
 import util
-from telegram import ParseMode, InlineKeyboardMarkup, InlineKeyboardButton
-
 from const import SELF_CHANNEL_USERNAME
+from dialog import messages
+from telegram import ParseMode, InlineKeyboardMarkup, InlineKeyboardButton
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -54,7 +52,7 @@ def format_keyword(kw):
 
 
 def reroute_private_chat(bot, update, quote, action, message, redirect_message=None, reply_markup=None):
-    cid = util.cid_from_update(update)
+    cid = update.effective_chat.id
     mid = util.mid_from_update(update)
     if redirect_message is None:
         redirect_message = messages.REROUTE_PRIVATE_CHAT

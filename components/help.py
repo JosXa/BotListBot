@@ -1,14 +1,13 @@
-from telegram.ext import ConversationHandler
-
 import captions
 import const
 import helpers
-from helpers import reroute_private_chat
-import messages
 import util
+from dialog import messages
+from helpers import reroute_private_chat
 from telegram import InlineKeyboardButton
 from telegram import InlineKeyboardMarkup
 from telegram import ParseMode
+from telegram.ext import ConversationHandler
 from util import track_groups
 
 
@@ -19,27 +18,27 @@ def available_commands(bot, update):
 @track_groups
 def help(bot, update):
     mid = util.mid_from_update(update)
-    cid = util.cid_from_update(update)
+    cid = update.effective_chat.id
     util.send_or_edit_md_message(bot, cid, messages.HELP_MESSAGE_ENGLISH, to_edit=mid, reply_markup=_help_markup())
     return ConversationHandler.END
 
 
 def contributing(bot, update, quote=True):
     mid = util.mid_from_update(update)
-    cid = util.cid_from_update(update)
+    cid = update.effective_chat.id
     util.send_or_edit_md_message(bot, cid, messages.CONTRIBUTING, to_edit=mid, reply_markup=_help_markup())
     return ConversationHandler.END
 
 
 def examples(bot, update, quote=True):
     mid = util.mid_from_update(update)
-    cid = util.cid_from_update(update)
+    cid = update.effective_chat.id
     util.send_or_edit_md_message(bot, cid, messages.EXAMPLES, to_edit=mid, reply_markup=_help_markup())
     return ConversationHandler.END
 
 
 def rules(bot, update, quote=True):
-    chat_id = util.cid_from_update(update)
+    chat_id = update.effective_chat.id
     if chat_id == const.BOTLISTCHAT_ID or util.is_private_message(update):
         reroute_private_chat(bot, update, quote, const.DeepLinkingActions.RULES, messages.BOTLISTCHAT_RULES)
     else:

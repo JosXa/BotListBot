@@ -1,29 +1,27 @@
 # -*- coding: utf-8 -*-
+import datetime
 import logging
 import re
-from pprint import pprint
 
-import datetime
 import emoji
-from telegram import ForceReply
-from telegram.ext import ConversationHandler, Job
-
-import helpers
-from model import User
-from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup, TelegramError
 
 import captions
 import const
+import helpers
 import mdformat
-import messages
 import util
 from const import *
 from const import BotStates, CallbackActions
 from custemoji import Emoji
+from dialog import messages
 from model import Bot
 from model import Category
 from model import Keyword
 from model import Suggestion
+from model import User
+from telegram import ForceReply
+from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup, TelegramError
+from telegram.ext import ConversationHandler, Job
 from util import restricted
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
@@ -354,8 +352,13 @@ def accept_bot_submission(bot, update, of_bot: Bot, category):
                                                                                 {'id': of_bot.id}))]]
         reply_markup = InlineKeyboardMarkup(buttons)
 
-        util.send_or_edit_md_message(bot, uid, "{} has been accepted to the Botlist.".format(of_bot),
+        util.send_or_edit_md_message(bot, uid, "{} has been accepted to the Botlist. "
+                                               "The group will receive a notification in 1 minute, giving you "
+                                               "enough time to edit the details.".format(of_bot),
                                      to_edit=message_id, reply_markup=reply_markup)
+
+        # notify group
+
 
         log_msg = "{} accepted by {}.".format(of_bot.username, uid)
 

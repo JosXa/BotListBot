@@ -99,6 +99,13 @@ FAVORITES_HEADLINE = "*{}* 🔽\n_― from_ @BotList".format(captions.FAVORITES)
 ADD_FAVORITE = mdformat.action_hint("Please send me the @username of a bot to add to your favorites")
 
 
-def random_call_to_action():
-    CHOICES = ["Check out", "You might like", "What about", "You should try", "Have a look at"]
-    return random.choice(CHOICES)
+def rand_call_to_action():
+    choices = ["Check out", "You might like", "What about", "You should try", "Have a look at", "Why don't you try"]
+    return random.choice(choices)
+
+
+def rand_thank_you_slang():
+    choices = ["👍🏼 Wow great, thank you!", "👍🏼 Good Job!", "❤️ Nice! Thanks", "❤️ Awesome!", "😍 Excellent!",
+               "👌 You da man!", "👌 That's just perfect!", "👌 Well done!", "🙏 Good one!", "🙏 Great, keep it up!",
+               "👏 I like it!", "👏 Orng Nice!"]
+    return random.choice(choices)

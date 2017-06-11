@@ -1,32 +1,19 @@
 # -*- coding: utf-8 -*-
-import codecs
 
 import datetime
-from pprint import pprint
-
-import emoji
-import re
-from telegram.error import BadRequest
-
-from model import User
-from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ConversationHandler
-from telegram.ext.dispatcher import run_async
 
 import captions
 import const
 import helpers
-import messages
 import util
-from const import *
 from const import BotStates, CallbackActions
-from custemoji import Emoji
-from model import Bot, Category
-from model import Category
-from model import Channel
+from dialog import messages
 from model import Country
 from model import Keyword
 from model import Suggestion
+from model import User
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ConversationHandler
 from util import restricted
 
 """

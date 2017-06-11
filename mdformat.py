@@ -50,6 +50,20 @@ def results_list(args, prefix=''):
     return result
 
 
+def number_as_emoji(n):
+    EMOJI_NUMBERS = '0️⃣1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣7️⃣8️⃣9️⃣'
+    idx = str(n)
+    result = []
+
+    for char in idx:
+        i = (int(char)) * 3
+        # if i == 1:
+        #     i -= 1
+        result += EMOJI_NUMBERS[i: i + 3]
+
+    return ''.join(result)
+
+
 def centered(text):
     result = '\n'.join([line.center(MAX_LINE_CHARACTERS) for line in text.splitlines()])
     return result

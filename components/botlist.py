@@ -1,32 +1,24 @@
 # -*- coding: utf-8 -*-
 import codecs
-from time import sleep
 import datetime
+import logging
 import re
 from pprint import pprint
+from time import sleep
 
-import emoji
-import logging
-
-from peewee import fn
-from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.error import BadRequest, RetryAfter, TelegramError
-from telegram.ext.dispatcher import run_async
-
-import captions
 import const
 import helpers
 import mdformat
-import messages
 import util
-from const import *
-from const import BotStates, CallbackActions
 from custemoji import Emoji
-from model import Bot, Category, Channel, Country
+from dialog import messages
+from model import Bot, Country
 from model import Category
 from model import Channel
 from model import Notifications
-from model import Suggestion
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.error import BadRequest, RetryAfter, TelegramError
+from telegram.ext.dispatcher import run_async
 from util import restricted
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)

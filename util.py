@@ -1,25 +1,18 @@
-import codecs
 import json
 import logging
 import re
 import time
-import urllib.parse
+import traceback
 from collections import OrderedDict
 from functools import wraps
-from pprint import pprint
-from typing import List, Dict
+from typing import List
 
-import captions
 import const
-import helpers
-import messages
 from custemoji import Emoji
-from telegram import ChatAction, ReplyKeyboardHide
-from telegram import InlineKeyboardButton
-from telegram import InlineKeyboardMarkup
-from telegram import MessageEntity
+from telegram import ChatAction
 from telegram import ParseMode
 from telegram import TelegramError, ReplyKeyboardRemove
+from telegram.error import BadRequest
 
 
 def stop_banned(update, user):
@@ -55,7 +48,7 @@ def track_groups(func):
     return wrapped
 
 
-def restricted(func):
+def restricted(func, strict=True):
     @wraps(func)
     def wrapped(bot, update, *args, **kwargs):
         try:
@@ -73,14 +66,16 @@ def restricted(func):
                         logging.error("No user_id available in update.")
                         return
         if chat_id not in const.MODERATORS:
-            try:
-                print("Unauthorized access denied for {}.".format(chat_id))
-                bot.sendPhoto(chat_id, open('assets/img/go_away_noob.png', 'rb'))
-                # update.message.reply_text('*Available commands:*\n' + helpers.get_commands(),
-                #                           parse_mode=ParseMode.MARKDOWN)
-            except (TelegramError, AttributeError):
+            if strict:
+                try:
+                    print("Unauthorized access denied for {}.".format(chat_id))
+                    bot.sendPhoto(chat_id, open('assets/img/go_away_noob.png', 'rb'))
+                    # update.message.reply_text('*Available commands:*\n' + helpers.get_commands(),
+                    #                           parse_mode=ParseMode.MARKDOWN)
+                except (TelegramError, AttributeError):
+                    pass
+            else:
                 pass
-            return
         return func(bot, update, *args, **kwargs)
 
     return wrapped
@@ -133,43 +128,11 @@ def build_menu(buttons: List,
 
 
 def cid_from_update(update):
-    """
-    Extract the chat id from update
-    :param update: `telegram.Update`
-    :return: chat_id extracted from the update
-    """
-    chat_id = None
-    try:
-        chat_id = update.message.chat_id
-    except (NameError, AttributeError):
-        try:
-            chat_id = update.callback_query.message.chat_id
-        except (NameError, AttributeError):
-            logging.error("No chat_id available in update (cid_from_update).")
-    return chat_id
+    return update.effective_chat.id
 
 
 def uid_from_update(update):
-    """
-    Extract the user id from update
-    :param update: `telegram.Update`
-    :return: user_id extracted from the update
-    """
-    chat_id = None
-    try:
-        chat_id = update.message.from_user.id
-    except (NameError, AttributeError):
-        try:
-            chat_id = update.inline_query.from_user.id
-        except (NameError, AttributeError):
-            try:
-                chat_id = update.chosen_inline_result.from_user.id
-            except (NameError, AttributeError):
-                try:
-                    chat_id = update.callback_query.from_user.id
-                except (NameError, AttributeError):
-                    logging.error("No user_id available in update.")
-    return chat_id
+    return update.effective_user.id
 
 
 # def deep_link_action_url(action: object, params: Dict = None) -> object:
@@ -187,7 +150,17 @@ def encode_base64(query):
     return re.sub(r'[^a-zA-Z0-9+/]', '', query)
 
 
-def callback_for_action(action: object, params: Dict = None) -> object:
+def callback_for_action(action, params=None):
+    """
+    Generates an uglified JSON representation to use in ``callback_data`` of ``InlineKeyboardButton``.
+    :param action: The identifier for your action.
+    :param params: A dict of additional parameters.
+    :return:
+    """
+
+    if params is None:
+        params = dict()
+
     callback_data = {'a': action}
     if params:
         for key, value in params.items():
@@ -292,11 +265,18 @@ def private_or_else_group_message(bot, chat_id, text):
 
 
 def send_or_edit_md_message(bot, chat_id, text, to_edit=None, **kwargs):
-    if to_edit:
-        return bot.editMessageText(text, chat_id=chat_id, message_id=to_edit, parse_mode=ParseMode.MARKDOWN,
-                                   **kwargs)
 
-    return send_md_message(bot, chat_id, text=text, **kwargs)
+    try:
+        if to_edit:
+            return bot.editMessageText(text, chat_id=chat_id, message_id=to_edit, parse_mode=ParseMode.MARKDOWN,
+                                       **kwargs)
+
+        return send_md_message(bot, chat_id, text=text, **kwargs)
+    except BadRequest as e:
+        if 'not modified' in e.message.lower():
+            pass
+        else:
+            traceback.print_exc()
 
 
 def send_md_message(bot, chat_id, text: str, **kwargs):

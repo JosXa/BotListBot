@@ -21,7 +21,8 @@ class PWRTelegram:
     def login(self, phone_number):
         self._temp_token = requests.get('{}phonelogin?phone={}'.format(
             self.BASE_URL, phone_number
-        )).json()['result']
+        ))
+        pprint(self._temp_token.json())
         return self._temp_token
 
     def complete_phone_login(self, login_code):
@@ -93,13 +94,13 @@ def timeout(func, args=(), kwargs={}, timeout_duration=1, default=None):
 
 
 if __name__ == '__main__':
-    # pwt = PWRTelegram()
-    # pwt.login('+491728656978')
-    # login_code = input('Login code: ')
-    # pwt.complete_phone_login(login_code)
-    # print(pwt.access_token)
-    # print(pwt.METHOD_URL)
-    # msg = pwt.send_message(62056065, 'Hello World!')
+    pwt = PWRTelegram()
+    pwt.login('+491728656978')
+    login_code = input('Login code: ')
+    pwt.complete_phone_login(login_code)
+    print(pwt.access_token)
+    print(pwt.METHOD_URL)
+    msg = pwt.send_message(62056065, 'Hello World!')
 
     pwt = PWRTelegram('your_api_key')
     b = Bot.get(Bot.username == '@bold')
