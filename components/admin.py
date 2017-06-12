@@ -141,7 +141,7 @@ def _edit_bot_buttons(to_edit: Bot):
                 CallbackActions.EDIT_BOT_OFFLINE, {'id': to_edit.id, 'value': True}
             )))
 
-    # offline
+    # spam
     if to_edit.spam:
         buttons.append(
             InlineKeyboardButton("🚮 {}".format(Emoji.WHITE_HEAVY_CHECK_MARK), callback_data=util.callback_for_action(

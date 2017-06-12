@@ -610,11 +610,11 @@ def main():
         },
         fallbacks=[
         ],
-        per_message=False
+        per_chat=True
     )
     conv_handler.allow_reentry = True
     dp.add_handler(conv_handler, group=1)
-    dp.add_handler(CallbackQueryHandler(callback_router, pass_chat_data=True), group=0)
+    # dp.add_handler(CallbackQueryHandler(callback_router, pass_chat_data=True), group=0)
 
     # TODO: put all handlers in their components' register()-methods
     basic.register(dp)
