@@ -9,6 +9,7 @@ from model.notifications import Notifications
 from model.user import User
 from model.suggestion import Suggestion
 from model.favorite import Favorite
+from model.message import Message
 
 if __name__ == "__main__":
     Category.create_table(fail_silently=True)

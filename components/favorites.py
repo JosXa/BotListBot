@@ -1,26 +1,31 @@
 import datetime
+import logging
 import re
 import threading
 
-import captions
-import const
-import mdformat
-import util
-from const import CallbackActions, DeepLinkingActions
-from dialog import messages
-from model import Bot
-from model import User
-from model.favorite import Favorite
 from telegram import ForceReply
 from telegram import InlineKeyboardButton
 from telegram import InlineKeyboardMarkup, ReplyKeyboardMarkup
 from telegram.ext import ConversationHandler
 
+import captions
+import const
+import mdformat
+import util
+from const import CallbackActions, DeepLinkingActions, Layouts
+from dialog import messages
+from model import Bot
+from model import Favorite
+from model import User
+
+logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+log = logging.getLogger(__name__)
+
 
 def add_favorite_handler(bot, update, args=None):
     uid = util.uid_from_update(update)
-    from components.basic import _main_menu_buttons
-    main_menu_markup = ReplyKeyboardMarkup(_main_menu_buttons(uid in const.MODERATORS))
+    from components.basic import main_menu_buttons
+    main_menu_markup = ReplyKeyboardMarkup(main_menu_buttons(uid in const.MODERATORS))
 
     if args:
         query = ' '.join(args) if isinstance(args, list) else args
@@ -62,8 +67,8 @@ def add_favorite(bot, update, item: Bot, callback_alert=None):
     user = User.from_update(update)
     uid = util.uid_from_update(update)
     mid = util.mid_from_update(update)
-    from components.basic import _main_menu_buttons
-    main_menu_markup = ReplyKeyboardMarkup(_main_menu_buttons(uid in const.MODERATORS))
+    from components.basic import main_menu_buttons
+    main_menu_markup = ReplyKeyboardMarkup(main_menu_buttons(uid in const.MODERATORS))
 
     fav, created = Favorite.add(user=user, item=item)
     if created:
@@ -71,7 +76,7 @@ def add_favorite(bot, update, item: Bot, callback_alert=None):
         if callback_alert:
             update.callback_query.answer(text=text, show_alert=False)
         else:
-            msg = util.send_or_edit_md_message(bot, uid, text, to_edit=mid, reply_markup=main_menu_markup)
+            msg = util.send_md_message(bot, uid, text, to_edit=mid, reply_markup=main_menu_markup)
             mid = msg.message_id
             util.wait(bot, update)
             send_favorites_list(bot, update, to_edit=mid)
@@ -94,16 +99,18 @@ def send_favorites_list(bot, update, to_edit=None):
 
     favorites = Favorite.select_all(user)
 
-    text = None
-    if len(favorites) == 0:
-        text = "You have no favorites yet."
-
     buttons = [
         [
             InlineKeyboardButton(captions.ADD_FAVORITE,
                                  callback_data=util.callback_for_action(CallbackActions.ADD_FAVORITE)),
             InlineKeyboardButton(captions.REMOVE_FAVORITE,
                                  callback_data=util.callback_for_action(CallbackActions.REMOVE_FAVORITE_MENU))
+        ],
+        [
+            InlineKeyboardButton('Layout: ' + Layouts.get_caption(user.favorites_layout),
+                                 callback_data=util.callback_for_action(
+                                     CallbackActions.TOGGLE_FAVORITES_LAYOUT,
+                                     {'v': Layouts.get_next(user.favorites_layout)})),
         ],
         [
             InlineKeyboardButton(captions.SHARE, switch_inline_query=DeepLinkingActions.FAVORITES),
@@ -113,39 +120,70 @@ def send_favorites_list(bot, update, to_edit=None):
 
     if to_edit is None:
         to_edit = util.mid_from_update(update)
-    if text is None:
-        text = _favorites_categories_md(favorites)
+
+    if len(favorites) == 0:
+        text = "You have no favorites yet."
+    else:
+        text = _favorites_categories_md(favorites, user.favorites_layout)
+
     util.send_or_edit_md_message(bot, uid, text,
                                  to_edit=to_edit, reply_markup=reply_markup)
 
 
-def _favorites_categories_md(favorites):
-    # sort favorites by database order
-    favorites.sort(key=lambda x: x.bot.category.order)
+def toggle_favorites_layout(bot, update, value):
+    uid = util.uid_from_update(update)
+    user = User.from_update(update)
+    user.favorites_layout = value
+    user.save()
+    send_favorites_list(bot, update)
 
+
+def _favorites_categories_md(favorites, layout=None):
+    text = messages.FAVORITES_HEADLINE + '\n'
     chunks = list()
-    current_category = None
-    for n, f in enumerate(favorites):
-        bot = f.bot
-        category = bot.category
 
-        try:
-            if favorites[n + 1].bot.category != category:
-                list_icon = '└'
-            else:
+    if layout == 'single':
+        # text += '\n'
+        favorites.sort(key=lambda x: x.bot.username)
+        bots = [f.bot for f in favorites]
+        total = len(bots) - 1
+        for n, bot in enumerate(bots):
+            print(n)
+            if n < total:
                 list_icon = '├'
-        except IndexError:
-            list_icon = '└'
+            else:
+                list_icon = '└'
+            chunks.append('{} {}'.format(list_icon, str(bot)))
+        all_favorites = '\n'.join(chunks)
+        text += all_favorites
 
-        if current_category is None or category != current_category:
-            category_no_bulletin = str(category)[1:]
-            chunks.append('\n*{}*'.format(category_no_bulletin))
+    else:
+        # sort favorites by database order
+        favorites.sort(key=lambda x: x.bot.category.order)
 
-        chunks.append('{} {}'.format(list_icon, str(bot)))
-        current_category = category
+        current_category = None
+        for n, f in enumerate(favorites):
+            bot = f.bot
+            category = bot.category
 
-    all_favorites = '\n'.join(chunks)
-    text = messages.FAVORITES_HEADLINE + '\n' + all_favorites
+            try:
+                if favorites[n + 1].bot.category != category:
+                    list_icon = '└'
+                else:
+                    list_icon = '├'
+            except IndexError:
+                list_icon = '└'
+
+            if current_category is None or category != current_category:
+                category_no_bulletin = str(category)[1:]
+                chunks.append('\n*{}*'.format(category_no_bulletin))
+
+            chunks.append('{} {}'.format(list_icon, str(bot)))
+            current_category = category
+
+        all_favorites = '\n'.join(chunks)
+        text += all_favorites
+
     return text
 
 
@@ -190,8 +228,8 @@ def add_custom(bot, update, username):
     uid = util.uid_from_update(update)
     user = User.from_update(update)
     mid = util.mid_from_update(update)
-    from components.basic import _main_menu_buttons
-    main_menu_markup = ReplyKeyboardMarkup(_main_menu_buttons(uid in const.MODERATORS))
+    from components.basic import main_menu_buttons
+    main_menu_markup = ReplyKeyboardMarkup(main_menu_buttons(uid in const.MODERATORS))
 
     try:
         fav = Favorite.get(custom_bot=username)

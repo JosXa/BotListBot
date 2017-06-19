@@ -1,3 +1,5 @@
+from collections import deque
+from pprint import pprint
 from uuid import uuid4
 
 import emoji
@@ -8,6 +10,7 @@ import mdformat
 import search
 import util
 from components import favorites
+from components import basic
 from dialog import messages
 from model import Bot, Category
 from model import Favorite
@@ -64,7 +67,7 @@ def category_article(cat):
 
 
 def bot_article(b):
-    txt = '{} ▶️ {}'.format(messages.rand_call_to_action(), b.detail_text)
+    txt = '{} ➡️ {}'.format(messages.rand_call_to_action(), b.detail_text)
     txt += '\n\n' + messages.PROMOTION_MESSAGE
     buttons = [[InlineKeyboardButton(captions.ADD_TO_FAVORITES, callback_data=util.callback_for_action(
         const.CallbackActions.ADD_TO_FAVORITES, {'id': b.id, 'discreet': True}))]]
@@ -107,7 +110,7 @@ def favorites_article(user):
     )
 
 
-def inlinequery_handler(bot, update):
+def inlinequery_handler(bot, update, chat_data):
     query = update.inline_query.query.lower()
     user = User.from_update(update)
     results_list = list()
@@ -166,7 +169,7 @@ def inlinequery_handler(bot, update):
         bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=600)
         return
 
-    if query == const.DeepLinkingActions.FAVORITES:
+    if query == const.DeepLinkingActions.FAVORITES and user.has_favorites:
         results_list.append(favorites_article(user))
         bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=0, is_personal=True)
         return
@@ -191,7 +194,8 @@ def inlinequery_handler(bot, update):
         else:
             bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=0, is_personal=True)
     else:
-        results_list.append(favorites_article(user))
+        if user.has_favorites:
+            results_list.append(favorites_article(user))
         results_list.append(new_bots_article())
         categories = Category.select_all()
         for c in categories:
@@ -203,3 +207,10 @@ def inlinequery_handler(bot, update):
             bot.answerInlineQuery(update.inline_query.id, results=results_list,
                                   switch_pm_text="No results. Contribute a bot?",
                                   switch_pm_parameter='contributing', cache_time=0, is_personal=True)
+
+
+def chosen_result(bot, update, chat_data):
+    pprint(update.to_dict())
+    if update.chosen_inline_result.inline_message_id:
+        print('storing id...')
+        chat_data['sent_inlinequery'] = update.chosen_inline_result.inline_message_id

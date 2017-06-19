@@ -12,10 +12,11 @@ class BotIndex(BaseFTSModel):
 
     @staticmethod
     def save_bot(bot):
-        try:
-            bot_index = BotIndex.get()
-            # TODO
-        BotIndex.insert({
-            BotIndex.name: bot.name,
-            BotIndex.description: bot.description,
-            BotIndex.extra: bot.extra}).execute()
+        pass
+        # bot_index = BotIndex.get()
+        #     # TODO
+        # BotIndex.insert({
+        #     BotIndex.name: bot.name,
+        #     BotIndex.description: bot.description,
+        #     BotIndex.extra: bot.extra}).execute()
+        # })

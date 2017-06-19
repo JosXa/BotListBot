@@ -8,11 +8,12 @@ HELP_MESSAGE_ENGLISH = """*ɢʀᴇᴇᴛɪɴɢs ʜᴜᴍᴀɴᴏɪᴅs* 🤖
 
 I'm the bot in charge of maintaining the @BotList channel, the *most reliable and unbiased bot catalog* out there. I was built to simplify navigation and to automate the process of submitting, reviewing and publishing bots by the @BotListChat community.
 
-▫️ Add me to your groups and subscribe to BotList updates.
+*First steps:*
+▫️ Start off by using the /category command and use the available buttons from there on.
 ▫️ Send individual @BotList categories to your friends via inline search (i.e. type `@botlistbot music` in any chat).
-▫️ Join the @BotListChat community and contribute to the BotList: `#new @newbot🔎 - description`
+▫️ Add me to your groups and /subscribe to BotList updates.
+▫️ Join the @BotListChat community and /contribute to the BotList: `#new @newbot🔎 - description`
 
-First steps: Start off by using the /category command and use the available buttons from there on.
 
 ᴏɴᴇ sᴛᴇᴘ ᴄʟᴏsᴇʀ ᴛᴏ ᴡᴏʀʟᴅ ᴅᴏᴍɪɴᴀᴛɪᴏɴ 🤖"""
 # HELP_MESSAGE_SPANISH = """*ɢʀᴇᴇᴛɪɴɢs ʜᴜᴍᴀɴᴏɪᴅs* 🤖
@@ -97,6 +98,9 @@ BAN_MESSAGE = mdformat.action_hint("Please send me the username to ban and remov
 UNBAN_MESSAGE = mdformat.action_hint("Please send me the username of the user to revoke ban state for")
 FAVORITES_HEADLINE = "*{}* 🔽\n_― from_ @BotList".format(captions.FAVORITES)
 ADD_FAVORITE = mdformat.action_hint("Please send me the @username of a bot to add to your favorites")
+
+BOTPROPERTY_STARTSWITH = "Please send me a "
+SET_BOTPROPERTY = "Please send me a {} for {} ― `{}` to clear"
 
 
 def rand_call_to_action():

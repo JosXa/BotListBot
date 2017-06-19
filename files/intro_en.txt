@@ -3,18 +3,18 @@
 
 Here you'll find the best Bots in a interactive list that's simple and easy to read and share. To find out how each bot works simply access one, read its description, press the start button and interact with it. Bots are basically a whole bunch of different tools, utilities, games and more. Possibilities are endless.
 
-Through our @bot\_list\_bot, you can also benefit all of Telegrams community of users by helping edit the descriptions of bots that don't have one.
-You can also use the @bot\_list\_bot to send individual categories to your friends from any chat via inline mode:
-e.g: @bot\_list\_bot music
+Through our @BotListBot, you can also benefit all of Telegrams community of users by helping edit the descriptions of bots that don't have one.
+You can also use the @BotListBot to send individual categories to your friends from any chat via inline mode:
+e.g: @BotListBot music
 
-The @BotList will be updated automatically by the @bot\_list\_bot which also helps us receive and manage each bot that you send us through @BotListChat to be evaluated and classified in each category.
+The @BotList will be updated automatically by the @BotListBot which also helps us receive and manage each bot that you send us through @BotListChat to be evaluated and classified in each category.
 
 •Instructions:
-Share your bots in the @BotListChat by typing the hashtag #new followed by the Bot name so that the @bot\_list\_bot helps us classify it on the list besides giving us and users the possibility to help the community by editing every bot description.
+Share your bots in the @BotListChat by typing the hashtag #new followed by the Bot name so that the @BotListBot helps us classify it on the list besides giving us and users the possibility to help the community by editing every bot description.
 
 
 •History:
-@BotList has always been FOR and BY the Telegram community. Our philosophy has always been to say NO to bridges, NO to spam and NO to ads. Growing by doing things right and by word of mouth. The BotList started of as a simple personal list and now helps manage, share and consult in an interactive and comfortable way, with the help of @bot\_list\_bot, only bots that have proven that are here to stay and that they're really useful to a lot of users.
+@BotList has always been FOR and BY the Telegram community. Our philosophy has always been to say NO to bridges, NO to spam and NO to ads. Growing by doing things right and by word of mouth. The BotList started of as a simple personal list and now helps manage, share and consult in an interactive and comfortable way, with the help of @BotListBot, only bots that have proven that are here to stay and that they're really useful to a lot of users.
 @BotList has always been and will be driven by the eagerness to help users and not for profit. A project carried out by the enthusiasm of people who appreciate the existence of Telegram and those who make it possible. Thank you all. 🙏
 
 

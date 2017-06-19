@@ -3,6 +3,8 @@ import inflect
 from peewee import *
 
 from telegram import User as TelegramUser
+
+import const
 import util
 from model.basemodel import BaseModel
 
@@ -15,6 +17,8 @@ class User(BaseModel):
     last_name = CharField(null=True)
     photo = CharField(null=True)
     banned = BooleanField(default=False)
+    favorites_layout = CharField(choices=const.Layouts.choices, default=const.Layouts.default)
+
 
     @staticmethod
     def from_telegram_object(user: TelegramUser):
@@ -27,25 +31,18 @@ class User(BaseModel):
 
     @staticmethod
     def from_update(update):
-        try:
-            user = update.message.from_user
-        except (NameError, AttributeError):
-            try:
-                user = update.inline_query.from_user
-            except (NameError, AttributeError):
-                try:
-                    user = update.chosen_inline_result.from_user
-                except (NameError, AttributeError):
-                    try:
-                        user = update.callback_query.from_user
-                    except (NameError, AttributeError):
-                        raise ValueError("No user in update")
+        user = update.effective_user
         try:
             u = User.get(User.chat_id == user.id)
         except User.DoesNotExist:
             u = User(chat_id=user.id, username=user.username, first_name=user.first_name, last_name=user.last_name)
             u.save()
         return u
+
+    @property
+    def has_favorites(self):
+        from model import Favorite
+        return Favorite.select().where(Favorite.user == self).count() > 0
 
     @property
     def num_contributions(self):
@@ -58,12 +55,15 @@ class User(BaseModel):
         return p.ordinal(self.num_contributions)
 
     def __str__(self):
-        text = ' '.join([
+        full_name = ' '.join([
             self.first_name if self.first_name else '',
-            self.last_name if self.last_name else '',
-            '(@' + self.username + ')' if self.username else ''
+            self.last_name if self.last_name else ''
         ])
-        return util.escape_markdown(text).encode('utf-8').decode('utf-8')
+        if self.username:
+            text = '[{}](https://t.me/{})'.format(full_name, self.username)
+        else:
+            text = full_name
+        return ('👤 ' + text).encode('utf-8').decode('utf-8')
 
     @staticmethod
     def by_username(username: str):

@@ -1,6 +1,9 @@
 import os
 import sys
 import time
+from pprint import pprint
+
+from telegram.ext.dispatcher import run_async
 
 import captions
 import const
@@ -9,6 +12,7 @@ import util
 from bot import send_category, search_handler, search_query, log
 from components import help
 from components.botlist import new_channel_post
+from dialog import messages
 from model import User, Category
 from telegram import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import CommandHandler
@@ -20,7 +24,7 @@ from util import track_groups, restricted
 
 
 @track_groups
-def start(bot, update, args):
+def start(bot, update, chat_data, args):
     tg_user = update.message.from_user
     chat_id = tg_user.id
 
@@ -45,7 +49,7 @@ def start(bot, update, args):
         elif query == const.DeepLinkingActions.RULES:
             return help.rules(bot, update, quote=False)
         elif query == const.DeepLinkingActions.SEARCH:
-            return search_handler(bot, update)
+            return search_handler(bot, update, chat_data)
 
         # SEARCH QUERY
         search_query(bot, update, query)
@@ -58,7 +62,7 @@ def start(bot, update, args):
         return ConversationHandler.END
 
 
-def _main_menu_buttons(admin=False):
+def main_menu_buttons(admin=False):
     buttons = [
         [KeyboardButton(captions.CATEGORIES), KeyboardButton(captions.FAVORITES)],
         [KeyboardButton(captions.NEW_BOTS), KeyboardButton(captions.SEARCH)],
@@ -72,7 +76,7 @@ def _main_menu_buttons(admin=False):
 def main_menu(bot, update):
     chat_id = update.effective_chat.id
     is_admin = chat_id in const.MODERATORS
-    reply_markup = ReplyKeyboardMarkup(_main_menu_buttons(is_admin),
+    reply_markup = ReplyKeyboardMarkup(main_menu_buttons(is_admin),
                                        resize_keyboard=True) if util.is_private_message(
         update) else ReplyKeyboardRemove()
 
@@ -99,8 +103,37 @@ def remove_keyboard(bot, update):
     return ConversationHandler.END
 
 
-@track_groups
-def plaintext(bot, update):
+def delete_botlistchat_promotions(bot, update, chat_data, update_queue):
+    cid = update.effective_chat.id
+
+    if chat_data.get('delete_promotion_retries') >= 3:
+        return
+
+    if messages.PROMOTION_MESSAGE not in update.effective_message.text_markdown:
+        return
+
+    if update.effective_chat.id != const.BOTLISTCHAT_ID:
+        return
+
+    sent_inlinequery = chat_data.get('sent_inlinequery')
+    pprint(chat_data)
+    if sent_inlinequery:
+        text = sent_inlinequery.text
+        text = text.replace(messages.PROMOTION_MESSAGE, '')
+        print('editing:')
+        print(text)
+        bot.edit_message_text(text, cid, sent_inlinequery)
+        del chat_data['sent_inlinequery']
+    else:
+        chat_data['delete_promotion_retries'] += 1
+        time.sleep(2)  # TODO
+        update_queue.put(update)
+
+
+def plaintext_group(bot, update, chat_data, update_queue):
+    # check if an inlinequery was sent to BotListChat
+    print(update.effective_chat.id)
+
     # pprint(update.message.to_dict())
     if update.channel_post:
         return new_channel_post(bot, update)
@@ -109,16 +142,20 @@ def plaintext(bot, update):
         #     if len(update.message.text) > 3:
         #         search_query(bot, update, update.message.text, send_errors=False)
 
+    # potentially longer operation
+    chat_data['delete_promotion_retries'] = 0
+    delete_botlistchat_promotions(bot, update, chat_data, update_queue)
+
 
 def cancel(bot, update):
     return ConversationHandler.END
 
 
 def register(dp):
-    dp.add_handler(CommandHandler('start', start, pass_args=True))
+    dp.add_handler(CommandHandler('start', start, pass_args=True, pass_chat_data=True))
     dp.add_handler(CommandHandler("menu", main_menu))
     dp.add_handler(RegexHandler(captions.EXIT, main_menu))
     dp.add_handler(CommandHandler('r', restart))
     dp.add_error_handler(error)
-    dp.add_handler(MessageHandler(Filters.text & Filters.group, plaintext, edited_updates=True))
+    dp.add_handler(MessageHandler(Filters.text & Filters.group, plaintext_group, pass_chat_data=True, pass_update_queue=True))
     dp.add_handler(CommandHandler("removekeyboard", remove_keyboard))

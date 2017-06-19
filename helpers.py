@@ -1,5 +1,7 @@
 import logging
 
+import re
+
 import captions
 import const
 import util
@@ -16,7 +18,8 @@ def validate_username(username: str):
         return False
     if username[0] != '@':
         username = '@' + username
-    return username
+    match = re.match(const.REGEX_BOT_ONLY, username)
+    return username if match else False
 
 
 def get_commands():

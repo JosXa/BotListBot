@@ -1,10 +1,12 @@
+import random
 from pprint import pprint
 
 from custemoji import Emoji
 
 TEST = "{} Test".format(Emoji.ANCHOR)
 BACK_TO_MENU = "{} Back to Menu".format(Emoji.LEFTWARDS_BLACK_ARROW)
-EXIT = "Exit"
+EXIT = "🔙 Exit"
+REFRESH = "🔄 Refresh"
 ADD_BOT = "➕ Add new bot"
 EDIT_BOT = "🛠 Edit Bot"
 SEND_BOTLIST = "☑ Update BotList"
@@ -14,6 +16,8 @@ APPROVE_BOTS = "Approve Bots"
 SEND_CONFIG_FILES = "Config files"
 FIND_OFFLINE = "Find offline bots"
 APPROVE_SUGGESTIONS = "Approve Suggestions"
+SUGGESTION_PENDING_EMOJI = "👓"
+CHANGE_SUGGESTION = "📝 Make Changes"
 DONE = "🔚 Done"
 SHARE = "Share"
 
@@ -30,3 +34,8 @@ FAVORITES = "💖 My Favorites"
 ADD_FAVORITE = "➕ Add"
 REMOVE_FAVORITE = "➖ Remove"
 ADD_TO_FAVORITES = "Add to 💖 Favorites"
+
+
+def random_done_delete():
+    CHOICES = ["I'm done", "Okay", "Clear", "I got what I wanted", "Check"]
+    return '🗑 {}'.format(random.choice(CHOICES))

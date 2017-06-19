@@ -4,7 +4,9 @@ import re
 import time
 import traceback
 from collections import OrderedDict
+from functools import partial
 from functools import wraps
+from pprint import pprint
 from typing import List
 
 import const
@@ -31,51 +33,41 @@ def track_groups(func):
     @wraps(func)
     def wrapped(bot, update, *args, **kwargs):
         try:
-            if update.message.chat.type == 'group':
-                Group.from_telegram_object(update.message.chat)
+            if update.effective_chat.type == 'group':
+                Group.from_telegram_object(update.effective_chat)
         except (NameError, AttributeError):
             try:
-                if update.callback_query.message.chat.type == 'group':
+                if update.message.new_chat_member.id == const.SELF_BOT_ID:
                     Group.from_telegram_object(update.callback_query.message.chat)
             except (NameError, AttributeError):
-                try:
-                    if update.message.new_chat_member.id == const.SELF_BOT_ID:
-                        Group.from_telegram_object(update.callback_query.message.chat)
-                except (NameError, AttributeError):
-                    logging.error("No chat_id available in update for track_groups.")
+                logging.error("No chat_id available in update for track_groups.")
         return func(bot, update, *args, **kwargs)
 
     return wrapped
 
 
-def restricted(func, strict=True):
+def restricted(func=None, strict=False):
+    if func is None:
+        # If called without method, we've been called with optional arguments.
+        # We return a decorator with the optional arguments filled in.
+        return partial(restricted, strict=strict)
+
     @wraps(func)
     def wrapped(bot, update, *args, **kwargs):
-        try:
-            chat_id = update.message.from_user.id
-        except (NameError, AttributeError):
-            try:
-                chat_id = update.inline_query.from_user.id
-            except (NameError, AttributeError):
-                try:
-                    chat_id = update.chosen_inline_result.from_user.id
-                except (NameError, AttributeError):
-                    try:
-                        chat_id = update.callback_query.from_user.id
-                    except (NameError, AttributeError):
-                        logging.error("No user_id available in update.")
-                        return
+        chat_id = update.effective_user.id
+
         if chat_id not in const.MODERATORS:
-            if strict:
-                try:
-                    print("Unauthorized access denied for {}.".format(chat_id))
-                    bot.sendPhoto(chat_id, open('assets/img/go_away_noob.png', 'rb'))
-                    # update.message.reply_text('*Available commands:*\n' + helpers.get_commands(),
-                    #                           parse_mode=ParseMode.MARKDOWN)
-                except (TelegramError, AttributeError):
-                    pass
-            else:
-                pass
+            try:
+                print("Unauthorized access denied for {}.".format(chat_id))
+                bot.sendPhoto(chat_id, open('assets/img/go_away_noob.png', 'rb'))
+                return
+            except (TelegramError, AttributeError):
+                return
+
+        if strict and chat_id not in const.ADMINS:
+            bot.sendMessage(chat_id, "This function is restricted to the channel creator.")
+            return
+
         return func(bot, update, *args, **kwargs)
 
     return wrapped
@@ -88,10 +80,10 @@ def private_chat_only(func):
             ilq = update.message.inline_query
             return func(bot, update, *args, **kwargs)
         except (NameError, AttributeError):
-            if (update.message and update.message.chat.type == 'private') or (
-                        update.callback_query and update.callback_query.message.chat.type == 'private'):
+            if update.effective_chat.type == 'private':
                 return func(bot, update, *args, **kwargs)
             else:
+                # not private
                 pass
 
     return wrapped
@@ -178,15 +170,16 @@ def callback_data_from_update(update):
 
 def is_group_message(update):
     try:
-        return update.message.chat.type in ['group', 'supergroup']
+        return update.effective_message.chat.type in ['group', 'supergroup']
     except (NameError, AttributeError):
         try:
-            return update.callback_query.message.chat.type in ['group', 'supergroup']
+            return update.message.new_chat_member.id == const.SELF_BOT_ID
         except (NameError, AttributeError):
-            try:
-                return update.message.new_chat_member.id == const.SELF_BOT_ID
-            except (NameError, AttributeError):
-                return False
+            return False
+
+
+def is_private_message(update):
+    return update.effective_message.chat.type == 'private'
 
 
 def original_reply_id(update):
@@ -194,10 +187,6 @@ def original_reply_id(update):
         return update.message.reply_to_message.message_id
     except (NameError, AttributeError):
         return None
-
-
-def is_private_message(update):
-    return not is_group_message(update)
 
 
 def is_inline_message(update):
@@ -265,15 +254,15 @@ def private_or_else_group_message(bot, chat_id, text):
 
 
 def send_or_edit_md_message(bot, chat_id, text, to_edit=None, **kwargs):
-
     try:
         if to_edit:
-            return bot.editMessageText(text, chat_id=chat_id, message_id=to_edit, parse_mode=ParseMode.MARKDOWN,
-                                       **kwargs)
+            return bot.edit_message_text(text, chat_id=chat_id, message_id=to_edit, parse_mode=ParseMode.MARKDOWN,
+                                         **kwargs)
 
         return send_md_message(bot, chat_id, text=text, **kwargs)
     except BadRequest as e:
         if 'not modified' in e.message.lower():
+            logging.debug('Message not modified.')
             pass
         else:
             traceback.print_exc()
@@ -321,6 +310,5 @@ def failure(text):
 
 
 def action_hint(text):
-    return '{} {}'.format(Emoji.THOUGHT_BALLOON, text)
-
+    return '💬 {}'.format(text)
 

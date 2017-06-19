@@ -82,7 +82,7 @@ def failure(text):
 
 
 def action_hint(text):
-    return '{} {}'.format(Emoji.THOUGHT_BALLOON, text)
+    return '💬 {}'.format(text)
 
 
 def none_action(text):

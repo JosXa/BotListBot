@@ -25,7 +25,7 @@ logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
-@restricted
+@restricted(strict=True)
 @run_async
 def send_botlist(bot, update, resend=False, silent=False):
     log.info("Re-Sending BotList..." if resend else "Updating BotList...")

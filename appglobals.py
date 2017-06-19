@@ -1,5 +1,4 @@
 import os
-from peewee import *
 from playhouse.sqlite_ext import SqliteExtDatabase
 
 _db = None

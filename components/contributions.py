@@ -1,21 +1,19 @@
 # -*- coding: utf-8 -*-
 import datetime
-import time
 import logging
 import re
 
 from peewee import fn
+from telegram import InlineKeyboardButton
+from telegram import InlineKeyboardMarkup
+from telegram import ParseMode
+from telegram.ext import ConversationHandler
 
 import const
 import mdformat
 import util
 from dialog import messages
-from model import User, Bot, Suggestion, Country
-from telegram import InlineKeyboardButton
-from telegram import InlineKeyboardMarkup
-from telegram import ParseMode
-from telegram.ext import ConversationHandler
-from telegram.ext.dispatcher import run_async
+from model import User, Bot, Suggestion, Country, Message
 from util import track_groups
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
@@ -127,7 +125,7 @@ def notify_bot_offline(bot, update, args=None):
 
 
 @track_groups
-def new_bot_submission(bot, update, args=None):
+def new_bot_submission(bot, update, chat_data, args=None):
     tg_user = update.message.from_user
     user = User.from_telegram_object(tg_user)
     if util.stop_banned(update, user):
@@ -191,14 +189,15 @@ def new_bot_submission(bot, update, args=None):
         new_bot.description = description
         description_notify = ' Your description was included.'
 
-    log.info("New bot submission by {}: {}".format(new_bot.submitted_by, new_bot.username))
     new_bot.save()
     if util.is_private_message(update) and util.uid_from_update(update) in const.MODERATORS:
         from bot import send_bot_details
-        send_bot_details(bot, update, new_bot)
+        send_bot_details(bot, update, chat_data, new_bot)
     else:
-        update.message.reply_text(util.success("You submitted {} for approval.{}".format(new_bot, description_notify)),
-                                  parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
+        msg = update.message.reply_text(
+            util.success("You submitted {} for approval.{}".format(new_bot, description_notify)),
+            parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
+        Message.get_or_create(msg, 'new', new_bot)
     return ConversationHandler.END
 
 
@@ -214,22 +213,5 @@ def _submission_accepted_markup(accepted_bot, count=0):
     return InlineKeyboardMarkup([[button]])
 
 
-@run_async
-def bot_submission_accepted(bot, update, accepted_bot):
-    # Notify the group after 1 minute, giving the admin enough time to edit details.
-    time.sleep(60)
-
-    # check if the bot still exists
-    accepted_bot = Bot.get(id=accepted_bot.id)
-
-    text = "🆕 The bot submission by {} was accepted. This is his {} contribution.\n    *Welcome* {} *to the BotList!*".format(
-        accepted_bot.submitted_by,
-        accepted_bot.submitted_by.contributions_ordinal,
-        accepted_bot.username
-    )
-    util.send_md_message(bot, const.BOTLISTCHAT_ID, text, reply_markup=_submission_accepted_markup(accepted_bot, 0))
-
-
 def count_thank_you(bot, update, accepted_bot, count):
-    cid = update.effective_chat.id
     update.effective_message.edit_reply_markup(reply_markup=_submission_accepted_markup(accepted_bot, count))

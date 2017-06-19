@@ -64,7 +64,7 @@ class Bot(BaseModel):
         keywords = Keyword.select().where(Keyword.entity == self)
         txt = '{}'.format(self.__str__())
         txt += '\n_{}_'.format(util.escape_markdown(self.name)) if self.name else ''
-        txt += '\n\n{}'.format(util.escape_markdown(self.description)) if self.description else ''
+        txt += '\n\n{}'.format(self.description) if self.description else ''
         txt += util.escape_markdown(
             '\n\nKeywords: {}'.format(
                 ', '.join([str(k) for k in keywords])
