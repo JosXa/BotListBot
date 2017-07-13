@@ -1,9 +1,9 @@
-from pprint import pprint
-
 import re
-from peewee import fn, Expression
+
+from peewee import fn
 
 import const
+import settings
 from model import Bot
 from model import Category
 from model import Keyword
@@ -26,7 +26,7 @@ def search_bots(query):
     results.update(keyword_results)
 
     # many @usernames
-    usernames = re.findall(const.REGEX_BOT_ONLY, query)
+    usernames = re.findall(settings.REGEX_BOT_ONLY, query)
     if usernames:
         try:
             bots = Bot.many_by_usernames(usernames)
@@ -44,4 +44,3 @@ def search_categories(query):
         (fn.lower(Category.extra).contains(query))
     )
     return categories
-

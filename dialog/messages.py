@@ -109,7 +109,7 @@ def rand_call_to_action():
 
 
 def rand_thank_you_slang():
-    choices = ["👍🏼 Wow great, thank you!", "👍🏼 Good Job!", "❤️ Nice! Thanks", "❤️ Awesome!", "😍 Excellent!",
+    choices = ["👍🏼 Wow great, thank you!", "👍🏼 Good Job!", "❤️ Nice! Thanks", "❤️ Cool!", "❤️ Awesome!", "😍 Excellent!",
                "👌 You da man!", "👌 That's just perfect!", "👌 Well done!", "🙏 Good one!", "🙏 Great, keep it up!",
                "👏 I like it!", "👏 Orng Nice!"]
     return random.choice(choices)

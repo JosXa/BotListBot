@@ -1,25 +1,24 @@
-from collections import deque
 from pprint import pprint
 from uuid import uuid4
 
 import emoji
-
-import captions
-import const
-import mdformat
-import search
-import util
-from components import favorites
-from components import basic
-from dialog import messages
-from model import Bot, Category
-from model import Favorite
-from model import User
 from telegram import InlineKeyboardButton
 from telegram import InlineKeyboardMarkup
 from telegram import InlineQueryResultArticle
 from telegram import InputTextMessageContent
 from telegram import ParseMode
+
+import captions
+import const
+import mdformat
+import search
+import settings
+import util
+from components import favorites
+from dialog import messages
+from model import Bot, Category
+from model import Favorite
+from model import User
 
 # CONSTANTS
 MAX_BOTS = 30
@@ -41,22 +40,22 @@ def query_too_short_article():
 
 def new_bots_article():
     # append new bots list to result
-    from bot import _new_bots_text
+    from components.explore import _new_bots_text
     msg_text = messages.PROMOTION_MESSAGE + '\n\n' + _new_bots_text()
     return InlineQueryResultArticle(
         id=uuid4(),
         title='🆕 New Bots',
         input_message_content=InputTextMessageContent(message_text=msg_text, parse_mode="Markdown"),
-        description='Bots added in the last {} days.'.format(const.BOT_CONSIDERED_NEW),
+        description='Bots added in the last {} days.'.format(settings.BOT_CONSIDERED_NEW),
         # thumb_url='http://www.colorcombos.com/images/colors/FF0000.png',
     )
 
 
 def category_article(cat):
-    bot_list = Bot.of_category(cat)
+    cat_bots = Bot.of_category(cat)
     txt = messages.PROMOTION_MESSAGE + '\n\n'
-    txt += "There are *{}* bots in the category *{}*:\n\n".format(len(bot_list), str(cat))
-    txt += '\n'.join([str(b) for b in bot_list])
+    txt += "There are *{}* bots in the category *{}*:\n\n".format(len(cat_bots), str(cat))
+    txt += '\n'.join([str(b) for b in cat_bots])
     return InlineQueryResultArticle(
         id=uuid4(),
         title=emoji.emojize(cat.emojis, use_aliases=True) + cat.name,

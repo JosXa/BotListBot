@@ -39,13 +39,16 @@ class Favorite(BaseModel):
     def select_all(user):
         user_favs = list(Favorite.select().where(Favorite.user == user))
         for n, f in enumerate(user_favs):
-            if f.bot is None:
-                bot = Bot(category=Favorite.CUSTOM_CATEGORY, username=f.custom_bot, approved=True,
-                          date_added=datetime.date.today())
-                f.bot = bot
-                user_favs[n] = f
-            if f.bot.category is None:
-                f.bot.category = Favorite.CUSTOM_CATEGORY
+            try:
+                if not fn.exists(f.bot):
+                    bot = Bot(category=Favorite.CUSTOM_CATEGORY, username=f.custom_bot, approved=True,
+                              date_added=datetime.date.today())
+                    f.bot = bot
+                    user_favs[n] = f
+                if not fn.exists(f.bot.category):
+                    f.bot.category = Favorite.CUSTOM_CATEGORY
+            except Bot.DoesNotExist:
+                f.delete_instance()
         return user_favs
 
     @staticmethod

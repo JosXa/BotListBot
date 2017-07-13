@@ -10,6 +10,7 @@ from pprint import pprint
 from typing import List
 
 import const
+import settings
 from custemoji import Emoji
 from telegram import ChatAction
 from telegram import ParseMode
@@ -37,7 +38,7 @@ def track_groups(func):
                 Group.from_telegram_object(update.effective_chat)
         except (NameError, AttributeError):
             try:
-                if update.message.new_chat_member.id == const.SELF_BOT_ID:
+                if update.message.new_chat_member.id == settings.SELF_BOT_ID:
                     Group.from_telegram_object(update.callback_query.message.chat)
             except (NameError, AttributeError):
                 logging.error("No chat_id available in update for track_groups.")
@@ -46,26 +47,29 @@ def track_groups(func):
     return wrapped
 
 
-def restricted(func=None, strict=False):
+def restricted(func=None, strict=False, silent=False):
     if func is None:
         # If called without method, we've been called with optional arguments.
         # We return a decorator with the optional arguments filled in.
-        return partial(restricted, strict=strict)
+        return partial(restricted, strict=strict, silent=silent)
 
     @wraps(func)
     def wrapped(bot, update, *args, **kwargs):
         chat_id = update.effective_user.id
 
-        if chat_id not in const.MODERATORS:
+        if chat_id not in settings.MODERATORS:
             try:
                 print("Unauthorized access denied for {}.".format(chat_id))
-                bot.sendPhoto(chat_id, open('assets/img/go_away_noob.png', 'rb'))
+                if not silent:
+                    bot.sendPhoto(chat_id, open('assets/img/go_away_noob.png', 'rb'),
+                                  caption="Moderator Area. Unauthorized.")
                 return
             except (TelegramError, AttributeError):
                 return
 
-        if strict and chat_id not in const.ADMINS:
-            bot.sendMessage(chat_id, "This function is restricted to the channel creator.")
+        if strict and chat_id not in settings.ADMINS:
+            if not silent:
+                bot.sendMessage(chat_id, "This function is restricted to the channel creator.")
             return
 
         return func(bot, update, *args, **kwargs)
@@ -76,15 +80,11 @@ def restricted(func=None, strict=False):
 def private_chat_only(func):
     @wraps(func)
     def wrapped(bot, update, *args, **kwargs):
-        try:
-            ilq = update.message.inline_query
+        if update.effective_chat.type == 'private':
             return func(bot, update, *args, **kwargs)
-        except (NameError, AttributeError):
-            if update.effective_chat.type == 'private':
-                return func(bot, update, *args, **kwargs)
-            else:
-                # not private
-                pass
+        else:
+            # not private
+            pass
 
     return wrapped
 
@@ -173,7 +173,7 @@ def is_group_message(update):
         return update.effective_message.chat.type in ['group', 'supergroup']
     except (NameError, AttributeError):
         try:
-            return update.message.new_chat_member.id == const.SELF_BOT_ID
+            return update.message.new_chat_member.id == settings.SELF_BOT_ID
         except (NameError, AttributeError):
             return False
 
@@ -311,4 +311,3 @@ def failure(text):
 
 def action_hint(text):
     return '💬 {}'.format(text)
-

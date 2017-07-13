@@ -4,8 +4,9 @@ import re
 
 import captions
 import const
+import settings
 import util
-from const import SELF_CHANNEL_USERNAME
+from settings import SELF_CHANNEL_USERNAME
 from dialog import messages
 from telegram import ParseMode, InlineKeyboardMarkup, InlineKeyboardButton
 
@@ -18,7 +19,7 @@ def validate_username(username: str):
         return False
     if username[0] != '@':
         username = '@' + username
-    match = re.match(const.REGEX_BOT_ONLY, username)
+    match = re.match(settings.REGEX_BOT_ONLY, username)
     return username if match else False
 
 
@@ -69,7 +70,7 @@ def reroute_private_chat(bot, update, quote, action, message, redirect_message=N
                 [[InlineKeyboardButton(
                     captions.SWITCH_PRIVATE,
                     url="https://t.me/{}?start={}".format(
-                        const.SELF_BOT_NAME,
+                        settings.SELF_BOT_NAME,
                         action)),
                     InlineKeyboardButton('🔎 Switch to inline', switch_inline_query=action)
                 ]]

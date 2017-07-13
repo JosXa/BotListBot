@@ -3,6 +3,7 @@ import datetime
 from peewee import *
 
 import const
+import settings
 import util
 from model import Bot
 from model import User
@@ -35,7 +36,7 @@ class Suggestion(BaseModel):
         'spam'
     ]
     TEXTUAL_ACTIONS = ['description', 'extra']
-    BOOLEAN_ACTIONS = ['inlinequeries', 'official', 'extra', 'offline', 'spam']
+    BOOLEAN_ACTIONS = ['inlinequeries', 'official', 'offline', 'spam']
 
     user = ForeignKeyField(User)
     date = DateField()
@@ -55,6 +56,8 @@ class Suggestion(BaseModel):
         elif self.action == 'category':
             return Category.get(id=self._value)
         elif self.action == 'country':
+            if self._value is None:
+                return None
             return Country.get(id=self._value)
         else:
             return str(self._value)
@@ -93,6 +96,11 @@ class Suggestion(BaseModel):
             return Suggestion.select().where(Suggestion.executed == False)
 
     @staticmethod
+    def select_all_of_user(user):
+        Suggestion.delete_missing()
+        return Suggestion.select().where(Suggestion.executed == False, Suggestion.user == user)
+
+    @staticmethod
     def get_pending(action, bot, user):
         try:
             return Suggestion.get(action=action, subject=bot, user=user, executed=False)
@@ -104,7 +112,7 @@ class Suggestion(BaseModel):
         return Suggestion.select().where(
             Suggestion.user == user,
             Suggestion.executed == False
-        ).count() >= const.SUGGESTION_LIMIT
+        ).count() >= settings.SUGGESTION_LIMIT
 
     @staticmethod
     def pending_for_bot(bot, user):
@@ -115,7 +123,7 @@ class Suggestion(BaseModel):
         )
         return {s.action: s.value for s in pending}
 
-    def execute(self):
+    def apply(self):
         try:
             if self.subject is None:
                 self.delete_instance()
@@ -140,12 +148,14 @@ class Suggestion(BaseModel):
         elif self.action == 'extra':
             self.subject.extra = self.value
         elif self.action == 'country':
-            if self.value == 'None' or self.value is None:
+            print(self.subject)
+            print('hi')
+            if self._value == 'None' or self._value is None:
                 self.subject.country = None
             else:
                 from model import Country
                 try:
-                    con = Country.get(id=self.value)
+                    con = Country.get(id=self._value)
                     self.subject.country = con
                 except Country.DoesNotExist:
                     raise AttributeError("Country to change to does not exist.")
@@ -181,7 +191,6 @@ class Suggestion(BaseModel):
             from model import Category
             try:
                 cat = Category.get(id=self.value)
-                print(str(cat))
                 text += "move {} ➜ {}".format(uname, cat.name)
             except Category.DoesNotExist:
                 raise AttributeError("Category to change to does not exist.")
@@ -194,12 +203,16 @@ class Suggestion(BaseModel):
         elif self.action == 'extra':
             text += "change extra text {}".format(uname)
         elif self.action == 'country':
-            from model import Country
-            try:
-                con = Country.get(id=self.value)
-                text += "change country {} ➜ {}".format(uname, str(con))
-            except Country.DoesNotExist:
-                raise AttributeError("Country to change to does not exist.")
+            text = "change country {} ➜ ".format(uname)
+            if self._value == 'None' or self._value is None:
+                text += "None"
+            else:
+                from model import Country
+                try:
+                    con = Country.get(id=self._value)
+                    text += "change country {} ➜ {}".format(uname, str(con))
+                except Country.DoesNotExist:
+                    raise AttributeError("Country to change to does not exist.")
         elif self.action == 'inlinequeries':
             text += "toggle inlinequeries {} ➜ {}".format(uname, value)
         elif self.action == 'official':

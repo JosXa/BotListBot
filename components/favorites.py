@@ -9,14 +9,16 @@ from telegram import InlineKeyboardMarkup, ReplyKeyboardMarkup
 from telegram.ext import ConversationHandler
 
 import captions
-import const
 import mdformat
+import const
+import settings
 import util
-from const import CallbackActions, DeepLinkingActions, Layouts
 from dialog import messages
+from layouts import Layouts
 from model import Bot
 from model import Favorite
 from model import User
+from const import CallbackActions, DeepLinkingActions
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -25,13 +27,13 @@ log = logging.getLogger(__name__)
 def add_favorite_handler(bot, update, args=None):
     uid = util.uid_from_update(update)
     from components.basic import main_menu_buttons
-    main_menu_markup = ReplyKeyboardMarkup(main_menu_buttons(uid in const.MODERATORS))
+    main_menu_markup = ReplyKeyboardMarkup(main_menu_buttons(uid in settings.MODERATORS))
 
     if args:
         query = ' '.join(args) if isinstance(args, list) else args
         try:
             # TODO: add multiple
-            username = re.match(const.REGEX_BOT_IN_TEXT, query).groups()[0]
+            username = re.match(settings.REGEX_BOT_IN_TEXT, query).groups()[0]
             try:
                 # TODO: get exact database matches for input without `@`
                 item = Bot.by_username(username)
@@ -68,7 +70,7 @@ def add_favorite(bot, update, item: Bot, callback_alert=None):
     uid = util.uid_from_update(update)
     mid = util.mid_from_update(update)
     from components.basic import main_menu_buttons
-    main_menu_markup = ReplyKeyboardMarkup(main_menu_buttons(uid in const.MODERATORS))
+    main_menu_markup = ReplyKeyboardMarkup(main_menu_buttons(uid in settings.MODERATORS))
 
     fav, created = Favorite.add(user=user, item=item)
     if created:
@@ -148,7 +150,6 @@ def _favorites_categories_md(favorites, layout=None):
         bots = [f.bot for f in favorites]
         total = len(bots) - 1
         for n, bot in enumerate(bots):
-            print(n)
             if n < total:
                 list_icon = '├'
             else:
@@ -229,7 +230,7 @@ def add_custom(bot, update, username):
     user = User.from_update(update)
     mid = util.mid_from_update(update)
     from components.basic import main_menu_buttons
-    main_menu_markup = ReplyKeyboardMarkup(main_menu_buttons(uid in const.MODERATORS))
+    main_menu_markup = ReplyKeyboardMarkup(main_menu_buttons(uid in settings.MODERATORS))
 
     try:
         fav = Favorite.get(custom_bot=username)
@@ -248,3 +249,5 @@ def add_custom(bot, update, username):
         util.wait(bot, update)
         send_favorites_list(bot, update, to_edit=mid)
     return ConversationHandler.END
+
+

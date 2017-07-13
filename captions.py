@@ -34,8 +34,10 @@ FAVORITES = "💖 My Favorites"
 ADD_FAVORITE = "➕ Add"
 REMOVE_FAVORITE = "➖ Remove"
 ADD_TO_FAVORITES = "Add to 💖 Favorites"
+PIN = "📍 Pin"
 
 
 def random_done_delete():
-    CHOICES = ["I'm done", "Okay", "Clear", "I got what I wanted", "Check"]
+    CHOICES = ["I'm done", "Okay, done with this", "Okay, clear this mess", "I got what I wanted",
+               "Don't need this anymore", "Keep this group spam-free"]
     return '🗑 {}'.format(random.choice(CHOICES))

@@ -5,6 +5,7 @@ from typing import List
 from peewee import *
 
 import helpers
+import settings
 import util
 from model.basemodel import BaseModel
 from model.category import Category
@@ -30,6 +31,10 @@ class Bot(BaseModel):
     submitted_by = ForeignKeyField(User, null=True, related_name='submitted_by')
     approved_by = ForeignKeyField(User, null=True, related_name='approved_by')
 
+    @staticmethod
+    def select_approved():
+        return Bot.select().where(Bot.approved == True)
+
     @property
     def serialize(self):
         return {
@@ -49,10 +54,9 @@ class Bot(BaseModel):
 
     @property
     def is_new(self):
-        import const
         today = datetime.date.today()
-        delta = datetime.timedelta(days=const.BOT_CONSIDERED_NEW)
-        result = today - self.date_added < delta
+        delta = datetime.timedelta(days=settings.BOT_CONSIDERED_NEW)
+        result = today - self.date_added <= delta
         return result
 
     def __str__(self):
@@ -93,6 +97,14 @@ class Bot(BaseModel):
             raise Bot.DoesNotExist()
 
     @staticmethod
+    def explorable_bots():
+        results = Bot.select().where(
+            ~(Bot.description.is_null()),
+            Bot.approved == True
+        )
+        return list(results)
+
+    @staticmethod
     def many_by_usernames(names: List):
         results = Bot.select().where(fn.lower(Bot.username) << [n.lower() for n in names])
         if len(results) > 0:
@@ -106,17 +118,16 @@ class Bot(BaseModel):
 
     @staticmethod
     def get_new_bots():
-        import const
         return Bot.select().where(
             (Bot.approved == True) & (
                 Bot.date_added.between(
-                    datetime.date.today() - datetime.timedelta(days=const.BOT_CONSIDERED_NEW),
+                    datetime.date.today() - datetime.timedelta(days=settings.BOT_CONSIDERED_NEW),
                     datetime.date.today()
                 )
             ))
 
     @staticmethod
-    def get_new_bots_str():
+    def get_new_bots_markdown():
         return '\n'.join(['     {}'.format(str(b)) for b in Bot.get_new_bots()])
 
     @property

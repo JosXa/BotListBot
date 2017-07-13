@@ -4,15 +4,13 @@ import logging
 import re
 
 from peewee import fn
-from telegram import InlineKeyboardButton
-from telegram import InlineKeyboardMarkup
 from telegram import ParseMode
 from telegram.ext import ConversationHandler
 
 import const
 import mdformat
+import settings
 import util
-from dialog import messages
 from model import User, Bot, Suggestion, Country, Message
 from util import track_groups
 
@@ -40,8 +38,8 @@ def notify_bot_spam(bot, update, args=None):
 
     # `#spam` is already checked by handler
     try:
-        username = re.match(const.REGEX_BOT_IN_TEXT, text).groups()[0]
-        if username == '@' + const.SELF_BOT_NAME:
+        username = re.match(settings.REGEX_BOT_IN_TEXT, text).groups()[0]
+        if username == '@' + settings.SELF_BOT_NAME:
             log.info("Ignoring {}".format(text))
             return
     except AttributeError:
@@ -89,8 +87,8 @@ def notify_bot_offline(bot, update, args=None):
 
     # `#offline` is already checked by handler
     try:
-        username = re.match(const.REGEX_BOT_IN_TEXT, text).groups()[0]
-        if username == '@' + const.SELF_BOT_NAME:
+        username = re.match(settings.REGEX_BOT_IN_TEXT, text).groups()[0]
+        if username == '@' + settings.SELF_BOT_NAME:
             log.info("Ignoring {}".format(text))
             return
     except AttributeError:
@@ -145,8 +143,8 @@ def new_bot_submission(bot, update, chat_data, args=None):
 
     # `#new` is already checked by handler
     try:
-        username = re.match(const.REGEX_BOT_IN_TEXT, text).groups()[0]
-        if username == '@' + const.SELF_BOT_NAME:
+        username = re.match(settings.REGEX_BOT_IN_TEXT, text).groups()[0]
+        if username == '@' + settings.SELF_BOT_NAME:
             log.info("Ignoring {}".format(text))
             return
     except AttributeError:
@@ -182,7 +180,7 @@ def new_bot_submission(bot, update, chat_data, args=None):
 
     new_bot.date_added = datetime.date.today()
 
-    description_reg = re.match(const.REGEX_BOT_IN_TEXT + ' -\s?(.*)', text)
+    description_reg = re.match(settings.REGEX_BOT_IN_TEXT + ' -\s?(.*)', text)
     description_notify = ''
     if description_reg:
         description = description_reg.group(2)
@@ -190,8 +188,8 @@ def new_bot_submission(bot, update, chat_data, args=None):
         description_notify = ' Your description was included.'
 
     new_bot.save()
-    if util.is_private_message(update) and util.uid_from_update(update) in const.MODERATORS:
-        from bot import send_bot_details
+    if util.is_private_message(update) and util.uid_from_update(update) in settings.MODERATORS:
+        from components.explore import send_bot_details
         send_bot_details(bot, update, chat_data, new_bot)
     else:
         msg = update.message.reply_text(
@@ -201,17 +199,3 @@ def new_bot_submission(bot, update, chat_data, args=None):
     return ConversationHandler.END
 
 
-def _submission_accepted_markup(accepted_bot, count=0):
-    count_caption = '' if count == 0 else mdformat.number_as_emoji(count)
-    button = InlineKeyboardButton('{} {}'.format(
-        messages.rand_thank_you_slang(),
-        count_caption
-    ), callback_data=util.callback_for_action(
-        const.CallbackActions.COUNT_THANK_YOU,
-        {'id': accepted_bot.id, 'count': count + 1}
-    ))
-    return InlineKeyboardMarkup([[button]])
-
-
-def count_thank_you(bot, update, accepted_bot, count):
-    update.effective_message.edit_reply_markup(reply_markup=_submission_accepted_markup(accepted_bot, count))

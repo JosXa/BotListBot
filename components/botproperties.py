@@ -6,6 +6,7 @@ import captions
 import const
 import helpers
 import mdformat
+import settings
 import util
 from components import admin
 from const import BotStates, CallbackActions
@@ -75,7 +76,7 @@ def set_text_property(bot, update, chat_data, property_name, to_edit=None):
 
     if to_edit:
         text = (
-        util.escape_markdown(getattr(to_edit, property_name)) + "\n\n" if getattr(to_edit, property_name) else '')
+            util.escape_markdown(getattr(to_edit, property_name)) + "\n\n" if getattr(to_edit, property_name) else '')
         text += mdformat.action_hint(
             messages.SET_BOTPROPERTY.format(
                 property_name,
@@ -100,8 +101,8 @@ def set_text_property(bot, update, chat_data, property_name, to_edit=None):
             return admin.edit_bot(bot, update, chat_data, to_edit)
 
         # Validation
-        if property_name == 'description' and len(text) > 200:
-            return too_long(200)
+        if property_name == 'description' and len(text) > 300:
+            return too_long(300)
         if property_name == 'username':
             value = helpers.validate_username(text)
             if value:
@@ -215,7 +216,7 @@ def delete_bot(bot, update, to_edit):
 def change_category(bot, update, to_edit, category):
     uid = update.effective_user.id
     user = User.get(User.chat_id == uid)
-    if uid in const.MODERATORS and not uid == 918962:
+    if uid in settings.MODERATORS and not uid == 918962:
         if check_suggestion_limit(bot, update, user):
             return
         Suggestion.add_or_update(user, 'category', to_edit, category.id)
@@ -229,7 +230,7 @@ def check_suggestion_limit(bot, update, user):
     if Suggestion.over_limit(user):
         util.send_message_failure(bot, cid,
                                   "You have reached the limit of {} suggestions. Please wait for "
-                                  "the Moderators to approve of some of them.".format(const.SUGGESTION_LIMIT))
+                                  "the Moderators to approve of some of them.".format(settings.SUGGESTION_LIMIT))
         return True
     return False
 
@@ -238,7 +239,7 @@ def change_suggestion(bot, update, suggestion, page_handover):
     cid = update.effective_chat.id
     mid = update.effective_message.message_id
 
-    text = str(suggestion) + ':\n\n' + suggestion.value
+    text = '{}:\n\n{}'.format(str(suggestion), suggestion.value)
     if suggestion.action == 'description':
         callback_action = CallbackActions.EDIT_BOT_DESCRIPTION
     elif suggestion.action == 'extra':
@@ -265,3 +266,10 @@ def change_suggestion(bot, update, suggestion, page_handover):
 
     reply_markup = InlineKeyboardMarkup(buttons)
     util.send_or_edit_md_message(bot, cid, text, to_edit=mid, disable_web_page_preview=True, reply_markup=reply_markup)
+
+
+def remove_keyword(bot, update, chat_data, context):
+    to_edit = context.get('to_edit')
+    kw = context.get('keyword')
+    kw.delete_instance()
+    return set_keywords(bot, update, chat_data, to_edit)

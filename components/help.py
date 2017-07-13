@@ -1,6 +1,7 @@
 import captions
 import const
 import helpers
+import settings
 import util
 from dialog import messages
 from helpers import reroute_private_chat
@@ -39,7 +40,7 @@ def examples(bot, update, quote=True):
 
 def rules(bot, update, quote=True):
     chat_id = update.effective_chat.id
-    if chat_id == const.BOTLISTCHAT_ID or util.is_private_message(update):
+    if chat_id == settings.BOTLISTCHAT_ID or util.is_private_message(update):
         reroute_private_chat(bot, update, quote, const.DeepLinkingActions.RULES, messages.BOTLISTCHAT_RULES)
     else:
         update.message.reply_text("Sorry, but I don't know the rules in this group 👻\n\n" + messages.PROMOTION_MESSAGE,

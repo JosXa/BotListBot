@@ -32,6 +32,8 @@ def strikethrough(text: str):
     SPEC = '̶'
     return ''.join([x + SPEC if x != ' ' else ' ' for x in text])
 
+if __name__ == '__main__':
+    print(strikethrough('srikethrough'))
 
 def results_list(args, prefix=''):
     # TODO make this method recursive

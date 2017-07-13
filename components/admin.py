@@ -2,7 +2,6 @@
 import datetime
 import logging
 import re
-from pprint import pprint
 from typing import Dict
 
 import emoji
@@ -11,9 +10,9 @@ from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, 
 from telegram.ext import ConversationHandler, Job
 
 import captions
-import const
 import helpers
 import mdformat
+import settings
 import util
 from const import *
 from const import BotStates, CallbackActions
@@ -33,7 +32,7 @@ log = logging.getLogger(__name__)
 def menu(bot, update):
     uid = util.uid_from_update(update)
 
-    buttons = _admin_buttons(send_botlist_button=uid in const.ADMINS)
+    buttons = _admin_buttons(send_botlist_button=uid in settings.ADMINS)
 
     util.send_md_message(bot, uid, "🛃 Administration menu",
                          reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True))
@@ -147,7 +146,7 @@ def _edit_bot_buttons(to_edit: Bot, pending_suggestions: Dict, is_moderator):
         InlineKeyboardButton("Delete",
                              callback_data=util.callback_for_action(CallbackActions.CONFIRM_DELETE_BOT, bid)))
 
-    header = [InlineKeyboardButton(captions.BACK,
+    header = [InlineKeyboardButton(captions.BACK_TO_CATEGORY,
                                    callback_data=util.callback_for_action(CallbackActions.SELECT_BOT_FROM_CATEGORY,
                                                                           {'id': to_edit.category.id})),
               InlineKeyboardButton(captions.REFRESH,
@@ -156,7 +155,7 @@ def _edit_bot_buttons(to_edit: Bot, pending_suggestions: Dict, is_moderator):
               ]
 
     footer = list()
-    if is_moderator:
+    if is_moderator and len(pending_suggestions) > 0:
         footer.append(
             InlineKeyboardButton("🛃 Apply all changes",
                                  callback_data=util.callback_for_action(CallbackActions.APPLY_ALL_CHANGES,
@@ -189,10 +188,10 @@ def edit_bot(bot, update, chat_data, to_edit=None):
     # chat_data['bot_to_edit'] = bot_to_edit
 
     pending_suggestions = Suggestion.pending_for_bot(to_edit, user)
-    reply_markup = InlineKeyboardMarkup(_edit_bot_buttons(to_edit, pending_suggestions, uid in const.MODERATORS))
+    reply_markup = InlineKeyboardMarkup(_edit_bot_buttons(to_edit, pending_suggestions, uid in settings.MODERATORS))
     pending_text = '\n\n{} Some changes are pending approval.'.format(
         captions.SUGGESTION_PENDING_EMOJI) if pending_suggestions else ''
-    util.send_or_edit_md_message(
+    msg = util.send_or_edit_md_message(
         bot, uid,
         "🛃 Edit {}{}".format(to_edit.detail_text, pending_text),
         to_edit=message_id, reply_markup=reply_markup)
@@ -205,15 +204,22 @@ def prepare_transmission(bot, update, chat_data):
     text = mdformat.action_hint(
         "Notify subscribers about this update?")
     reply_markup = InlineKeyboardMarkup([[
-        InlineKeyboardButton("☑ Notifications (delete footer)", callback_data=util.callback_for_action(
+        InlineKeyboardButton("☑ Notifications", callback_data=util.callback_for_action(
             CallbackActions.SEND_BOTLIST, {'silent': False}
         )),
-        InlineKeyboardButton("Silent update", callback_data=util.callback_for_action(
+        InlineKeyboardButton("Silent", callback_data=util.callback_for_action(
             CallbackActions.SEND_BOTLIST, {'silent': True}
-        ))], [
-        InlineKeyboardButton("Re-send all Messages (delete all first)", callback_data=util.callback_for_action(
-            CallbackActions.SEND_BOTLIST, {'silent': True, 're': True}))
-    ]])
+        ))],
+        [
+            InlineKeyboardButton("Re-send all Messages (delete all first)", callback_data=util.callback_for_action(
+                CallbackActions.SEND_BOTLIST, {'silent': True, 're': True}))
+        ]
+    ])
+
+    # # TODO
+    # text = "Temporarily disabled"
+    # reply_markup = None
+
     util.send_md_message(bot, chat_id, text,
                          reply_markup=reply_markup)
 
@@ -222,14 +228,14 @@ def prepare_transmission(bot, update, chat_data):
 def approve_suggestions(bot, update, page=0):
     uid = util.uid_from_update(update)
     suggestions = Suggestion.select_all()
-    if page * const.PAGE_SIZE_SUGGESTIONS_LIST >= len(suggestions):
+    if page * settings.PAGE_SIZE_SUGGESTIONS_LIST >= len(suggestions):
         # old item deleted, list now too small
         page = page - 1 if page > 0 else 0
-    start = page * const.PAGE_SIZE_SUGGESTIONS_LIST
-    end = start + const.PAGE_SIZE_SUGGESTIONS_LIST
+    start = page * settings.PAGE_SIZE_SUGGESTIONS_LIST
+    end = start + settings.PAGE_SIZE_SUGGESTIONS_LIST
 
     has_prev_page = page > 0
-    has_next_page = (page + 1) * const.PAGE_SIZE_SUGGESTIONS_LIST < len(suggestions)
+    has_next_page = (page + 1) * settings.PAGE_SIZE_SUGGESTIONS_LIST < len(suggestions)
 
     suggestions = suggestions[start:end]
 
@@ -295,13 +301,19 @@ def approve_bots(bot, update, page=0, override_list=None):
     else:
         unapproved = Bot.select().where(Bot.approved == False).order_by(Bot.date_added)
 
-    if page * const.PAGE_SIZE_APPROVALS_LIST >= len(unapproved):
+    if page < 0:
+        page = 0
+
+    last_page = int((len(unapproved) - 1) / settings.PAGE_SIZE_BOT_APPROVAL)
+
+    if page * settings.PAGE_SIZE_BOT_APPROVAL >= len(unapproved):
         # old item deleted, list now too small
-        page = page - 1 if page > 0 else 0
-    start = page * const.PAGE_SIZE_APPROVALS_LIST
-    end = start + const.PAGE_SIZE_APPROVALS_LIST
+        page = last_page
+    start = page * settings.PAGE_SIZE_BOT_APPROVAL
+    end = start + settings.PAGE_SIZE_BOT_APPROVAL
+
     has_prev_page = page > 0
-    has_next_page = (page + 1) * const.PAGE_SIZE_APPROVALS_LIST < len(unapproved)
+    has_next_page = (page + 1) * settings.PAGE_SIZE_BOT_APPROVAL < len(unapproved)
     unapproved = unapproved[start:end]
 
     if len(unapproved) == 0:
@@ -310,30 +322,50 @@ def approve_bots(bot, update, page=0, override_list=None):
                                      to_edit=util.mid_from_update(update))
         return
 
-    buttons = []
+    buttons = list()
     for x in unapproved:
-        buttons.append([
-            InlineKeyboardButton(Emoji.WHITE_HEAVY_CHECK_MARK,
-                                 callback_data=util.callback_for_action(CallbackActions.ACCEPT_BOT, {'id': x.id})),
-            InlineKeyboardButton(x.username, url="http://t.me/{}".format(x.username[1:])),
-            InlineKeyboardButton(Emoji.CROSS_MARK,
-                                 callback_data=util.callback_for_action(CallbackActions.REJECT_BOT,
-                                                                        {'id': x.id, 'page': page, 'ntfc': True})),
-            InlineKeyboardButton('🗑',
-                                 callback_data=util.callback_for_action(CallbackActions.REJECT_BOT,
-                                                                        {'id': x.id, 'page': page, 'ntfc': False}))
-        ])
+        first_row = [
+            InlineKeyboardButton(x.username, url="http://t.me/{}".format(x.username[1:]))
+        ]
+        second_row = [
+            InlineKeyboardButton('👍↑', callback_data=util.callback_for_action(
+                CallbackActions.ACCEPT_BOT, {'id': x.id})),
+            InlineKeyboardButton('👎↑', callback_data=util.callback_for_action(
+                CallbackActions.REJECT_BOT, {'id': x.id, 'page': page, 'ntfc': True})),
+            InlineKeyboardButton('🗑' + '↑', callback_data=util.callback_for_action(
+                CallbackActions.REJECT_BOT, {'id': x.id, 'page': page, 'ntfc': False})),
+            InlineKeyboardButton('👥🔀', callback_data=util.callback_for_action(
+                CallbackActions.RECOMMEND_MODERATOR, {'id': x.id, 'page': page}))
+        ]
+        buttons.append(first_row)
+        buttons.append(second_row)
+
     page_arrows = list()
     if has_prev_page:
+        page_arrows.append(InlineKeyboardButton('⏮',
+                                                callback_data=util.callback_for_action(
+                                                    CallbackActions.SWITCH_APPROVALS_PAGE,
+                                                    {'page': -1})))
         page_arrows.append(InlineKeyboardButton(Emoji.LEFTWARDS_BLACK_ARROW,
                                                 callback_data=util.callback_for_action(
                                                     CallbackActions.SWITCH_APPROVALS_PAGE,
                                                     {'page': page - 1})))
+
+    if has_prev_page or has_next_page:
+        page_arrows.append(InlineKeyboardButton('·{}·'.format(page + 1),
+                                                callback_data=util.callback_for_action(
+                                                    CallbackActions.SWITCH_APPROVALS_PAGE,
+                                                    {'page': page})))
+
     if has_next_page:
         page_arrows.append(InlineKeyboardButton(Emoji.BLACK_RIGHTWARDS_ARROW,
                                                 callback_data=util.callback_for_action(
                                                     CallbackActions.SWITCH_APPROVALS_PAGE,
                                                     {'page': page + 1})))
+        page_arrows.append(InlineKeyboardButton('⏭',
+                                                callback_data=util.callback_for_action(
+                                                    CallbackActions.SWITCH_APPROVALS_PAGE,
+                                                    {'page': last_page})))
     buttons.append(page_arrows)
 
     reply_markup = InlineKeyboardMarkup(buttons)
@@ -342,6 +374,44 @@ def approve_bots(bot, update, page=0, override_list=None):
                                      "Please select a bot you want to accept for the BotList"),
                                  reply_markup=reply_markup, to_edit=util.mid_from_update(update))
     return CallbackStates.APPROVING_BOTS
+
+
+def recommend_moderator(bot, update, bot_in_question, page):
+    uid = update.effective_user.id
+    mid = util.mid_from_update(update)
+    moderators = User.select().where((User.chat_id << settings.MODERATORS) & (User.chat_id != uid))
+    buttons = [
+        InlineKeyboardButton(u.first_name, callback_data=util.callback_for_action(
+            CallbackActions.SELECT_MODERATOR,
+            {'bot_id': bot_in_question.id, 'uid': u.id, 'page': page}))
+        for u in moderators
+        ]
+    buttons.insert(0, InlineKeyboardButton(captions.BACK,
+                                           callback_data=util.callback_for_action(CallbackActions.SWITCH_APPROVALS_PAGE,
+                                                                                  {'page': page})))
+    reply_markup = InlineKeyboardMarkup(util.build_menu(buttons, 1))
+    text = mdformat.action_hint(
+        "Select a moderator you think is better suited to evaluate the submission of {}.".format(str(bot_in_question)))
+    util.send_or_edit_md_message(bot, uid, text, to_edit=mid, reply_markup=reply_markup)
+
+
+def share_with_moderator(bot, update, bot_in_question, moderator):
+    user = User.from_update(update)
+    answer_text = mdformat.success(
+        "I will ask {} to have a look at this submission.".format(moderator.plaintext))
+    if update.callback_query:
+        update.callback_query.answer(text=answer_text)
+
+    buttons = [[
+        InlineKeyboardButton('Yea, let me take this one!',
+                             callback_data=util.callback_for_action(CallbackActions.APPROVE_REJECT_BOTS,
+                                                                    {'id': bot_in_question.id}))
+    ]]
+    reply_markup = InlineKeyboardMarkup(buttons)
+    text = "{} thinks that you have the means to inspect this bot submission:\n▶️ {}".format(
+        user.markdown_short, bot_in_question
+    )
+    util.send_md_message(bot, moderator.chat_id, text, reply_markup=reply_markup, disable_web_page_preview=True)
 
 
 @restricted
@@ -382,7 +452,7 @@ def accept_bot_submission(bot, update, of_bot: Bot, category):
         util.send_or_edit_md_message(bot, uid, "{} has been accepted to the Botlist. "
                                                "The group will receive a notification in {} minutes, giving you "
                                                "enough time to edit the details.".format(of_bot,
-                                                                                         const.BOT_ACCEPTED_IDLE_TIME),
+                                                                                         settings.BOT_ACCEPTED_IDLE_TIME),
                                      to_edit=message_id, reply_markup=reply_markup)
 
         log_msg = "{} accepted by {}.".format(of_bot.username, uid)
@@ -436,7 +506,7 @@ def reject_bot_submission(bot, update, to_reject=None, verbose=True, notify_subm
         text = update.message.reply_to_message.text
 
         try:
-            username = re.match(const.REGEX_BOT_IN_TEXT, text).groups()[0]
+            username = re.match(settings.REGEX_BOT_IN_TEXT, text).groups()[0]
         except AttributeError:
             log.info("No username in the message that was replied to.")
             # no bot username, ignore update
@@ -454,17 +524,32 @@ def reject_bot_submission(bot, update, to_reject=None, verbose=True, notify_subm
             return
 
     log_msg = "{} rejected by {}.".format(to_reject.username, user)
+    notification_successful = None
     if notify_submittant:
         try:
             bot.sendMessage(to_reject.submitted_by.chat_id,
                             util.failure(messages.REJECTION_PRIVATE_MESSAGE.format(to_reject.username)))
             log_msg += "\nUser {} was notified.".format(str(to_reject.submitted_by))
+            notification_successful = True
         except TelegramError:
             log_msg += "\nUser {} could NOT be contacted/notified in private.".format(str(to_reject.submitted_by))
+            notification_successful = False
     to_reject.delete_instance()
     log.info(log_msg)
+
+    text = util.success("{} rejected.".format(to_reject.username))
+    if notification_successful is True:
+        text += " User {} was notified.".format(to_reject.submitted_by.plaintext)
+    elif notification_successful is False:
+        text += ' ' + mdformat.failure("Could not contact {}.".format(to_reject.submitted_by.plaintext))
+    else:
+        text += " No notification sent."
+
     if verbose:
-        bot.sendMessage(uid, util.success("{} rejected.".format(to_reject.username)))
+        bot.sendMessage(uid, text)
+
+    if update.callback_query:
+        update.callback_query.answer(text=text)
 
 
 @restricted
@@ -524,13 +609,25 @@ def last_update_job(bot, job: Job):
     last_update = helpers.get_channel().last_update
     if last_update:
         today = datetime.date.today()
-        delta = datetime.timedelta(days=const.BOT_CONSIDERED_NEW - 1)
+        delta = datetime.timedelta(days=settings.BOT_CONSIDERED_NEW - 1)
         difference = today - last_update
 
         if difference > delta:
-            for a in const.MODERATORS:
+            for a in settings.MODERATORS:
                 try:
                     bot.sendMessage(a, "Last @BotList update was {} days ago. UPDATE NOW YOU CARNT! /admin".format(
                         difference.days))
                 except TelegramError:
                     pass
+
+
+@restricted
+def apply_all_changes(bot, update, chat_data, to_edit):
+    user = User.from_update(update)
+
+    user_suggestions = Suggestion.select_all_of_user(user)
+    for suggestion in user_suggestions:
+        suggestion.apply()
+
+    refreshed_bot = Bot.get(id=to_edit.id)
+    edit_bot(bot, update, chat_data, refreshed_bot)
