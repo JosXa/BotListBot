@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="VcsDirectoryMappings">
+    <mapping directory="$USER_HOME$/git/Markov-Comic-Generator" vcs="Git" />
+    <mapping directory="$USER_HOME$/git/python-telegram-bot" vcs="Git" />
+    <mapping directory="$USER_HOME$/git/rules-bot" vcs="Git" />
+    <mapping directory="$USER_HOME$/git/rules-bot-fork" vcs="Git" />
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../electro-events-bot" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../electro-events-bot" vcs="Git" />

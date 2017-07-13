@@ -13,6 +13,7 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+.idea/
 .Python
 env/
 build/

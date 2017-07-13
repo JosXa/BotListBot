@@ -2,13 +2,21 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$USER_HOME$/git/Markov-Comic-Generator/.idea/Markov-Comic-Generator.iml" filepath="$USER_HOME$/git/Markov-Comic-Generator/.idea/Markov-Comic-Generator.iml" />
       <module fileurl="file://$PROJECT_DIR$/../better-markdown/.idea/better-markdown.iml" filepath="$PROJECT_DIR$/../better-markdown/.idea/better-markdown.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/botlist.iml" filepath="$PROJECT_DIR$/.idea/botlist.iml" />
       <module fileurl="file://$PROJECT_DIR$/../dmz-bot/.idea/dmz-bot.iml" filepath="$PROJECT_DIR$/../dmz-bot/.idea/dmz-bot.iml" />
       <module fileurl="file://$PROJECT_DIR$/../electro-events-bot/.idea/eventBot.iml" filepath="$PROJECT_DIR$/../electro-events-bot/.idea/eventBot.iml" />
       <module fileurl="file://$PROJECT_DIR$/../jeff-dean-bot/.idea/jeffDeanBot.iml" filepath="$PROJECT_DIR$/../jeff-dean-bot/.idea/jeffDeanBot.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../ptbflow/.idea/ptbflow.iml" filepath="$PROJECT_DIR$/../ptbflow/.idea/ptbflow.iml" />
+      <module fileurl="file://$USER_HOME$/git/python-telegram-bot/.idea/python-telegram-bot.iml" filepath="$USER_HOME$/git/python-telegram-bot/.idea/python-telegram-bot.iml" />
       <module fileurl="file://$PROJECT_DIR$/../python-telegram-bot/.idea/python-telegram-bot.iml" filepath="$PROJECT_DIR$/../python-telegram-bot/.idea/python-telegram-bot.iml" />
+      <module fileurl="file://$USER_HOME$/git/rules-bot/.idea/rules-bot.iml" filepath="$USER_HOME$/git/rules-bot/.idea/rules-bot.iml" />
+      <module fileurl="file://$USER_HOME$/git/rules-bot-fork/.idea/rules-bot-fork.iml" filepath="$USER_HOME$/git/rules-bot-fork/.idea/rules-bot-fork.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../stickerbattles-dev/.idea/stickerbattles.iml" filepath="$PROJECT_DIR$/../stickerbattles-dev/.idea/stickerbattles.iml" />
       <module fileurl="file://$PROJECT_DIR$/../symbose/.idea/symbose.iml" filepath="$PROJECT_DIR$/../symbose/.idea/symbose.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../ebookconverter/.idea/telegram-bot1.0.iml" filepath="$PROJECT_DIR$/../ebookconverter/.idea/telegram-bot1.0.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../generator-python-telegram-bot/generators/app/templates/.idea/templates.iml" filepath="$PROJECT_DIR$/../generator-python-telegram-bot/generators/app/templates/.idea/templates.iml" />
     </modules>
   </component>
 </project>
