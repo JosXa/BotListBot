@@ -1,4 +1,6 @@
 import os
+if os.environ.get("DEV"):
+    print('Debug/Development mode')
 
 ### BOT CONFIGURATION ###
 MODERATORS = [62056065, 918962, 7679610, 278941742, 127782573, 43740047, 353341197]

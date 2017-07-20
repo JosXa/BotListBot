@@ -23,4 +23,7 @@
     <orderEntry type="module" module-name="telegram-bot1.0" />
     <orderEntry type="module" module-name="stickerbattles" />
   </component>
+  <component name="TestRunnerService">
+    <option name="PROJECT_TEST_RUNNER" value="Unittests" />
+  </component>
 </module>

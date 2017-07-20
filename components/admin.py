@@ -574,10 +574,11 @@ def ban_handler(bot, update, args, ban_state: bool):
 @restricted
 def ban_user(bot, update, user: User, ban_state: bool):
     if user.banned and ban_state is True:
-        update.message.reply_text(mdformat.none_action("User {} is already banned.".format(user)))
+        update.message.reply_text(mdformat.none_action("User {} is already banned.".format(user)),
+                                  parse_mode='markdown')
         return
     if not user.banned and ban_state is False:
-        update.message.reply_text(mdformat.none_action("User {} is not banned.".format(user)))
+        update.message.reply_text(mdformat.none_action("User {} is not banned.".format(user)), parse_mode='markdown')
         return
     user.banned = ban_state
     if ban_state is True:
@@ -587,9 +588,10 @@ def ban_user(bot, update, user: User, ban_state: bool):
         )
         for b in users_bots:
             b.delete_instance()
-        update.message.reply_text(mdformat.success("User {} banned and all bot submissions removed.".format(user)))
+        update.message.reply_text(mdformat.success("User {} banned and all bot submissions removed.".format(user)),
+                                  parse_mode='markdown')
     else:
-        update.message.reply_text(mdformat.success("User {} unbanned.".format(user)))
+        update.message.reply_text(mdformat.success("User {} unbanned.".format(user)), parse_mode='markdown')
     user.save()
 
 

@@ -5,10 +5,6 @@ import logging
 import re
 from time import sleep
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.error import BadRequest, TelegramError
-from telegram.ext.dispatcher import run_async
-
 import helpers
 import mdformat
 import settings
@@ -19,6 +15,9 @@ from model import Bot, Country
 from model import Category
 from model import Channel
 from model import Notifications
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.error import BadRequest, TelegramError
+from telegram.ext.dispatcher import run_async
 from util import restricted
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
@@ -72,6 +71,20 @@ class BotList:
     def _save_channel(self):
         self.channel.save()
 
+    @property
+    def portal_markup(self):
+        buttons = [
+            InlineKeyboardButton("🔺 1️⃣ Categories 📚 🔺",
+                                 url='https://t.me/botlist/{}'.format(self.channel.category_list_mid)),
+            InlineKeyboardButton("▫️ 2️⃣ BotList Bot 🤖 ▫️",
+                                 url='https://t.me/botlistbot?start'),
+            InlineKeyboardButton("▫️ 3️⃣ BotList Chat 👥💬 ▫️",
+                                 url='https://t.me/botlistchat'),
+            # InlineKeyboardButton("Add to Group 🤖",
+            #                      url='https://t.me/botlistbot?startgroup=start'),
+        ]
+        return InlineKeyboardMarkup(util.build_menu(buttons, 1))
+
     @staticmethod
     def _read_file(filename):
         with codecs.open(filename, 'r', 'utf-8') as f:
@@ -88,6 +101,7 @@ class BotList:
                                                     timeout=120, disable_web_page_preview=True,
                                                     disable_notification=True, reply_markup=reply_markup)
         except BadRequest as e:
+            print(e)
             if 'chat not found' in e.message.lower():
                 self.notify_admin_err(
                     "I can't reach BotList Bot with chat-id `{}` (CHAT NOT FOUND error). "
@@ -114,13 +128,12 @@ class BotList:
         self.notify_admin("Sending spanish channel intro text...")
         msg_es = self.send_or_edit(intro_es, self.channel.intro_es_mid)
 
-        self.sent['intro_en'] = "English intro sent"
-        self.sent['intro_en'] = "Spanish intro sent"
-
         if msg_en:
+            self.sent['intro_en'] = "English intro sent"
             self.channel.intro_en_mid = msg_en.message_id
         if msg_es:
             self.channel.intro_es_mid = msg_es.message_id
+            self.sent['intro_es'] = "Spanish intro sent"
         self._save_channel()
 
     def update_new_bots_list(self):
@@ -137,6 +150,8 @@ class BotList:
         self._save_channel()
 
     def update_category_list(self):
+        self.notify_admin('Sending category list...')
+
         # generate category links to previous messages
         all_categories = '\n'.join(["[{}](https://t.me/{}/{})".format(
             str(c),
@@ -157,9 +172,9 @@ class BotList:
 
         msg = self.send_or_edit(text, self.channel.category_list_mid)
 
-        self.sent['category_list'] = "Category Links sent"
         if msg:
             self.channel.category_list_mid = msg.message_id
+            self.sent['category_list'] = "Category Links sent"
         self._save_channel()
 
     def update_categories(self, categories):
@@ -183,17 +198,18 @@ class BotList:
             msg = self.send_or_edit(text, cat.current_message_id, reply_markup)
             if msg:
                 cat.current_message_id = msg.message_id
+                self.sent['category'].append("Updated {}".format(cat))
             cat.save()
-            self.sent['category'].append("Updated {}".format(cat))
         self._save_channel()
 
     def resend_footer(self):
         num_bots = Bot.select_approved().count()
+        self.notify_admin('Sending footer...')
 
         # add footer as notification
         footer = '\n```'
         footer += '\n' + mdformat.centered(
-            "• @botlist •\n{}\n{} bots".format(
+            "• @BotList •\n{}\n{} bots".format(
                 datetime.date.today().strftime("%d-%m-%Y"),
                 num_bots
             ))
@@ -202,7 +218,8 @@ class BotList:
         if self.resend or not self.silent:
             try:
                 self._delete_message(self.channel.footer_mid)
-            except BadRequest:
+            except BadRequest as e:
+                print(e)
                 pass
             footer_to_edit = None
         else:
@@ -211,10 +228,11 @@ class BotList:
         footer_msg = util.send_or_edit_md_message(self.bot, self.channel.chat_id, footer,
                                                   to_edit=footer_to_edit,
                                                   timeout=120,
-                                                  disable_notifications=self.silent)
+                                                  disable_notifications=self.silent,
+                                                  reply_markup=self.portal_markup)
         if footer_msg:
             self.channel.footer_mid = footer_msg.message_id
-        self.sent['footer'] = "Footer sent"
+            self.sent['footer'] = "Footer sent"
         self._save_channel()
 
     def finish(self):

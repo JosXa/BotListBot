@@ -1,6 +1,6 @@
 inflect
 python-dateutil==2.5.3
-python-telegram-bot==5.3.0
+python-telegram-bot==6.1.0
 requests
 unittest2==1.1.0
 emoji==0.3.9

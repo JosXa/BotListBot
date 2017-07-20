@@ -4,16 +4,15 @@ import captions
 import mdformat
 
 PROMOTION_MESSAGE = "*ᴊᴏɪɴ ᴛʜᴇ* @BotList 💙\n*sʜᴀʀᴇ* ʏᴏᴜʀ ʙᴏᴛs ɪɴ @BotListChat"
-HELP_MESSAGE_ENGLISH = """*ɢʀᴇᴇᴛɪɴɢs ʜᴜᴍᴀɴᴏɪᴅs* 🤖
+HELP_MESSAGE_ENGLISH = """I'm the bot in charge of maintaining the @BotList channel, the *most reliable and unbiased bot catalog* out there. I was built to simplify navigation and to automate the process of submitting, reviewing and publishing bots by the @BotListChat community.
 
-I'm the bot in charge of maintaining the @BotList channel, the *most reliable and unbiased bot catalog* out there. I was built to simplify navigation and to automate the process of submitting, reviewing and publishing bots by the @BotListChat community.
+▶️ *First steps:*
+1️⃣ Start off by using the /category command and use the available buttons from there on.
+2️⃣ Send individual @BotList categories to your friends via inline search (i.e. type `@botlistbot music` in any chat).
+3️⃣ Add me to your groups and /subscribe to BotList updates.
+4️⃣ Join the @BotListChat community and /contribute to the BotList: `#new @newbot🔎 - description`
 
-*First steps:*
-▫️ Start off by using the /category command and use the available buttons from there on.
-▫️ Send individual @BotList categories to your friends via inline search (i.e. type `@botlistbot music` in any chat).
-▫️ Add me to your groups and /subscribe to BotList updates.
-▫️ Join the @BotListChat community and /contribute to the BotList: `#new @newbot🔎 - description`
-
+You can send or forward any bot `@username` to me, and I will tell you if it exists in the @BotList.
 
 ᴏɴᴇ sᴛᴇᴘ ᴄʟᴏsᴇʀ ᴛᴏ ᴡᴏʀʟᴅ ᴅᴏᴍɪɴᴀᴛɪᴏɴ 🤖"""
 # HELP_MESSAGE_SPANISH = """*ɢʀᴇᴇᴛɪɴɢs ʜᴜᴍᴀɴᴏɪᴅs* 🤖

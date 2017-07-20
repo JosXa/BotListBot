@@ -2,8 +2,10 @@ import os
 import sys
 import time
 
+import appglobals
 from telegram import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardButton, \
     InlineKeyboardMarkup
+from telegram import Message
 from telegram.ext import CommandHandler
 from telegram.ext import ConversationHandler
 from telegram.ext import Filters
@@ -57,6 +59,7 @@ def start(bot, update, chat_data, args):
         search_query(bot, update, query)
 
     else:
+        bot.sendSticker(chat_id, open(os.path.join(appglobals.ROOT_DIR, 'assets', 'sticker', 'greetings-humanoids.webp'), 'rb'))
         help.help(bot, update)
         util.wait(bot, update)
         if util.is_private_message(update):
@@ -185,5 +188,5 @@ def all_handler(bot, update, chat_data):
     if update.message and update.message.new_chat_members:
         if int(settings.SELF_BOT_ID) in [x.id for x in update.message.new_chat_members]:
             # bot was added to a group
-            basic.start(bot, update, chat_data)
+            start(bot, update, chat_data)
     return ConversationHandler.END

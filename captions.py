@@ -22,7 +22,7 @@ DONE = "🔚 Done"
 SHARE = "Share"
 
 # main menu
-CATEGORIES = "📚 Explore ᴄᴀᴛᴇɢᴏʀɪᴇs"
+CATEGORIES = "📚 Explore Categories"
 NEW_BOTS = "🆕 New Bots"
 SEARCH = "🔎 Search"
 CONTRIBUTING = "📤 Contributing"

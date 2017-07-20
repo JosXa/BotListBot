@@ -4,14 +4,13 @@ import logging
 import re
 
 from peewee import fn
-from telegram import ParseMode
-from telegram.ext import ConversationHandler
 
-import const
 import mdformat
 import settings
 import util
 from model import User, Bot, Suggestion, Country, Message
+from telegram import ParseMode
+from telegram.ext import ConversationHandler
 from util import track_groups
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
@@ -101,21 +100,30 @@ def notify_bot_offline(bot, update, args=None):
             pass
         return
 
+    def already_reported():
+        update.message.reply_text(mdformat.none_action("Someone already reported this, thanks anyway 😊"),
+                                  reply_to_message_id=reply_to)
+
     try:
         offline_bot = Bot.get(fn.lower(Bot.username) ** username.lower(), Bot.approved == True)
-        try:
-            Suggestion.get(action="offline", subject=offline_bot)
-        except Suggestion.DoesNotExist:
-            suggestion = Suggestion(user=user, action="offline", date=datetime.date.today(), subject=offline_bot)
-            suggestion.save()
-
+        if offline_bot.offline:
+            return already_reported()
         if offline_bot.official:
             update.message.reply_text(mdformat.none_action("Official bots usually don't go offline for a long time. "
                                                            "Just wait a couple hours and it will be back up ;)"),
                                       reply_to_message_id=reply_to)
-        else:
-            update.message.reply_text(util.success("Thank you! We will review your suggestion and set the bot offline.",
-                                                   ), reply_to_message_id=reply_to)
+            return
+
+        try:
+            Suggestion.get(action="offline", subject=offline_bot, executed=False)
+            return already_reported()
+        except Suggestion.DoesNotExist:
+            suggestion = Suggestion(user=user, action="offline", value=True, date=datetime.date.today(),
+                                    subject=offline_bot)
+            suggestion.save()
+
+        update.message.reply_text(util.success("Thank you! We will review your suggestion and set the bot offline."),
+                                  reply_to_message_id=reply_to)
     except Bot.DoesNotExist:
         update.message.reply_text(
             util.action_hint("The bot you sent me is not in the @BotList."), reply_to_message_id=reply_to)
@@ -197,5 +205,3 @@ def new_bot_submission(bot, update, chat_data, args=None):
             parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
         Message.get_or_create(msg, 'new', new_bot)
     return ConversationHandler.END
-
-

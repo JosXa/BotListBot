@@ -132,6 +132,8 @@ class Suggestion(BaseModel):
             self.delete_instance()
             return False
 
+        print(self.subject.offline)
+
         if self.action == 'category':
             from model import Category
             try:
@@ -169,6 +171,9 @@ class Suggestion(BaseModel):
             self.subject.spam = bool(self.value)
 
         self.subject.save()
+
+        print(self.subject.offline)
+
         self.executed = True
         self.save()
         return True
@@ -203,14 +208,14 @@ class Suggestion(BaseModel):
         elif self.action == 'extra':
             text += "change extra text {}".format(uname)
         elif self.action == 'country':
-            text = "change country {} ➜ ".format(uname)
+            text += "change country {} ➜ ".format(uname)
             if self._value == 'None' or self._value is None:
                 text += "None"
             else:
                 from model import Country
                 try:
                     con = Country.get(id=self._value)
-                    text += "change country {} ➜ {}".format(uname, str(con))
+                    text += str(con)
                 except Country.DoesNotExist:
                     raise AttributeError("Country to change to does not exist.")
         elif self.action == 'inlinequeries':

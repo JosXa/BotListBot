@@ -38,7 +38,7 @@ def track_groups(func):
                 Group.from_telegram_object(update.effective_chat)
         except (NameError, AttributeError):
             try:
-                if update.message.new_chat_member.id == settings.SELF_BOT_ID:
+                if update.message.new_chat_members[0].id == settings.SELF_BOT_ID:
                     Group.from_telegram_object(update.callback_query.message.chat)
             except (NameError, AttributeError):
                 logging.error("No chat_id available in update for track_groups.")
@@ -173,7 +173,7 @@ def is_group_message(update):
         return update.effective_message.chat.type in ['group', 'supergroup']
     except (NameError, AttributeError):
         try:
-            return update.message.new_chat_member.id == settings.SELF_BOT_ID
+            return update.message.new_chat_members[0].id == settings.SELF_BOT_ID
         except (NameError, AttributeError):
             return False
 
