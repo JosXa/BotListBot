@@ -1,12 +1,13 @@
 import os
 
+from decouple import config
 from playhouse.migrate import SqliteMigrator, IntegerField, migrate
 from playhouse.sqlite_ext import SqliteExtDatabase
 
 from model.revision import Revision
 
-DB_NAME = os.path.expanduser("~/database-botlist.db")
-db = SqliteExtDatabase(DB_NAME)
+db_path = config('DATABASE_URI', default=os.path.expanduser('~/botlistbot.sqlite3'))
+db = SqliteExtDatabase(db_path)
 
 migrator = SqliteMigrator(db)
 
@@ -18,4 +19,4 @@ with db.transaction():
     )
 
 Revision.create_table(fail_silently=True)
-Revision.insert({'nr': 100}).execute()
+Revision.insert({'nr': 101}).execute()

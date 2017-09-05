@@ -1,21 +1,18 @@
 import datetime
+
 from flask import Flask, request, jsonify
-from flask import abort
 from flask.ext.admin import Admin
 from flask.ext.admin.contrib.peewee import ModelView
-from peewee import SelectQuery
+from flask_autodoc import Autodoc
+from gevent.wsgi import WSGIServer
 
 from model import Bot
 from model import Category
-from flask_autodoc import Autodoc
-
 from model import Channel
 from model import Favorite
 from model import Group
 from model import Suggestion
-from model import User
 from model.apiaccess import APIAccess
-from gevent.wsgi import WSGIServer
 
 app = Flask(__name__)
 auto = Autodoc(app)
@@ -173,6 +170,12 @@ def bots_endpoint(page=1):
                 res = _error('No bots found.')
                 res.status_code = 500
             return res
+
+
+@app.route('/offline', methods=['POST'])
+@auto.doc()
+def set_offline():
+    pass
 
 
 @app.route('/categories', methods=['GET'])
