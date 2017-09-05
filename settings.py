@@ -1,4 +1,7 @@
 import os
+
+from decouple import config
+
 if os.environ.get("DEV"):
     print('Debug/Development mode')
     DEV = True
@@ -6,6 +9,7 @@ else:
     DEV = False
 
 ### BOT CONFIGURATION ###
+LOG_DIR = config('LOG_DIR', default=os.path.dirname(os.path.abspath(__file__)))
 MODERATORS = [62056065, 918962, 7679610, 278941742, 127782573, 43740047, 353341197, 317434635]
 ADMINS = [62056065, 918962]
 BOT_CONSIDERED_NEW = 1  # Revision difference

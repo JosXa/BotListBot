@@ -35,7 +35,7 @@ app.config['APPLICATION_ROOT'] = '/botlist/api/v1'
 # 2601-2620
 
 def start_server():
-    http_server = WSGIServer(('', 8080), app)
+    http_server = WSGIServer(('', 7070), app)
     return http_server.serve_forever()
 
 

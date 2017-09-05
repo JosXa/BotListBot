@@ -4,10 +4,12 @@ import os
 import sys
 
 from decouple import config
+from gevent.threading import Thread
 from telegram.ext import Updater
 
 import routing
 import settings
+from api import botlistapi
 from components import _playground
 from components import admin
 from components import basic
@@ -28,13 +30,13 @@ def setup_logger():
     logger.addHandler(handler)
 
     # create error file handler and set level to error
-    handler = logging.FileHandler(os.path.abspath("error.log"), "w", encoding=None, delay="true")
+    handler = logging.FileHandler(os.path.join(settings.LOG_DIR, "error.log"), "w", encoding= None, delay= "true")
     handler.setLevel(logging.ERROR)
     handler.setFormatter(file_formatter)
     logger.addHandler(handler)
 
     # create debug file handler and set level to debug
-    handler = logging.FileHandler(os.path.abspath("debug.log"), "w", encoding=None, delay="true")
+    handler = logging.FileHandler(os.path.join(settings.LOG_DIR, "debug.log"), "w", encoding=None, delay="true")
     handler.setLevel(logging.DEBUG)
     handler.setFormatter(file_formatter)
     logger.addHandler(handler)
@@ -45,8 +47,8 @@ def main():
     log = logging.getLogger(__name__)
 
     # #TODO Start BotList API
-    # thread = Thread(target=botlistapi.start_server)
-    # thread.start()
+    thread = Thread(target=botlistapi.start_server)
+    thread.start()
 
     bot_token = str(sys.argv[1])
 
