@@ -3,7 +3,6 @@ import logging
 import os
 import sys
 
-from decouple import config
 from gevent.threading import Thread
 from telegram.ext import Updater
 
@@ -14,6 +13,7 @@ from components import _playground
 from components import admin
 from components import basic
 from lib.markdownformatter import MarkdownFormatter
+
 
 ### TODO ###
 #
@@ -38,7 +38,7 @@ def setup_logger():
     logger.addHandler(handler)
 
     # create error file handler and set level to error
-    handler = logging.FileHandler(os.path.join(settings.LOG_DIR, "error.log"), "w", encoding= None, delay= "true")
+    handler = logging.FileHandler(os.path.join(settings.LOG_DIR, "error.log"), "w", encoding=None, delay="true")
     handler.setLevel(logging.ERROR)
     handler.setFormatter(file_formatter)
     logger.addHandler(handler)
