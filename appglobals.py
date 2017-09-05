@@ -1,23 +1,22 @@
 import os
 
+from decouple import config
 from playhouse.sqlite_ext import SqliteExtDatabase
 
 _db = None
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_NAME = os.path.expanduser("~/database-botlist.db")
 
 
 def db():
     global _db
     if not _db:
-        db_path = os.path.join(ROOT_DIR, DB_NAME)
+        db_path = config('DATABASE_URI')
         _db = SqliteExtDatabase(db_path)
     return _db
 
 
 def disconnect():
-    pass
-    # _db.close()
+    _db.close()
 
 
 # globals

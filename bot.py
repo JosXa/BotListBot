@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 
+from decouple import config
 from telegram.ext import Updater
 
 import routing
@@ -47,10 +48,7 @@ def main():
     # thread = Thread(target=botlistapi.start_server)
     # thread.start()
 
-    try:
-        bot_token = str(os.environ['TG_TOKEN'])
-    except Exception:
-        bot_token = str(sys.argv[1])
+    bot_token = str(sys.argv[1])
 
     updater = Updater(bot_token, workers=settings.WORKER_COUNT)
     updater.bot.formatter = MarkdownFormatter(updater.bot)
