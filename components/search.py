@@ -8,7 +8,6 @@ import const
 import search
 import settings
 import util
-from components.explore import send_bot_details
 from components import basic
 from dialog import messages
 

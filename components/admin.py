@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import datetime
 import logging
+import os
 import re
 from typing import Dict
 
@@ -30,24 +31,27 @@ log = logging.getLogger(__name__)
 
 @restricted
 def menu(bot, update):
-    uid = util.uid_from_update(update)
+    uid = update.effective_user.id
 
     buttons = _admin_buttons(send_botlist_button=uid in settings.ADMINS)
 
-    util.send_md_message(bot, uid, "🛃 Administration menu",
-                         reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True))
+    bot.formatter.send_message(uid, "🛃 Administration menu",
+                               reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True))
     return BotStates.ADMIN_MENU
 
 
 def _admin_buttons(send_botlist_button=True):
     n_unapproved = len(Bot.select().where(Bot.approved == False))
     n_suggestions = len(Suggestion.select_all())
+    n_pending = len(Bot.select_pending_update())
 
     second_row = list()
     if n_unapproved > 0:
-        second_row.append(KeyboardButton(captions.APPROVE_BOTS + ' ({} 🆕)'.format(n_unapproved)))
+        second_row.append(
+            KeyboardButton(captions.APPROVE_BOTS + ' {}🆕'.format(mdformat.number_as_emoji(n_unapproved))))
     if n_suggestions > 0:
-        second_row.append(KeyboardButton(captions.APPROVE_SUGGESTIONS + ' ({} ⁉️)'.format(n_suggestions)))
+        second_row.append(
+            KeyboardButton(captions.APPROVE_SUGGESTIONS + ' {}⁉️'.format(mdformat.number_as_emoji(n_suggestions))))
 
     buttons = [[
         KeyboardButton(captions.EXIT),
@@ -57,9 +61,15 @@ def _admin_buttons(send_botlist_button=True):
         KeyboardButton(captions.SEND_CONFIG_FILES)
     ]]
 
+    update_row = list()
+    if n_pending > 0:
+        update_row.append(
+            KeyboardButton(captions.PENDING_UPDATE + ' {}{}'.format(mdformat.number_as_emoji(n_pending), captions.SUGGESTION_PENDING_EMOJI)))
     if send_botlist_button:
-        buttons.insert(1, [KeyboardButton(captions.SEND_BOTLIST)])
+        update_row.append(KeyboardButton(captions.SEND_BOTLIST))
 
+    if len(update_row) > 0:
+        buttons.insert(1, update_row)
     if len(second_row) > 0:
         buttons.insert(1, second_row)
 
@@ -69,7 +79,7 @@ def _admin_buttons(send_botlist_button=True):
 @restricted
 def _input_failed(bot, update, chat_data, text):
     chat_id = util.uid_from_update(update)
-    util.send_message_failure(bot, chat_id, text)
+    bot.formatter.send_failure(chat_id, text)
     chat_data['add_bot_message'] = None
 
 
@@ -182,7 +192,7 @@ def edit_bot(bot, update, chat_data, to_edit=None):
                 update.message.reply_text(util.failure('No bot exists with this id.'))
                 return
         else:
-            util.send_message_failure(bot, uid, "An unexpected error occured.")
+            bot.formatter.send_failure(uid, "An unexpected error occured.")
             return
 
     # chat_data['bot_to_edit'] = bot_to_edit
@@ -240,8 +250,8 @@ def approve_suggestions(bot, update, page=0):
     suggestions = suggestions[start:end]
 
     if len(suggestions) == 0:
-        util.send_or_edit_md_message(bot, uid, "No more suggestions available.",
-                                     to_edit=util.mid_from_update(update))
+        bot.formatter.send_or_edit(uid, "No more suggestions available.",
+                                   to_edit=util.mid_from_update(update))
         return
 
     buttons = []
@@ -286,9 +296,9 @@ def approve_suggestions(bot, update, page=0):
 
     reply_markup = InlineKeyboardMarkup(buttons)
 
-    util.send_or_edit_md_message(bot, uid, util.action_hint(text),
-                                 reply_markup=reply_markup, to_edit=util.mid_from_update(update),
-                                 disable_web_page_preview=True)
+    bot.formatter.send_or_edit(uid, util.action_hint(text),
+                               reply_markup=reply_markup, to_edit=util.mid_from_update(update),
+                               disable_web_page_preview=True)
     return CallbackStates.APPROVING_BOTS
 
 
@@ -317,9 +327,9 @@ def approve_bots(bot, update, page=0, override_list=None):
     unapproved = unapproved[start:end]
 
     if len(unapproved) == 0:
-        util.send_or_edit_md_message(bot, chat_id, "No more unapproved bots available. "
-                                                   "Good job! (Is this the first time? 😂)",
-                                     to_edit=util.mid_from_update(update))
+        bot.formatter.send_or_edit(chat_id, "No more unapproved bots available. "
+                                            "Good job! (Is this the first time? 😂)",
+                                   to_edit=util.mid_from_update(update))
         return
 
     buttons = list()
@@ -328,16 +338,17 @@ def approve_bots(bot, update, page=0, override_list=None):
             InlineKeyboardButton(x.username, url="http://t.me/{}".format(x.username[1:]))
         ]
         second_row = [
-            InlineKeyboardButton('👍↑', callback_data=util.callback_for_action(
+            InlineKeyboardButton('👍', callback_data=util.callback_for_action(
                 CallbackActions.ACCEPT_BOT, {'id': x.id})),
-            InlineKeyboardButton('👎↑', callback_data=util.callback_for_action(
+            InlineKeyboardButton('👎', callback_data=util.callback_for_action(
                 CallbackActions.REJECT_BOT, {'id': x.id, 'page': page, 'ntfc': True})),
-            InlineKeyboardButton('🗑' + '↑', callback_data=util.callback_for_action(
+            InlineKeyboardButton('🗑', callback_data=util.callback_for_action(
                 CallbackActions.REJECT_BOT, {'id': x.id, 'page': page, 'ntfc': False})),
             InlineKeyboardButton('👥🔀', callback_data=util.callback_for_action(
                 CallbackActions.RECOMMEND_MODERATOR, {'id': x.id, 'page': page}))
         ]
-        buttons.append(first_row)
+        if len(unapproved) > 1:
+            buttons.append(first_row)
         buttons.append(second_row)
 
     page_arrows = list()
@@ -369,10 +380,11 @@ def approve_bots(bot, update, page=0, override_list=None):
     buttons.append(page_arrows)
 
     reply_markup = InlineKeyboardMarkup(buttons)
-    util.send_or_edit_md_message(bot, chat_id,
-                                 util.action_hint(
-                                     "Please select a bot you want to accept for the BotList"),
-                                 reply_markup=reply_markup, to_edit=util.mid_from_update(update))
+    text = "What to do with {}?".format(unapproved[0].username) if len(
+        unapproved) == 1 else "Please select a bot you want to accept for the BotList"
+    bot.formatter.send_or_edit(chat_id,
+                               util.action_hint(text),
+                               reply_markup=reply_markup, to_edit=util.mid_from_update(update))
     return CallbackStates.APPROVING_BOTS
 
 
@@ -392,7 +404,7 @@ def recommend_moderator(bot, update, bot_in_question, page):
     reply_markup = InlineKeyboardMarkup(util.build_menu(buttons, 1))
     text = mdformat.action_hint(
         "Select a moderator you think is better suited to evaluate the submission of {}.".format(str(bot_in_question)))
-    util.send_or_edit_md_message(bot, uid, text, to_edit=mid, reply_markup=reply_markup)
+    bot.formatter.send_or_edit(uid, text, to_edit=mid, reply_markup=reply_markup)
 
 
 def share_with_moderator(bot, update, bot_in_question, moderator):
@@ -425,10 +437,10 @@ def edit_bot_category(bot, update, for_bot, callback_action=None):
         '{}{}'.format(emoji.emojize(c.emojis, use_aliases=True), c.name),
         callback_data=util.callback_for_action(
             callback_action, {'cid': c.id, 'bid': for_bot.id})) for c in categories], 2)
-    return util.send_or_edit_md_message(bot, uid, util.action_hint("Please select a category" +
-                                                                   (" for {}".format(for_bot) if for_bot else '')),
-                                        to_edit=util.mid_from_update(update),
-                                        reply_markup=InlineKeyboardMarkup(buttons))
+    return bot.formatter.send_or_edit(uid, util.action_hint("Please select a category" +
+                                                            (" for {}".format(for_bot) if for_bot else '')),
+                                      to_edit=util.mid_from_update(update),
+                                      reply_markup=InlineKeyboardMarkup(buttons))
 
 
 @restricted
@@ -449,11 +461,9 @@ def accept_bot_submission(bot, update, of_bot: Bot, category):
                                                                                 {'id': of_bot.id}))]]
         reply_markup = InlineKeyboardMarkup(buttons)
 
-        util.send_or_edit_md_message(bot, uid, "{} has been accepted to the Botlist. "
-                                               "The group will receive a notification in {} minutes, giving you "
-                                               "enough time to edit the details.".format(of_bot,
-                                                                                         settings.BOT_ACCEPTED_IDLE_TIME),
-                                     to_edit=message_id, reply_markup=reply_markup)
+        bot.formatter.send_or_edit(uid, "{} has been accepted to the Botlist. ".format(
+            of_bot, settings.BOT_ACCEPTED_IDLE_TIME
+        ), to_edit=message_id, reply_markup=reply_markup)
 
         log_msg = "{} accepted by {}.".format(of_bot.username, uid)
 
@@ -468,18 +478,25 @@ def accept_bot_submission(bot, update, of_bot: Bot, category):
 
         log.info(log_msg)
     except:
-        util.send_message_failure(bot, uid, "An error has occured. Bot not added.")
+        bot.formatter.send_failure(uid, "An error has occured. Bot not added.")
 
 
 @restricted
-def send_config_files(bot, update):
-    log.info("Sending config files...")
-    chat_id = util.uid_from_update(update)
-    bot.sendDocument(chat_id, open('files/intro_en.txt', 'rb'), filename="intro_en.txt")
-    bot.sendDocument(chat_id, open('files/intro_es.txt', 'rb'), filename="intro_es.txt")
-    bot.sendDocument(chat_id, open('files/new_bots_list.txt', 'rb'), filename="new_bots_list.txt")
-    bot.sendDocument(chat_id, open('files/category_list.txt', 'rb'), filename="category_list.txt")
-    bot.sendDocument(chat_id, open('files/commands.txt', 'rb'), filename="commands.txt")
+def send_runtime_files(bot, update):
+    def send_file(path):
+        try:
+            uid = update.effective_user.id
+            bot.sendDocument(uid, open(path, 'rb'), filename=os.path.split(path)[-1])
+        except:
+            pass
+
+    send_file('files/intro_en.txt')
+    send_file('files/intro_es.txt')
+    send_file('files/new_bots_list.txt')
+    send_file('files/category_list.txt')
+    send_file('files/commands.txt')
+    send_file('error.log')
+    send_file('debug.log')
 
 
 @restricted
@@ -611,7 +628,7 @@ def last_update_job(bot, job: Job):
     last_update = helpers.get_channel().last_update
     if last_update:
         today = datetime.date.today()
-        delta = datetime.timedelta(days=settings.BOT_CONSIDERED_NEW - 1)
+        delta = datetime.timedelta(days=7)
         difference = today - last_update
 
         if difference > delta:
@@ -633,3 +650,17 @@ def apply_all_changes(bot, update, chat_data, to_edit):
 
     refreshed_bot = Bot.get(id=to_edit.id)
     edit_bot(bot, update, chat_data, refreshed_bot)
+
+
+def pending_update(bot, update):
+    uid = update.effective_chat.id
+    bots = Bot.select_pending_update()
+    txt = 'Bots pending for next Update:\n\n'
+
+    if uid in settings.MODERATORS and util.is_private_message(update):
+        # append admin edit buttons
+        txt += '\n'.join(["{} — /edit{}".format(b, b.id) for b in bots])
+    else:
+        txt += '\n'.join([str(b) for b in bots])
+
+    bot.formatter.send_message(uid, txt)

@@ -20,21 +20,21 @@ def available_commands(bot, update):
 def help(bot, update):
     mid = util.mid_from_update(update)
     cid = update.effective_chat.id
-    util.send_or_edit_md_message(bot, cid, messages.HELP_MESSAGE_ENGLISH, to_edit=mid, reply_markup=_help_markup())
+    bot.formatter.send_or_edit(cid, messages.HELP_MESSAGE_ENGLISH, to_edit=mid, reply_markup=_help_markup())
     return ConversationHandler.END
 
 
 def contributing(bot, update, quote=True):
     mid = util.mid_from_update(update)
     cid = update.effective_chat.id
-    util.send_or_edit_md_message(bot, cid, messages.CONTRIBUTING, to_edit=mid, reply_markup=_help_markup())
+    bot.formatter.send_or_edit(cid, messages.CONTRIBUTING, to_edit=mid, reply_markup=_help_markup())
     return ConversationHandler.END
 
 
 def examples(bot, update, quote=True):
     mid = util.mid_from_update(update)
     cid = update.effective_chat.id
-    util.send_or_edit_md_message(bot, cid, messages.EXAMPLES, to_edit=mid, reply_markup=_help_markup())
+    bot.formatter.send_or_edit(cid, messages.EXAMPLES, to_edit=mid, reply_markup=_help_markup())
     return ConversationHandler.END
 
 

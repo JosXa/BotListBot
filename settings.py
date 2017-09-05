@@ -1,15 +1,19 @@
 import os
 if os.environ.get("DEV"):
     print('Debug/Development mode')
+    DEV = True
+else:
+    DEV = False
 
 ### BOT CONFIGURATION ###
-MODERATORS = [62056065, 918962, 7679610, 278941742, 127782573, 43740047, 353341197]
+MODERATORS = [62056065, 918962, 7679610, 278941742, 127782573, 43740047, 353341197, 317434635]
 ADMINS = [62056065, 918962]
-BOT_CONSIDERED_NEW = 14  # days
-SELF_BOT_NAME = "josxasandboxbot" if bool(os.environ.get("DEV")) else "botlistbot"
-SELF_BOT_ID = "182355371" if bool(os.environ.get("DEV")) else "265482650"
-BOTLISTCHAT_ID = -1001118582923 if bool(os.environ.get("DEV")) else -1001067163791
-SELF_CHANNEL_USERNAME = "botlist_testchannel" if bool(os.environ.get("DEV")) else "botlist"
+BOT_CONSIDERED_NEW = 1  # Revision difference
+WORKER_COUNT = 5 if DEV else 20
+SELF_BOT_NAME = "josxasandboxbot" if DEV else "botlistbot"
+SELF_BOT_ID = "182355371" if DEV else "265482650"
+BOTLISTCHAT_ID = -1001118582923 if DEV else -1001067163791
+SELF_CHANNEL_USERNAME = "botlist_testchannel" if DEV else "botlist"
 REGEX_BOT_IN_TEXT = r'.*(@[a-zA-Z0-9_]{3,31}).*'
 REGEX_BOT_ONLY = r'(@[a-zA-Z0-9_]{3,31})'
 PAGE_SIZE_SUGGESTIONS_LIST = 5

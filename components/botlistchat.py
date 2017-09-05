@@ -93,18 +93,20 @@ def _delete_multiple_delayed(bot, chat_id, immediately=None, delayed=None):
 
 @run_async
 def notify_group_submission_accepted(bot, job, accepted_bot):
-    accepted_bot = Bot.get(id=accepted_bot.id)
-    log.info("Notifying group about new accepted bot {}".format(accepted_bot.username))
-    # check if the bot still exists
+    # accepted_bot = Bot.get(id=accepted_bot.id)
+    # log.info("Notifying group about new accepted bot {}".format(accepted_bot.username))
+    # # check if the bot still exists
+    #
+    # text = "*Welcome* {} *to the BotList!*\n🏆 This submission by {} is " \
+    #        "their {} contribution.".format(
+    #     str(accepted_bot),
+    #     str(accepted_bot.submitted_by),
+    #     accepted_bot.submitted_by.contributions_ordinal,
+    # )
+    # util.send_md_message(bot, settings.BOTLISTCHAT_ID, text,
+    #                      reply_markup=basic.thank_you_markup(0), disable_web_page_preview=True)
 
-    text = "*Welcome* {} *to the BotList!*\n🏆 This submission by {} is " \
-           "their {} contribution.".format(
-        str(accepted_bot),
-        str(accepted_bot.submitted_by),
-        accepted_bot.submitted_by.contributions_ordinal,
-    )
-    util.send_md_message(bot, settings.BOTLISTCHAT_ID, text,
-                         reply_markup=basic.thank_you_markup(0), disable_web_page_preview=True)
+    pass  # upon @T3CHNO's request :((((
 
 
 def text_message_logger(bot, update, logger):

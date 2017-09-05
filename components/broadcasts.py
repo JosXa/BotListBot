@@ -101,7 +101,7 @@ def send_broadcast(bot, update, user_data):
         recipient = bc['target_chat_id']
         mode = bc.get('mode', 'just_send')
     except AttributeError:
-        bot.formatter.send_failure(bot, uid, "Missing attributes for broadcast. Aborting...")
+        bot.formatter.send_failure(uid, "Missing attributes for broadcast. Aborting...")
         return ConversationHandler.END
 
     mid = bc.get('reply_to_message_id')
@@ -109,7 +109,7 @@ def send_broadcast(bot, update, user_data):
     if mode == 'replying':
         msg = util.send_md_message(bot, recipient, text, reply_to_message_id=mid)
     elif mode == 'editing':
-        msg = util.send_or_edit_md_message(bot, recipient, text, to_edit=mid)
+        msg = bot.formatter.send_or_edit(recipient, text, to_edit=mid)
     else:
         msg = util.send_md_message(bot, recipient, text)
 

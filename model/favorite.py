@@ -47,10 +47,18 @@ class Favorite(BaseModel):
                     user_favs[n] = f
                 if not fn.exists(f.bot.category):
                     f.bot.category = Favorite.CUSTOM_CATEGORY
-            except Bot.DoesNotExist:
+            except (Bot.DoesNotExist, AttributeError):
                 f.delete_instance()
         return user_favs
 
     @staticmethod
     def get_oldest(user):
         return Favorite.select().where(Favorite.user == user).order_by(Favorite.date_added).first()
+
+    @staticmethod
+    def search_by_bot(user, bot):
+        fav = Favorite.select().where(
+            Favorite.user == user
+            and (Favorite.bot == bot or Favorite.custom_bot == bot)
+        ).first()
+        return fav

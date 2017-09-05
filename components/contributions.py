@@ -11,6 +11,8 @@ import util
 from model import User, Bot, Suggestion, Country, Message
 from telegram import ParseMode
 from telegram.ext import ConversationHandler
+
+from model.revision import Revision
 from util import track_groups
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
@@ -175,7 +177,7 @@ def new_bot_submission(bot, update, chat_data, args=None):
                 reply_to_message_id=reply_to)
         return
     except Bot.DoesNotExist:
-        new_bot = Bot(approved=False, username=username, submitted_by=user)
+        new_bot = Bot(revision=Revision.get_instance().next, approved=False, username=username, submitted_by=user)
 
     new_bot.inlinequeries = "🔎" in text
     new_bot.official = "🔹" in text

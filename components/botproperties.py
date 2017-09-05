@@ -48,7 +48,7 @@ def set_country_menu(bot, update, to_edit):
                              callback_data=util.callback_for_action(CallbackActions.SET_COUNTRY,
                                                                     {'cid': 'None', 'bid': to_edit.id})),
     ])
-    return util.send_or_edit_md_message(bot, uid, util.action_hint(
+    return bot.formatter.send_or_edit(uid, util.action_hint(
         "Please select a country/language for {}".format(to_edit)),
                                         to_edit=util.mid_from_update(update),
                                         reply_markup=InlineKeyboardMarkup(buttons))
@@ -95,7 +95,7 @@ def set_text_property(bot, update, chat_data, property_name, to_edit=None):
         to_edit = chat_data.get('edit_bot', None)
 
         def too_long(n):
-            util.send_message_failure(bot, uid, "Your {} text is too long, it must be shorter "
+            bot.formatter.send_failure(uid, "Your {} text is too long, it must be shorter "
                                                 "than {} characters. Please try again.".format(property_name, n))
             util.wait(bot, update)
             return admin.edit_bot(bot, update, chat_data, to_edit)
@@ -108,7 +108,7 @@ def set_text_property(bot, update, chat_data, property_name, to_edit=None):
             if value:
                 to_edit = chat_data.get('edit_bot', None)
             else:
-                util.send_message_failure(bot, uid, "The username you entered is not valid. Please try again...")
+                bot.formatter.send_failure(uid, "The username you entered is not valid. Please try again...")
                 return admin.edit_bot(bot, update, chat_data, to_edit)
 
         if not value:
@@ -121,7 +121,7 @@ def set_text_property(bot, update, chat_data, property_name, to_edit=None):
                 Suggestion.add_or_update(user, property_name, to_edit, value)
             admin.edit_bot(bot, update, chat_data, to_edit)
         else:
-            util.send_message_failure(bot, uid, "An unexpected error occured.")
+            bot.formatter.send_failure(uid, "An unexpected error occured.")
 
 
 @restricted
@@ -201,7 +201,7 @@ def delete_bot_confirm(bot, update, to_edit):
         ))
     ]]
     )
-    util.send_or_edit_md_message(bot, chat_id, "Are you sure?", to_edit=util.mid_from_update(update),
+    bot.formatter.send_or_edit(chat_id, "Are you sure?", to_edit=util.mid_from_update(update),
                                  reply_markup=reply_markup)
 
 
@@ -209,7 +209,7 @@ def delete_bot_confirm(bot, update, to_edit):
 def delete_bot(bot, update, to_edit):
     chat_id = util.uid_from_update(update)
     to_edit.delete_instance()
-    util.send_or_edit_md_message(bot, chat_id, "Bot has been deleted.", to_edit=util.mid_from_update(update))
+    bot.formatter.send_or_edit(chat_id, "Bot has been deleted.", to_edit=util.mid_from_update(update))
 
 
 @restricted
@@ -228,7 +228,7 @@ def change_category(bot, update, to_edit, category):
 def check_suggestion_limit(bot, update, user):
     cid = update.effective_chat.id
     if Suggestion.over_limit(user):
-        util.send_message_failure(bot, cid,
+        bot.formatter.send_failure(cid,
                                   "You have reached the limit of {} suggestions. Please wait for "
                                   "the Moderators to approve of some of them.".format(settings.SUGGESTION_LIMIT))
         return True
@@ -265,7 +265,7 @@ def change_suggestion(bot, update, suggestion, page_handover):
     ]]
 
     reply_markup = InlineKeyboardMarkup(buttons)
-    util.send_or_edit_md_message(bot, cid, text, to_edit=mid, disable_web_page_preview=True, reply_markup=reply_markup)
+    bot.formatter.send_or_edit(cid, text, to_edit=mid, disable_web_page_preview=True, reply_markup=reply_markup)
 
 
 def remove_keyword(bot, update, chat_data, context):

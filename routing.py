@@ -2,11 +2,13 @@ import json
 import logging
 import re
 import traceback
+from pprint import pprint
 
-from telegram.ext import CallbackQueryHandler
+from telegram.ext import CallbackQueryHandler, dispatcher
 from telegram.ext import ChosenInlineResultHandler
 from telegram.ext import CommandHandler
 from telegram.ext import ConversationHandler
+from telegram.ext import DispatcherHandlerStop
 from telegram.ext import Filters
 from telegram.ext import InlineQueryHandler
 from telegram.ext import MessageHandler
@@ -72,16 +74,23 @@ def callback_router(bot, update, chat_data, user_data, job_queue):
                 favorites.remove_favorite_menu(bot, update)
             elif action == CallbackActions.REMOVE_FAVORITE:
                 to_remove = Favorite.get(id=obj['id'])
+                bot_details = to_remove.bot
                 to_remove.delete_instance()
-                favorites.remove_favorite_menu(bot, update)
+                if obj.get('details'):
+                    send_bot_details(bot, update, chat_data, bot_details)
+                else:
+                    favorites.remove_favorite_menu(bot, update)
             elif action == CallbackActions.SEND_FAVORITES_LIST:
                 favorites.send_favorites_list(bot, update)
             elif action == CallbackActions.ADD_ANYWAY:
                 favorites.add_custom(bot, update, obj['u'])
             elif action == CallbackActions.ADD_TO_FAVORITES:
-                discreet = obj.get('discreet', False)
+                details = obj.get('details')
+                discreet = obj.get('discreet', False) or details
                 item = Bot.get(id=obj['id'])
                 favorites.add_favorite(bot, update, item, callback_alert=discreet)
+                if details:
+                    send_bot_details(bot, update, chat_data, item)
             # ACCEPT/REJECT BOT SUBMISSIONS
             elif action == CallbackActions.APPROVE_REJECT_BOTS:
                 custom_approve_list = [Bot.get(id=obj['id'])]
@@ -272,12 +281,18 @@ def reply_router(bot, update, chat_data):
 
     # BOTPROPERTIES
     bot_properties = ['description', 'extra', 'name', 'username']
-    partition = text.partition(messages.BOTPROPERTY_STARTSWITH)
+    try:
+        partition = text.partition(messages.BOTPROPERTY_STARTSWITH)
+    except AttributeError as e:
+        print("An exception has been raised for partitioning the text in reply_to_message (reply_router):")
+        print(e)
+        pprint(update.message.reply_to_message.to_dict())
+        raise DispatcherHandlerStop
     if partition[1] != '':
         bot_property = next(p for p in bot_properties if partition[2].startswith(p))
         # Reply for setting a bot property
         botproperties.set_text_property(bot, update, chat_data, bot_property)
-
+        raise DispatcherHandlerStop
     elif text == messages.BAN_MESSAGE:
         query = update.message.text
         admin.ban_handler(bot, update, query, True)
@@ -341,7 +356,7 @@ def register(dp):
     dp.add_handler(CommandHandler('search', search_handler, pass_args=True, pass_chat_data=True))
     dp.add_handler(CommandHandler('s', search_handler, pass_args=True, pass_chat_data=True))
 
-    dp.add_handler(MessageHandler(Filters.reply, reply_router, pass_chat_data=True))
+    dp.add_handler(MessageHandler(Filters.reply, reply_router, pass_chat_data=True), group=0)
     dp.add_handler(MessageHandler(Filters.forwarded, forward_router, pass_chat_data=True))
 
     dp.add_handler(CommandHandler("admin", admin.menu))
@@ -350,14 +365,16 @@ def register(dp):
     # admin menu
     dp.add_handler(RegexHandler(captions.APPROVE_BOTS + '.*', admin.approve_bots))
     dp.add_handler(RegexHandler(captions.APPROVE_SUGGESTIONS + '.*', admin.approve_suggestions))
+    dp.add_handler(RegexHandler(captions.PENDING_UPDATE + '.*', admin.pending_update))
     dp.add_handler(RegexHandler(captions.SEND_BOTLIST, admin.prepare_transmission, pass_chat_data=True))
-    dp.add_handler(RegexHandler(captions.SEND_CONFIG_FILES, admin.send_config_files))
+    dp.add_handler(RegexHandler(captions.SEND_CONFIG_FILES, admin.send_runtime_files))
     dp.add_handler(RegexHandler(captions.FIND_OFFLINE, admin.send_offline))
 
     # main menu
     dp.add_handler(RegexHandler(captions.ADMIN_MENU, admin.menu))
     dp.add_handler(RegexHandler(captions.REFRESH, admin.menu))
     dp.add_handler(RegexHandler(captions.CATEGORIES, select_category, pass_chat_data=True))
+    dp.add_handler(RegexHandler(captions.EXPLORE, explore.explore, pass_chat_data=True))
     dp.add_handler(RegexHandler(captions.FAVORITES, favorites.send_favorites_list))
     dp.add_handler(RegexHandler(captions.NEW_BOTS, show_new_bots, pass_chat_data=True))
     dp.add_handler(RegexHandler(captions.SEARCH, search_handler, pass_chat_data=True))
@@ -365,16 +382,16 @@ def register(dp):
     dp.add_handler(RegexHandler(captions.EXAMPLES, help.examples))
     dp.add_handler(RegexHandler(captions.HELP, help.help))
 
-    dp.add_handler(RegexHandler("^/edit\d+$", admin.edit_bot, pass_chat_data=True))
+    dp.add_handler(RegexHandler("^/edit\d+$", admin.edit_bot, pass_chat_data=True), group=1)
     dp.add_handler(CommandHandler('reject', admin.reject_bot_submission))
     dp.add_handler(CommandHandler('rej', admin.reject_bot_submission))
 
     dp.add_handler(CommandHandler('new', contributions.new_bot_submission, pass_args=True, pass_chat_data=True))
-    dp.add_handler(RegexHandler('.*#new.*', contributions.new_bot_submission, pass_chat_data=True))
+    dp.add_handler(RegexHandler('.*#new.*', contributions.new_bot_submission, pass_chat_data=True), group=1)
     dp.add_handler(CommandHandler('offline', contributions.notify_bot_offline, pass_args=True))
-    dp.add_handler(RegexHandler('.*#offline.*', contributions.notify_bot_offline))
+    dp.add_handler(RegexHandler('.*#offline.*', contributions.notify_bot_offline), group=1)
     dp.add_handler(CommandHandler('spam', contributions.notify_bot_spam, pass_args=True))
-    dp.add_handler(RegexHandler('.*#spam.*', contributions.notify_bot_spam))
+    dp.add_handler(RegexHandler('.*#spam.*', contributions.notify_bot_spam), group=1)
     dp.add_handler(RegexHandler('^{}$'.format(settings.REGEX_BOT_ONLY), send_bot_details, pass_chat_data=True))
 
     dp.add_handler(CommandHandler('help', help.help))

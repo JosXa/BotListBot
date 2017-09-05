@@ -4,6 +4,11 @@ import datetime
 import logging
 import re
 from time import sleep
+from typing import List
+
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.error import BadRequest, TelegramError
+from telegram.ext.dispatcher import run_async
 
 import helpers
 import mdformat
@@ -13,11 +18,9 @@ from custemoji import Emoji
 from dialog import messages
 from model import Bot, Country
 from model import Category
-from model import Channel
+from model.channel import Channel
 from model import Notifications
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.error import BadRequest, TelegramError
-from telegram.ext.dispatcher import run_async
+from model.revision import Revision
 from util import restricted
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
@@ -25,7 +28,7 @@ log = logging.getLogger(__name__)
 
 
 def _format_category_bots(category):
-    cat_bots = Bot.of_category(category)
+    cat_bots = Bot.of_category_without_new(category)
     text = '*' + str(category) + '*\n'
     text += '\n'.join([str(b) for b in cat_bots])
     return text
@@ -56,14 +59,14 @@ class BotList:
         self.message_id = util.mid_from_update(update)
 
     def notify_admin(self, txt):
-        util.send_or_edit_md_message(self.bot, self.chat_id, Emoji.HOURGLASS_WITH_FLOWING_SAND + ' ' + txt,
-                                     to_edit=self.message_id,
-                                     disable_web_page_preview=True, disable_notification=True)
+        self.bot.formatter.send_or_edit(self.chat_id, Emoji.HOURGLASS_WITH_FLOWING_SAND + ' ' + txt,
+                                        to_edit=self.message_id,
+                                        disable_web_page_preview=True, disable_notification=True)
 
     def notify_admin_err(self, txt):
-        util.send_or_edit_md_message(self.bot, self.chat_id, util.failure(txt),
-                                     to_edit=self.message_id,
-                                     disable_web_page_preview=True, disable_notification=True)
+        self.bot.formatter.send_or_edit(self.chat_id, util.failure(txt),
+                                        to_edit=self.message_id,
+                                        disable_web_page_preview=True, disable_notification=True)
 
     def _delete_message(self, message_id):
         self.bot.delete_message(self.channel.chat_id, message_id)
@@ -71,11 +74,15 @@ class BotList:
     def _save_channel(self):
         self.channel.save()
 
+    @staticmethod
+    def create_hyperlink(message_id):
+        return 'https://t.me/{}/{}'.format(settings.SELF_CHANNEL_USERNAME, message_id)
+
     @property
     def portal_markup(self):
         buttons = [
             InlineKeyboardButton("🔺 1️⃣ Categories 📚 🔺",
-                                 url='https://t.me/botlist/{}'.format(self.channel.category_list_mid)),
+                                 url=BotList.create_hyperlink(self.channel.category_list_mid)),
             InlineKeyboardButton("▫️ 2️⃣ BotList Bot 🤖 ▫️",
                                  url='https://t.me/botlistbot?start'),
             InlineKeyboardButton("▫️ 3️⃣ BotList Chat 👥💬 ▫️",
@@ -91,15 +98,22 @@ class BotList:
             return f.read()
 
     def send_or_edit(self, text, message_id, reply_markup=None):
+        sleep(3)
         try:
             if self.resend:
                 return util.send_md_message(self.bot, self.channel.chat_id, text, timeout=120,
                                             disable_notification=True, reply_markup=reply_markup)
             else:
-                return util.send_or_edit_md_message(self.bot, self.channel.chat_id, text,
-                                                    to_edit=message_id,
-                                                    timeout=120, disable_web_page_preview=True,
-                                                    disable_notification=True, reply_markup=reply_markup)
+                if reply_markup:
+                    return self.bot.formatter.send_or_edit(self.channel.chat_id, text,
+                                                           to_edit=message_id,
+                                                           timeout=120, disable_web_page_preview=True,
+                                                           disable_notification=True, reply_markup=reply_markup)
+                else:
+                    return self.bot.formatter.send_or_edit(self.channel.chat_id, text,
+                                                           to_edit=message_id,
+                                                           timeout=120, disable_web_page_preview=True,
+                                                           disable_notification=True)
         except BadRequest as e:
             print(e)
             if 'chat not found' in e.message.lower():
@@ -141,7 +155,7 @@ class BotList:
 
         # insert spaces and the name of the bot
         new_bots_joined = Bot.get_new_bots_markdown()
-        text = text.format(new_bots_joined, days_new=settings.BOT_CONSIDERED_NEW)
+        text = text.format(new_bots_joined)
 
         msg = self.send_or_edit(text, self.channel.new_bots_mid)
         self.sent['new_bots_list'] = "List of new bots sent"
@@ -177,7 +191,7 @@ class BotList:
             self.sent['category_list'] = "Category Links sent"
         self._save_channel()
 
-    def update_categories(self, categories):
+    def update_categories(self, categories: List):
         counter = 0
         n = len(categories)
         for cat in categories:
@@ -189,27 +203,48 @@ class BotList:
                     counter, n if counter + 4 > n else counter + 4, n
                 ))
 
-            buttons = list()
-            buttons.append(
-                InlineKeyboardButton("Share", url="https://t.me/{}?start={}".format(settings.SELF_BOT_NAME, cat.id))
-            )
-
-            reply_markup = InlineKeyboardMarkup([buttons])
-            msg = self.send_or_edit(text, cat.current_message_id, reply_markup)
+            msg = self.send_or_edit(text, cat.current_message_id)
             if msg:
                 cat.current_message_id = msg.message_id
                 self.sent['category'].append("Updated {}".format(cat))
             cat.save()
+
         self._save_channel()
 
-    def resend_footer(self):
+        # Add "share", "up", and "down" buttons
+        for i in range(0, len(categories)):
+            buttons = list()
+            if i > 0:
+                # Not first category
+                # Add "Up" button
+                buttons.append(InlineKeyboardButton(
+                    "🔺",
+                    url=BotList.create_hyperlink(categories[i - 1].current_message_id)))
+
+            buttons.append(
+                InlineKeyboardButton("Share", url="https://t.me/{}?start={}".format(
+                    settings.SELF_BOT_NAME,
+                    categories[i].id)))
+
+            if i < len(categories) - 1:
+                # Not last category
+                buttons.append(InlineKeyboardButton(
+                    "🔻",
+                    url=BotList.create_hyperlink(categories[i + 1].current_message_id)))
+
+            reply_markup = InlineKeyboardMarkup([buttons])
+            self.bot.edit_message_reply_markup(self.channel.chat_id, categories[i].current_message_id,
+                                               reply_markup=reply_markup, timeout=60)
+
+    def send_footer(self):
         num_bots = Bot.select_approved().count()
         self.notify_admin('Sending footer...')
 
         # add footer as notification
         footer = '\n```'
         footer += '\n' + mdformat.centered(
-            "• @BotList •\n{}\n{} bots".format(
+            "• @BotList •\nRevision {}\n{}\n{} bots".format(
+                Revision.get_instance().nr,
                 datetime.date.today().strftime("%d-%m-%Y"),
                 num_bots
             ))
@@ -225,11 +260,11 @@ class BotList:
         else:
             footer_to_edit = self.channel.footer_mid
 
-        footer_msg = util.send_or_edit_md_message(self.bot, self.channel.chat_id, footer,
-                                                  to_edit=footer_to_edit,
-                                                  timeout=120,
-                                                  disable_notifications=self.silent,
-                                                  reply_markup=self.portal_markup)
+        footer_msg = self.bot.formatter.send_or_edit(self.channel.chat_id, footer,
+                                                     to_edit=footer_to_edit,
+                                                     timeout=120,
+                                                     disable_notifications=self.silent,
+                                                     reply_markup=self.portal_markup)
         if footer_msg:
             self.channel.footer_mid = footer_msg.message_id
             self.sent['footer'] = "Footer sent"
@@ -240,7 +275,7 @@ class BotList:
         self.channel.last_update = datetime.date.today()
         self._save_channel()
 
-        new_bots = Bot.get_new_bots()
+        new_bots = Bot.select_new_bots()
         if not self.silent and len(new_bots) > 0:
             self.notify_admin("Sending notifications to subscribers...")
             subscribers = Notifications.select().where(Notifications.enabled == True)
@@ -264,14 +299,19 @@ class BotList:
             text = mdformat.none_action("No changes were necessary.")
 
         log.info(self.sent)
-        util.send_or_edit_md_message(self.bot, self.chat_id, text, to_edit=self.message_id)
+        self.bot.formatter.send_or_edit(self.chat_id, text, to_edit=self.message_id)
 
 
 @restricted(strict=True)
 @run_async
 def send_botlist(bot, update, resend=False, silent=False):
-    log.info("Re-Sending BotList..." if resend else "Updating BotList...")
+    log.info("Re-sending BotList..." if resend else "Updating BotList...")
+
     channel = helpers.get_channel()
+    revision = Revision.get_instance()
+    revision.nr += 1
+    revision.save()
+
     all_categories = Category.select_all()
 
     botlist = BotList(bot, update, channel, resend, silent)
@@ -279,8 +319,9 @@ def send_botlist(bot, update, resend=False, silent=False):
     botlist.update_categories(all_categories)
     botlist.update_new_bots_list()
     botlist.update_category_list()
-    botlist.resend_footer()
+    botlist.send_footer()
     botlist.finish()
+    channel.save()
 
 
 def new_channel_post(bot, update, photo=None):

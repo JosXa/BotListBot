@@ -16,4 +16,3 @@ class Channel(BaseModel):
     category_list_mid = IntegerField(default=1)
     footer_mid = IntegerField(default=1)
 
-

@@ -51,6 +51,9 @@ class Suggestion(BaseModel):
         from model import Category
         from model import Country
 
+        if self._value == 'None':
+            return None
+
         if self.action in self.BOOLEAN_ACTIONS:
             return bool(self._value)
         elif self.action == 'category':
@@ -60,7 +63,7 @@ class Suggestion(BaseModel):
                 return None
             return Country.get(id=self._value)
         else:
-            return str(self._value)
+            return str(self._value) if self._value else None
 
     @value.setter
     def value(self, value):
@@ -132,8 +135,6 @@ class Suggestion(BaseModel):
             self.delete_instance()
             return False
 
-        print(self.subject.offline)
-
         if self.action == 'category':
             from model import Category
             try:
@@ -150,8 +151,6 @@ class Suggestion(BaseModel):
         elif self.action == 'extra':
             self.subject.extra = self.value
         elif self.action == 'country':
-            print(self.subject)
-            print('hi')
             if self._value == 'None' or self._value is None:
                 self.subject.country = None
             else:
@@ -171,8 +170,6 @@ class Suggestion(BaseModel):
             self.subject.spam = bool(self.value)
 
         self.subject.save()
-
-        print(self.subject.offline)
 
         self.executed = True
         self.save()

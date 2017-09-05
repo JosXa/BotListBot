@@ -1,30 +1,30 @@
+import logging
 import os
 import sys
 import time
 
-import appglobals
 from telegram import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardButton, \
     InlineKeyboardMarkup
-from telegram import Message
 from telegram.ext import CommandHandler
 from telegram.ext import ConversationHandler
 from telegram.ext import Filters
 from telegram.ext import MessageHandler
 from telegram.ext import RegexHandler
 
+import appglobals
 import captions
 import const
 import mdformat
 import settings
 import util
-from bot import log
 from components import help
 from components.botlist import new_channel_post
-from components.explore import send_category
 from components.search import search_query, search_handler
 from dialog import messages
 from model import User, Category
 from util import track_groups, restricted
+
+log = logging.getLogger(__name__)
 
 
 @track_groups
@@ -39,7 +39,8 @@ def start(bot, update, chat_data, args):
         # CATEGORY BY ID
         try:
             cat = Category.get(Category.id == args[0])
-            return send_category(bot, update, cat)
+            from components.explore import send_category
+            return send_category(bot, update, chat_data, cat)
         except (ValueError, Category.DoesNotExist):
             pass
 
@@ -59,7 +60,8 @@ def start(bot, update, chat_data, args):
         search_query(bot, update, query)
 
     else:
-        bot.sendSticker(chat_id, open(os.path.join(appglobals.ROOT_DIR, 'assets', 'sticker', 'greetings-humanoids.webp'), 'rb'))
+        bot.sendSticker(chat_id,
+                        open(os.path.join(appglobals.ROOT_DIR, 'assets', 'sticker', 'greetings-humanoids.webp'), 'rb'))
         help.help(bot, update)
         util.wait(bot, update)
         if util.is_private_message(update):
@@ -69,7 +71,7 @@ def start(bot, update, chat_data, args):
 
 def main_menu_buttons(admin=False):
     buttons = [
-        [KeyboardButton(captions.CATEGORIES), KeyboardButton(captions.FAVORITES)],
+        [KeyboardButton(captions.CATEGORIES), KeyboardButton(captions.EXPLORE), KeyboardButton(captions.FAVORITES)],
         [KeyboardButton(captions.NEW_BOTS), KeyboardButton(captions.SEARCH)],
         [KeyboardButton(captions.HELP)],
     ]
@@ -82,7 +84,7 @@ def main_menu(bot, update):
     chat_id = update.effective_chat.id
     is_admin = chat_id in settings.MODERATORS
     reply_markup = ReplyKeyboardMarkup(main_menu_buttons(is_admin),
-                                       resize_keyboard=True) if util.is_private_message(
+                                       resize_keyboard=True, one_time_keyboard=True) if util.is_private_message(
         update) else ReplyKeyboardRemove()
 
     bot.sendMessage(chat_id, mdformat.action_hint("What would you like to do?"),
@@ -92,7 +94,7 @@ def main_menu(bot, update):
 @restricted
 def restart(bot, update):
     chat_id = util.uid_from_update(update)
-    util.send_message_success(bot, chat_id, "Bot is restarting...")
+    bot.formatter.send_success(chat_id, "Bot is restarting...")
     time.sleep(0.3)
     os.execl(sys.executable, sys.executable, *sys.argv)
 

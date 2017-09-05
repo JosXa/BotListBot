@@ -46,13 +46,13 @@ def new_bots_article():
         id=uuid4(),
         title='🆕 New Bots',
         input_message_content=InputTextMessageContent(message_text=msg_text, parse_mode="Markdown"),
-        description='Bots added in the last {} days.'.format(settings.BOT_CONSIDERED_NEW),
+        description='Bots added since the last update',
         # thumb_url='http://www.colorcombos.com/images/colors/FF0000.png',
     )
 
 
 def category_article(cat):
-    cat_bots = Bot.of_category(cat)
+    cat_bots = Bot.of_category_without_new(cat)
     txt = messages.PROMOTION_MESSAGE + '\n\n'
     txt += "There are *{}* bots in the category *{}*:\n\n".format(len(cat_bots), str(cat))
     txt += '\n'.join([str(b) for b in cat_bots])

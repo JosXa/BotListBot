@@ -128,7 +128,7 @@ def send_favorites_list(bot, update, to_edit=None):
     else:
         text = _favorites_categories_md(favorites, user.favorites_layout)
 
-    util.send_or_edit_md_message(bot, uid, text,
+    bot.formatter.send_or_edit(uid, text,
                                  to_edit=to_edit, reply_markup=reply_markup)
 
 
@@ -202,7 +202,7 @@ def remove_favorite_menu(bot, update):
                              callback_data=util.callback_for_action(CallbackActions.SEND_FAVORITES_LIST))
     ])
     reply_markup = InlineKeyboardMarkup(buttons)
-    util.send_or_edit_md_message(bot, uid, util.action_hint("Select favorites to remove"),
+    bot.formatter.send_or_edit(uid, util.action_hint("Select favorites to remove"),
                                  to_edit=util.mid_from_update(update),
                                  reply_markup=reply_markup)
 
@@ -242,7 +242,7 @@ def add_custom(bot, update, username):
     except Favorite.DoesNotExist:
         fav = Favorite(user=user, custom_bot=username, date_added=datetime.date.today())
         fav.save()
-        msg = util.send_or_edit_md_message(bot, uid,
+        msg = bot.formatter.send_or_edit(uid,
                                            mdformat.love("{} added to your /favorites.".format(fav.custom_bot)),
                                            to_edit=mid)
         mid = msg.message_id

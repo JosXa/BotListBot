@@ -1,4 +1,5 @@
 import os
+
 from playhouse.sqlite_ext import SqliteExtDatabase
 
 _db = None
@@ -21,3 +22,4 @@ def disconnect():
 
 # globals
 db = db()
+

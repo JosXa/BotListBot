@@ -2,10 +2,6 @@ import random
 import re
 
 import emoji
-from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram import InlineKeyboardButton
-from telegram import InlineKeyboardMarkup
-from telegram.ext import ConversationHandler
 
 import captions
 import helpers
@@ -17,6 +13,10 @@ from const import CallbackActions, CallbackStates
 from dialog import messages
 from lib import InlineCallbackButton
 from model import Bot, Category, User, Keyword, Favorite
+from telegram import InlineKeyboardButton
+from telegram import InlineKeyboardMarkup
+from telegram.ext import CommandHandler
+from telegram.ext import ConversationHandler
 from util import track_groups, private_chat_only
 
 
@@ -58,12 +58,12 @@ def explore(bot, update, chat_data):
     if uid in settings.MODERATORS and util.is_private_message(update):
         text += '\n\n🛃 /edit{}'.format(random_bot.id)
 
-    msg = util.send_or_edit_md_message(bot, cid, text, to_edit=mid, reply_markup=markup)
+    msg = bot.formatter.send_or_edit(cid, text, to_edit=mid, reply_markup=markup)
     chat_data['explored'].append(random_bot)
 
-    import time
-    time.sleep(2)
-    msg.edit_reply_markup(reply_markup=ForceReply(selective=True))
+    # import time
+    # time.sleep(2)
+    # msg.edit_reply_markup(reply_markup=ForceReply(selective=True))
 
 
 def random_explore_text():
@@ -91,7 +91,7 @@ def select_category(bot, update, chat_data, callback_action=None):
     chat_id = update.effective_chat.id
     reply_markup = InlineKeyboardMarkup(_select_category_buttons(callback_action))
     reply_markup, callback = botlistchat.append_delete_button(update, chat_data, reply_markup)
-    msg = util.send_or_edit_md_message(bot, chat_id, util.action_hint(messages.SELECT_CATEGORY),
+    msg = bot.formatter.send_or_edit(chat_id, util.action_hint(messages.SELECT_CATEGORY),
                                        to_edit=util.mid_from_update(update),
                                        reply_markup=reply_markup)
     callback(msg)
@@ -112,16 +112,17 @@ def show_new_bots(bot, update, chat_data, back_button=False):
         )))
     reply_markup = InlineKeyboardMarkup(buttons)
     reply_markup, callback = botlistchat.append_delete_button(update, chat_data, reply_markup)
-    msg = util.send_or_edit_md_message(bot, chat_id, _new_bots_text(), to_edit=util.mid_from_update(update),
+    msg = bot.formatter.send_or_edit(chat_id, _new_bots_text(), to_edit=util.mid_from_update(update),
                                        reply_markup=reply_markup, reply_to_message_id=util.mid_from_update(update))
     callback(msg)
     return ConversationHandler.END
 
 
 def send_category(bot, update, chat_data, category=None):
+    print(category)
     uid = util.uid_from_update(update)
     cid = update.effective_chat.id
-    bots = Bot.of_category(category)[:settings.MAX_BOTS_PER_MESSAGE]
+    bots = Bot.of_category_without_new(category)[:settings.MAX_BOTS_PER_MESSAGE]
     bots_with_description = [b for b in bots if b.description is not None]
     detailed_buttons_enabled = len(bots_with_description) > 0 and util.is_private_message(update)
 
@@ -153,7 +154,7 @@ def send_category(bot, update, chat_data, category=None):
 
     reply_markup = InlineKeyboardMarkup(menu)
     reply_markup, callback = botlistchat.append_delete_button(update, chat_data, reply_markup)
-    msg = util.send_or_edit_md_message(bot, cid, txt, to_edit=util.mid_from_update(update), reply_markup=reply_markup)
+    msg = bot.formatter.send_or_edit(cid, txt, to_edit=util.mid_from_update(update), reply_markup=reply_markup)
     callback(msg)
 
 
@@ -204,16 +205,22 @@ def send_bot_details(bot, update, chat_data, item=None):
                 )))
 
     buttons = [first_row]
-    favs = [f.bot for f in Favorite.select_all(user)]
-    if item not in favs:
+    favorite_found = Favorite.search_by_bot(user, item)
+    if favorite_found:
+        buttons.append([
+            InlineKeyboardButton(captions.REMOVE_FAVORITE_VERBOSE,
+                                 callback_data=util.callback_for_action(CallbackActions.REMOVE_FAVORITE,
+                                                                        {'id': favorite_found.id, 'details': True}))
+        ])
+    else:
         buttons.append([
             InlineKeyboardButton(captions.ADD_TO_FAVORITES,
                                  callback_data=util.callback_for_action(CallbackActions.ADD_TO_FAVORITES,
-                                                                        {'id': item.id}))
+                                                                        {'id': item.id, 'details': True}))
         ])
     reply_markup = InlineKeyboardMarkup(buttons)
     reply_markup, callback = botlistchat.append_delete_button(update, chat_data, reply_markup)
-    msg = util.send_or_edit_md_message(bot, uid,
+    msg = bot.formatter.send_or_edit(uid,
                                        txt,
                                        to_edit=util.mid_from_update(update),
                                        reply_markup=reply_markup
@@ -223,10 +230,9 @@ def send_bot_details(bot, update, chat_data, item=None):
 
 
 def _new_bots_text():
-    new_bots = Bot.get_new_bots()
+    new_bots = Bot.select_new_bots()
     if len(new_bots) > 0:
-        txt = "Fresh new bots from the last {} days 💙:\n\n{}".format(
-            settings.BOT_CONSIDERED_NEW,
+        txt = "Fresh new bots since the last update 💙:\n\n{}".format(
             Bot.get_new_bots_markdown())
     else:
         txt = 'No new bots available.'

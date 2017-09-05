@@ -12,7 +12,7 @@ def manage_subscription(bot, update):
     if util.is_group_message(update):
         admins = bot.get_chat_administrators(chat_id)
         if user_id not in admins:
-            util.send_message_failure(bot, chat_id, "Sorry, but only Administrators of this group are allowed "
+            bot.formatter.send_failure(chat_id, "Sorry, but only Administrators of this group are allowed "
                                                     "to manage subscriptions.")
             return
 

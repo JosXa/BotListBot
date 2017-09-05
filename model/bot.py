@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import datetime
 from typing import List
 
 from peewee import *
@@ -10,11 +9,13 @@ import util
 from model.basemodel import BaseModel
 from model.category import Category
 from model.country import Country
+from model.revision import Revision
 from model.user import User
 
 
 class Bot(BaseModel):
     id = PrimaryKeyField()
+    revision = IntegerField()
     category = ForeignKeyField(Category, null=True)
     name = CharField(null=True)
     username = CharField(unique=True)
@@ -33,7 +34,11 @@ class Bot(BaseModel):
 
     @staticmethod
     def select_approved():
-        return Bot.select().where(Bot.approved == True)
+        return Bot.select().where(Bot.approved == True, Bot.revision <= Revision.get_instance().nr)
+
+    @staticmethod
+    def select_pending_update():
+        return Bot.select().where(Bot.approved == True, Bot.revision == Revision.get_instance().next)
 
     @property
     def serialize(self):
@@ -54,10 +59,11 @@ class Bot(BaseModel):
 
     @property
     def is_new(self):
-        today = datetime.date.today()
-        delta = datetime.timedelta(days=settings.BOT_CONSIDERED_NEW)
-        result = today - self.date_added <= delta
-        return result
+        # today = datetime.date.today()
+        # delta = datetime.timedelta(days=settings.BOT_CONSIDERED_NEW)
+        # result = today - self.date_added <= delta
+        # return result
+        return self.revision >= Revision.get_instance().nr - settings.BOT_CONSIDERED_NEW + 1
 
     def __str__(self):
         return util.escape_markdown(self.str_no_md).encode('utf-8').decode('utf-8')
@@ -100,7 +106,8 @@ class Bot(BaseModel):
     def explorable_bots():
         results = Bot.select().where(
             ~(Bot.description.is_null()),
-            Bot.approved == True
+            Bot.approved == True,
+            Bot.revision <= Revision.get_instance().nr
         )
         return list(results)
 
@@ -113,22 +120,22 @@ class Bot(BaseModel):
             raise Bot.DoesNotExist()
 
     @staticmethod
-    def of_category(category):
-        return Bot.select().where(Bot.category == category, Bot.approved == True).order_by(fn.Lower(Bot.username))
+    def of_category_without_new(category):
+        return Bot.select().where(
+            Bot.category == category, Bot.approved == True, Bot.revision <= Revision.get_instance().nr
+        ).order_by(fn.Lower(Bot.username))
 
     @staticmethod
-    def get_new_bots():
-        return Bot.select().where(
-            (Bot.approved == True) & (
-                Bot.date_added.between(
-                    datetime.date.today() - datetime.timedelta(days=settings.BOT_CONSIDERED_NEW),
-                    datetime.date.today()
-                )
-            ))
+    def select_new_bots():
+        return Bot.select().where(Bot.revision >= Revision.get_instance().nr - settings.BOT_CONSIDERED_NEW + 1)
 
     @staticmethod
     def get_new_bots_markdown():
-        return '\n'.join(['     {}'.format(str(b)) for b in Bot.get_new_bots()])
+        return '\n'.join(['     {}'.format(str(b)) for b in Bot.select_new_bots()])
+
+    @staticmethod
+    def get_pending_update_bots_markdown():
+        return '\n'.join(['     {}'.format(str(b)) for b in Bot.select_pending_update()])
 
     @property
     def keywords(self):
