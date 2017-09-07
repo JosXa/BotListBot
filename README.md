@@ -5,3 +5,5 @@ The bot simplifies navigation by acting as a mirror of the BotList, and automate
 
 
 This repository is meant as inspiration and technical guidance for bot builders, mainly for folks using the amazing [python-telegram-bot](https://python-telegram-bot.org/) library.
+
+JosXa/BotListBot is licensed under the MIT License.
