@@ -20,6 +20,11 @@ from telegram.ext import ConversationHandler
 from util import track_groups, private_chat_only
 
 
+def show_official(bot, update):
+    text = '*Official Telegram Bots:*\n\n'
+    update.effective_message.reply_text(text + Bot.get_official_bots_markdown(), parse_mode='markdown')
+
+
 def explore(bot, update, chat_data):
     cid = update.effective_chat.id
     uid = update.effective_user.id

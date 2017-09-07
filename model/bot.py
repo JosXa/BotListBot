@@ -126,8 +126,16 @@ class Bot(BaseModel):
         ).order_by(fn.Lower(Bot.username))
 
     @staticmethod
+    def select_official_bots():
+        return Bot.select().where(Bot.approved == True, Bot.official == True)
+
+    @staticmethod
     def select_new_bots():
         return Bot.select().where(Bot.revision >= Revision.get_instance().nr - settings.BOT_CONSIDERED_NEW + 1)
+
+    @staticmethod
+    def get_official_bots_markdown():
+        return '\n'.join(['     {}'.format(str(b)) for b in Bot.select_official_bots()])
 
     @staticmethod
     def get_new_bots_markdown():

@@ -4,11 +4,10 @@ import re
 import traceback
 from pprint import pprint
 
-from telegram.ext import CallbackQueryHandler, dispatcher
+from telegram.ext import CallbackQueryHandler
 from telegram.ext import ChosenInlineResultHandler
 from telegram.ext import CommandHandler
 from telegram.ext import ConversationHandler
-from telegram.ext import DispatcherHandlerStop
 from telegram.ext import Filters
 from telegram.ext import InlineQueryHandler
 from telegram.ext import MessageHandler
@@ -287,12 +286,12 @@ def reply_router(bot, update, chat_data):
         print("An exception has been raised for partitioning the text in reply_to_message (reply_router):")
         print(e)
         pprint(update.message.reply_to_message.to_dict())
-        raise DispatcherHandlerStop
+        return  # raise DispatcherHandlerStop # TODO
     if partition[1] != '':
         bot_property = next(p for p in bot_properties if partition[2].startswith(p))
         # Reply for setting a bot property
         botproperties.set_text_property(bot, update, chat_data, bot_property)
-        raise DispatcherHandlerStop
+        return  # raise DispatcherHandlerStop # TODO
     elif text == messages.BAN_MESSAGE:
         query = update.message.text
         admin.ban_handler(bot, update, query, True)
@@ -350,11 +349,8 @@ def register(dp):
     dp.add_handler(broadcasting_handler)
 
     dp.add_handler(CallbackQueryHandler(callback_router, pass_chat_data=True, pass_user_data=True, pass_job_queue=True))
-    dp.add_handler(CommandHandler('category', select_category, pass_chat_data=True))
-    dp.add_handler(CommandHandler('categories', select_category, pass_chat_data=True))
-    dp.add_handler(CommandHandler('cat', select_category, pass_chat_data=True))
-    dp.add_handler(CommandHandler('search', search_handler, pass_args=True, pass_chat_data=True))
-    dp.add_handler(CommandHandler('s', search_handler, pass_args=True, pass_chat_data=True))
+    dp.add_handler(CommandHandler(('cat', 'category', 'categories'), select_category, pass_chat_data=True))
+    dp.add_handler(CommandHandler(('s', 'search'), search_handler, pass_args=True, pass_chat_data=True))
 
     dp.add_handler(MessageHandler(Filters.reply, reply_router, pass_chat_data=True), group=0)
     dp.add_handler(MessageHandler(Filters.forwarded, forward_router, pass_chat_data=True))
@@ -395,18 +391,15 @@ def register(dp):
     dp.add_handler(RegexHandler('^{}$'.format(settings.REGEX_BOT_ONLY), send_bot_details, pass_chat_data=True))
 
     dp.add_handler(CommandHandler('help', help.help))
-    dp.add_handler(CommandHandler("contributing", help.contributing))
-    dp.add_handler(CommandHandler("contribute", help.contributing))
+    dp.add_handler(CommandHandler(("contribute", "contributing"), help.contributing))
     dp.add_handler(CommandHandler("examples", help.examples))
     dp.add_handler(CommandHandler("rules", help.rules))
 
-    dp.add_handler(CommandHandler("addfavorite", favorites.send_favorites_list))
-    dp.add_handler(CommandHandler("addfav", favorites.add_favorite_handler, pass_args=True))
-    dp.add_handler(CommandHandler("f", favorites.send_favorites_list))
-    dp.add_handler(CommandHandler("fav", favorites.send_favorites_list))
-    dp.add_handler(CommandHandler("favorites", favorites.send_favorites_list))
+    dp.add_handler(CommandHandler(("addfav", "addfavorite"), favorites.add_favorite_handler, pass_args=True))
+    dp.add_handler(CommandHandler(("f", "fav", "favorites"), favorites.send_favorites_list))
 
-    dp.add_handler(CommandHandler("explore", explore.explore, pass_chat_data=True))
+    dp.add_handler(CommandHandler(("e", "explore"), explore.explore, pass_chat_data=True))
+    dp.add_handler(CommandHandler("official", explore.show_official))
 
     dp.add_handler(CommandHandler('ban', lambda bot, update, args: admin.ban_handler(
         bot, update, args, True), pass_args=True))
