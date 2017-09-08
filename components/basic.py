@@ -94,9 +94,11 @@ def main_menu(bot, update):
 @restricted
 def restart(bot, update):
     chat_id = util.uid_from_update(update)
-    bot.formatter.send_success(chat_id, "Bot is restarting...")
-    time.sleep(0.3)
-    os.execl(sys.executable, sys.executable, *sys.argv)
+    bot.formatter.send_failure(chat_id, "There were issues with this function. No need to use it anyway, "
+                                        "since now the bot restarts every 24 hours automatically.")
+    # bot.formatter.send_success(chat_id, "Bot is restarting...")
+    # time.sleep(0.3)
+    # os.execl(sys.executable, sys.executable, *sys.argv)
 
 
 def error(bot, update, error):
