@@ -66,6 +66,7 @@ def main():
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
 
+
     # message_queue = MessageQueue()
     # message_queue._is_messages_queued_default = True
     # updater.bot._is_messages_queued_default = True
