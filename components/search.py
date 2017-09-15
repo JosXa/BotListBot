@@ -9,6 +9,7 @@ import search
 import settings
 import util
 from components import basic
+from components.explore import send_bot_details
 from dialog import messages
 
 
