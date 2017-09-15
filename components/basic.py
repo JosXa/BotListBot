@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 import time
 
 from telegram import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardButton, \
@@ -22,7 +21,7 @@ from components.botlist import new_channel_post
 from components.search import search_query, search_handler
 from dialog import messages
 from model import User, Category
-from util import track_groups, restricted
+from util import track_groups
 
 log = logging.getLogger(__name__)
 
@@ -57,7 +56,7 @@ def start(bot, update, chat_data, args):
             return search_handler(bot, update, chat_data)
 
         # SEARCH QUERY
-        search_query(bot, update, query)
+        search_query(bot, update, chat_data, query)
 
     else:
         bot.sendSticker(chat_id,
@@ -91,11 +90,11 @@ def main_menu(bot, update):
                     reply_markup=reply_markup)
 
 
-@restricted
-def restart(bot, update):
-    chat_id = util.uid_from_update(update)
-    bot.formatter.send_failure(chat_id, "There were issues with this function. No need to use it anyway, "
-                                        "since now the bot restarts every 24 hours automatically.")
+# @restricted
+# def restart(bot, update):
+#     chat_id = util.uid_from_update(update)
+#     bot.formatter.send_failure(chat_id, "There were issues with this function. No need to use it anyway, "
+#                                         "since now the bot restarts every 24 hours automatically.")
     # bot.formatter.send_success(chat_id, "Bot is restarting...")
     # time.sleep(0.3)
     # os.execl(sys.executable, sys.executable, *sys.argv)
@@ -154,17 +153,6 @@ def cancel(bot, update):
     return ConversationHandler.END
 
 
-def register(dp):
-    dp.add_handler(CommandHandler('start', start, pass_args=True, pass_chat_data=True))
-    dp.add_handler(CommandHandler("menu", main_menu))
-    dp.add_handler(RegexHandler(captions.EXIT, main_menu))
-    dp.add_handler(CommandHandler('r', restart))
-    dp.add_error_handler(error)
-    dp.add_handler(
-        MessageHandler(Filters.text & Filters.group, plaintext_group, pass_chat_data=True, pass_update_queue=True))
-    dp.add_handler(CommandHandler("removekeyboard", remove_keyboard))
-
-
 def thank_you_markup(count=0):
     assert isinstance(count, int)
     count_caption = '' if count == 0 else mdformat.number_as_emoji(count)
@@ -194,3 +182,14 @@ def all_handler(bot, update, chat_data):
             # bot was added to a group
             start(bot, update, chat_data)
     return ConversationHandler.END
+
+
+def register(dp):
+    dp.add_handler(CommandHandler('start', start, pass_args=True, pass_chat_data=True))
+    dp.add_handler(CommandHandler("menu", main_menu))
+    dp.add_handler(RegexHandler(captions.EXIT, main_menu))
+    # dp.add_handler(CommandHandler('r', restart))
+    dp.add_error_handler(error)
+    dp.add_handler(
+        MessageHandler(Filters.text & Filters.group, plaintext_group, pass_chat_data=True, pass_update_queue=True))
+    dp.add_handler(CommandHandler("removekeyboard", remove_keyboard))
