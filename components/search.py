@@ -11,14 +11,22 @@ import util
 from components import basic
 from components.explore import send_bot_details
 from dialog import messages
+from model import Bot
 
 
 def search_query(bot, update, chat_data, query, send_errors=True):
     chat_id = update.effective_chat.id
-    results = search.search_bots(query)
+
+    # easter egg
+    if query.lower() == 'awesome bot':
+        results = [Bot.by_username('botlistbot')]
+    else:
+        results = search.search_bots(query)
+
     is_admin = chat_id in settings.MODERATORS
     reply_markup = ReplyKeyboardMarkup(
-        basic.main_menu_buttons(is_admin), resize_keyboard=True
+        basic.main_menu_buttons(is_admin),
+        resize_keyboard=True
     ) if util.is_private_message(update) else ReplyKeyboardRemove()
     if results:
         if len(results) == 1:
