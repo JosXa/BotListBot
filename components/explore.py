@@ -163,13 +163,16 @@ def send_category(bot, update, chat_data, category=None):
     callback(msg)
 
 
-@private_chat_only
 def send_bot_details(bot, update, chat_data, item=None):
+    is_group = util.is_group_message(update)
     cid = update.effective_chat.id
     user = User.from_update(update)
     first_row = list()
 
     if item is None:
+        if is_group:
+            return
+
         try:
             text = update.message.text
             bot_in_text = re.findall(settings.REGEX_BOT_IN_TEXT, text)[0]
@@ -209,21 +212,24 @@ def send_bot_details(bot, update, chat_data, item=None):
                     {'id': item.id}
                 )))
 
-    buttons = [first_row]
-    favorite_found = Favorite.search_by_bot(user, item)
-    if favorite_found:
-        buttons.append([
-            InlineKeyboardButton(captions.REMOVE_FAVORITE_VERBOSE,
-                                 callback_data=util.callback_for_action(CallbackActions.REMOVE_FAVORITE,
-                                                                        {'id': favorite_found.id, 'details': True}))
-        ])
+    if is_group:
+        reply_markup = InlineKeyboardMarkup([])
     else:
-        buttons.append([
-            InlineKeyboardButton(captions.ADD_TO_FAVORITES,
-                                 callback_data=util.callback_for_action(CallbackActions.ADD_TO_FAVORITES,
-                                                                        {'id': item.id, 'details': True}))
-        ])
-    reply_markup = InlineKeyboardMarkup(buttons)
+        buttons = [first_row]
+        favorite_found = Favorite.search_by_bot(user, item)
+        if favorite_found:
+            buttons.append([
+                InlineKeyboardButton(captions.REMOVE_FAVORITE_VERBOSE,
+                                     callback_data=util.callback_for_action(CallbackActions.REMOVE_FAVORITE,
+                                                                            {'id': favorite_found.id, 'details': True}))
+            ])
+        else:
+            buttons.append([
+                InlineKeyboardButton(captions.ADD_TO_FAVORITES,
+                                     callback_data=util.callback_for_action(CallbackActions.ADD_TO_FAVORITES,
+                                                                            {'id': item.id, 'details': True}))
+            ])
+        reply_markup = InlineKeyboardMarkup(buttons)
     reply_markup, callback = botlistchat.append_delete_button(update, chat_data, reply_markup)
     msg = bot.formatter.send_or_edit(cid,
                                        txt,
