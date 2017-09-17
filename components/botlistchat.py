@@ -110,8 +110,9 @@ def notify_group_submission_accepted(bot, job, accepted_bot):
 
 
 def text_message_logger(bot, update, logger):
-    cid = update.effective_chat.id
-    if cid != settings.BOTLISTCHAT_ID:
-        return
-    text = "{}: {}".format(update.effective_user.first_name, update.message.text)
-    logger.info(text)
+    pass
+    # cid = update.effective_chat.id
+    # if cid != settings.BOTLISTCHAT_ID:
+    #     return
+    # text = "{}: {}".format(update.effective_user.first_name, update.message.text)
+    # logger.info(text)
