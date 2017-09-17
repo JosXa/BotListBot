@@ -19,7 +19,7 @@ def search_query(bot, update, chat_data, query, send_errors=True):
 
     # easter egg
     if query.lower() == 'awesome bot':
-        results = [Bot.by_username('botlistbot')]
+        results = [Bot.by_username('@botlistbot')]
     else:
         results = search.search_bots(query)
 
