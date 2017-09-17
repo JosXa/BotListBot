@@ -17,11 +17,7 @@ from model import Bot
 def search_query(bot, update, chat_data, query, send_errors=True):
     chat_id = update.effective_chat.id
 
-    # easter egg
-    if query.lower() == 'awesome bot':
-        results = [Bot.by_username('@botlistbot')]
-    else:
-        results = search.search_bots(query)
+    results = search.search_bots(query)
 
     is_admin = chat_id in settings.MODERATORS
     reply_markup = ReplyKeyboardMarkup(
