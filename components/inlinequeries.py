@@ -209,7 +209,5 @@ def inlinequery_handler(bot, update, chat_data):
 
 
 def chosen_result(bot, update, chat_data):
-    pprint(update.to_dict())
     if update.chosen_inline_result.inline_message_id:
-        print('storing id...')
         chat_data['sent_inlinequery'] = update.chosen_inline_result.inline_message_id
