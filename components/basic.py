@@ -34,7 +34,7 @@ def start(bot, update, chat_data, args):
     # Get or create the user from/in database
     User.from_telegram_object(tg_user)
 
-    if len(args) > 0:
+    if isinstance(args, list) and len(args) > 0:
         # CATEGORY BY ID
         try:
             cat = Category.get(Category.id == args[0])
@@ -180,7 +180,7 @@ def all_handler(bot, update, chat_data):
     if update.message and update.message.new_chat_members:
         if int(settings.SELF_BOT_ID) in [x.id for x in update.message.new_chat_members]:
             # bot was added to a group
-            start(bot, update, chat_data)
+            start(bot, update, chat_data, None)
     return ConversationHandler.END
 
 
