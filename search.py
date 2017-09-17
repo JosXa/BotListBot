@@ -10,12 +10,12 @@ from model import Keyword
 
 
 def search_bots(query):
-    # easter egg
-    if query.lower() == 'awesome bot':
-        return [Bot.by_username('@botlistbot')]
-
     query = query.lower().strip()
     split = query.split(' ')
+
+    # easter egg
+    if query == 'awesome bot':
+        return [Bot.by_username('@botlistbot')]
 
     # exact results
     where_query = (

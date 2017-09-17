@@ -4,22 +4,20 @@ from telegram.ext import ConversationHandler
 
 import captions
 import const
-
 import search
 import settings
 import util
 from components import basic
 from components.explore import send_bot_details
 from dialog import messages
-from model import Bot
 
 
 def search_query(bot, update, chat_data, query, send_errors=True):
-    chat_id = update.effective_chat.id
+    cid = update.effective_chat.id
 
     results = search.search_bots(query)
 
-    is_admin = chat_id in settings.MODERATORS
+    is_admin = cid in settings.MODERATORS
     reply_markup = ReplyKeyboardMarkup(
         basic.main_menu_buttons(is_admin),
         resize_keyboard=True
@@ -29,20 +27,20 @@ def search_query(bot, update, chat_data, query, send_errors=True):
             return send_bot_details(bot, update, chat_data, results[0])
         too_many_results = len(results) > settings.MAX_SEARCH_RESULTS
 
-        bots_list = ''
-        if chat_id in settings.MODERATORS:
+        results = ''
+        if cid in settings.MODERATORS:
             # append edit buttons
-            bots_list += '\n'.join(["{} — /edit{} 🛃".format(b, b.id) for b in list(results)[:100]])
+            results += '\n'.join(["{} — /edit{} 🛃".format(b, b.id) for b in list(results)[:100]])
         else:
-            bots_list += '\n'.join([str(b) for b in list(results)[:settings.MAX_SEARCH_RESULTS]])
-        bots_list += '\n…' if too_many_results else ''
-        bots_list = messages.SEARCH_RESULTS.format(bots=bots_list, num_results=len(results),
+            results += '\n'.join([str(b) for b in list(results)[:settings.MAX_SEARCH_RESULTS]])
+        results += '\n…' if too_many_results else ''
+        results = messages.SEARCH_RESULTS.format(bots=results, num_results=len(results),
                                                    plural='s' if len(results) > 1 else '',
                                                    query=query)
-        msg = update.message.reply_text(bots_list, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
+        update.message.reply_text(results, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
     else:
         if send_errors:
-            msg = update.message.reply_text(
+            update.message.reply_text(
                 util.failure("Sorry, I couldn't find anything related "
                              "to *{}* in the @BotList. /search".format(util.escape_markdown(query))),
                 parse_mode=ParseMode.MARKDOWN,
@@ -68,7 +66,8 @@ def search_handler(bot, update, chat_data, args=None):
                         InlineKeyboardButton(captions.SWITCH_PRIVATE,
                                              url="https://t.me/{}?start={}".format(
                                                  settings.SELF_BOT_NAME,
-                                                 action))
+                                                 action
+                                             ))
                     ]]
                 ))
         else:
