@@ -165,7 +165,7 @@ def send_category(bot, update, chat_data, category=None):
 
 @private_chat_only
 def send_bot_details(bot, update, chat_data, item=None):
-    uid = util.uid_from_update(update)
+    cid = update.effective_chat.id
     user = User.from_update(update)
     first_row = list()
 
@@ -194,7 +194,7 @@ def send_bot_details(bot, update, chat_data, item=None):
         first_row.insert(0, btn)
         first_row.append(InlineKeyboardButton(captions.SHARE, switch_inline_query=item.username))
 
-        if uid in settings.MODERATORS:
+        if cid in settings.MODERATORS:
             first_row.append(InlineKeyboardButton(
                 "🛃 Edit", callback_data=util.callback_for_action(
                     CallbackActions.EDIT_BOT,
@@ -202,7 +202,7 @@ def send_bot_details(bot, update, chat_data, item=None):
                 )))
     else:
         txt = '{} is currently pending to be accepted for the @BotList.'.format(item)
-        if uid in settings.MODERATORS:
+        if cid in settings.MODERATORS:
             first_row.append(InlineKeyboardButton(
                 "🛃 Accept / Reject", callback_data=util.callback_for_action(
                     CallbackActions.APPROVE_REJECT_BOTS,
@@ -225,7 +225,7 @@ def send_bot_details(bot, update, chat_data, item=None):
         ])
     reply_markup = InlineKeyboardMarkup(buttons)
     reply_markup, callback = botlistchat.append_delete_button(update, chat_data, reply_markup)
-    msg = bot.formatter.send_or_edit(uid,
+    msg = bot.formatter.send_or_edit(cid,
                                        txt,
                                        to_edit=util.mid_from_update(update),
                                        reply_markup=reply_markup

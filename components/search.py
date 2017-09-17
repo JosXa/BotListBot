@@ -21,23 +21,23 @@ def search_query(bot, update, chat_data, query, send_errors=True):
     reply_markup = ReplyKeyboardMarkup(
         basic.main_menu_buttons(is_admin),
         resize_keyboard=True
-    ) if util.is_private_message(update) else ReplyKeyboardRemove()
+    ) if util.is_private_message(update) else None
     if results:
         if len(results) == 1:
             return send_bot_details(bot, update, chat_data, results[0])
         too_many_results = len(results) > settings.MAX_SEARCH_RESULTS
 
-        results = ''
+        bots_list = ''
         if cid in settings.MODERATORS:
             # append edit buttons
-            results += '\n'.join(["{} — /edit{} 🛃".format(b, b.id) for b in list(results)[:100]])
+            bots_list += '\n'.join(["{} — /edit{} 🛃".format(b, b.id) for b in list(results)[:100]])
         else:
-            results += '\n'.join([str(b) for b in list(results)[:settings.MAX_SEARCH_RESULTS]])
-        results += '\n…' if too_many_results else ''
-        results = messages.SEARCH_RESULTS.format(bots=results, num_results=len(results),
+            bots_list += '\n'.join([str(b) for b in list(results)[:settings.MAX_SEARCH_RESULTS]])
+        bots_list += '\n…' if too_many_results else ''
+        bots_list = messages.SEARCH_RESULTS.format(bots=bots_list, num_results=len(results),
                                                    plural='s' if len(results) > 1 else '',
                                                    query=query)
-        update.message.reply_text(results, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
+        msg = update.message.reply_text(bots_list, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
     else:
         if send_errors:
             update.message.reply_text(
