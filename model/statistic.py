@@ -2,10 +2,8 @@
 import datetime
 
 import logging
-import maya
 from peewee import *
 from telegram import Update
-from telegram.ext import run_async
 
 import helpers
 from model import User
@@ -81,8 +79,9 @@ class Statistic(BaseModel):
             return '/' + self.entity
         return self.entity
 
+
     @classmethod
-    @run_async
+    # @run_async
     def of(cls, issuer, action: str, entity: str, level=logging.INFO):
         # if action not in Statistic.ACTIONS.keys():
         #     raise ValueError('"{}" is not a valid action. Refer to Statistic.ACTIONS for available keys.')
