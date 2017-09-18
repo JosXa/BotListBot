@@ -30,6 +30,7 @@ from dialog import messages
 from lib import InlineCallbackHandler
 from misc import manage_subscription
 from model import Keyword
+from model import Statistic
 from model import User, Category, Bot, Favorite, Country, Suggestion
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
@@ -363,8 +364,9 @@ def register(dp):
     dp.add_handler(RegexHandler(captions.APPROVE_SUGGESTIONS + '.*', admin.approve_suggestions))
     dp.add_handler(RegexHandler(captions.PENDING_UPDATE + '.*', admin.pending_update))
     dp.add_handler(RegexHandler(captions.SEND_BOTLIST, admin.prepare_transmission, pass_chat_data=True))
-    dp.add_handler(RegexHandler(captions.SEND_CONFIG_FILES, admin.send_runtime_files))
     dp.add_handler(RegexHandler(captions.FIND_OFFLINE, admin.send_offline))
+    dp.add_handler(RegexHandler(captions.SEND_CONFIG_FILES, admin.send_runtime_files))
+    dp.add_handler(RegexHandler(captions.SEND_ACTIVITY_LOGS, admin.send_activity_logs))
 
     # main menu
     dp.add_handler(RegexHandler(captions.ADMIN_MENU, admin.menu))
@@ -413,6 +415,15 @@ def register(dp):
     dp.add_handler(CommandHandler("newbots", show_new_bots, pass_chat_data=True))
 
     dp.add_handler(CommandHandler("accesstoken", access_token))
+
+    dp.add_handler(CommandHandler(('log', 'logs'), admin.send_activity_logs))
+    dp.add_handler(CommandHandler('debug', lambda bot, update: admin.send_activity_logs(bot, update, Statistic.DEBUG)))
+    dp.add_handler(
+        CommandHandler('detailed', lambda bot, update: admin.send_activity_logs(bot, update, Statistic.DETAILED)))
+    dp.add_handler(
+        CommandHandler(('warn', 'warning'), lambda bot, update: admin.send_activity_logs(bot, update, Statistic.WARN)))
+    dp.add_handler(
+        CommandHandler('important', lambda bot, update: admin.send_activity_logs(bot, update, Statistic.IMPORTANT)))
 
     dp.add_handler(MessageHandler(Filters.text, lambda bot, update: botlistchat.text_message_logger(bot, update, log)),
                    group=99)

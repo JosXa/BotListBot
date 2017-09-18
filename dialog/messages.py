@@ -95,7 +95,7 @@ Rules: Speak in English, Don't spam/advertise channels or groups that aren't bot
 [Give @BotList a rating](https://goo.gl/rtSs5B)"""
 BAN_MESSAGE = mdformat.action_hint("Please send me the username to ban and remove all bot submissions")
 UNBAN_MESSAGE = mdformat.action_hint("Please send me the username of the user to revoke ban state for")
-FAVORITES_HEADLINE = "*{}* 🔽\n_― from_ @BotList".format(captions.FAVORITES)
+FAVORITES_HEADLINE = "*{}* 🔽\n_┌ from_ @BotList".format(captions.FAVORITES)
 ADD_FAVORITE = mdformat.action_hint("Please send me the @username of a bot to add to your favorites")
 
 BOTPROPERTY_STARTSWITH = "Please send me a "

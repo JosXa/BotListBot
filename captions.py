@@ -10,6 +10,7 @@ REFRESH = "🔄 Refresh"
 ADD_BOT = "➕ Add new bot"
 EDIT_BOT = "🛠 Edit Bot"
 SEND_BOTLIST = "☑ Update BotList"
+SEND_ACTIVITY_LOGS = "Activity Logs"
 BACK = "{} Back".format(Emoji.BACK_WITH_LEFTWARDS_ARROW_ABOVE)
 BACK_TO_CATEGORY = "{} to Category".format(Emoji.BACK_WITH_LEFTWARDS_ARROW_ABOVE)
 APPROVE_BOTS = "Approve Bots"

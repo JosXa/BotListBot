@@ -70,14 +70,13 @@ class User(BaseModel):
 
     @property
     def markdown_short(self):
-        text = '👤 '  # emoji
         full_name = ''
         if self.first_name:
             full_name = self.first_name
         if self.username:
-            text += '[{}](https://t.me/{})'.format(full_name, self.username)
+            text = '[👤 {}](https://t.me/{})'.format(full_name, self.username)
         else:
-            text += full_name
+            text = full_name
         return text.encode('utf-8').decode('utf-8')
 
     @property

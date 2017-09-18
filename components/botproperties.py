@@ -14,12 +14,15 @@ from custemoji import Emoji
 from dialog import messages
 from model import Country
 from model import Keyword
+from model import Statistic
 from model import Suggestion
 from model import User
 from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram import ParseMode
 from telegram.ext import ConversationHandler
+
+from model import track_activity
 from util import restricted
 
 CLEAR_QUERY = "x"
@@ -65,7 +68,7 @@ def set_country(bot, update, to_edit, country):
         value = None
     else:
         raise AttributeError("Error setting country to {}.".format(country))
-    Suggestion.add_or_update(user, 'country', to_edit, value)
+    sugg = Suggestion.add_or_update(user, 'country', to_edit, value)
 
 
 def set_text_property(bot, update, chat_data, property_name, to_edit=None):
@@ -141,6 +144,7 @@ def set_keywords_init(bot, update, chat_data, context):
 
 
 @restricted
+@track_activity('menu', 'set keywords', Statistic.DETAILED)
 def set_keywords(bot, update, chat_data, to_edit):
     chat_id = util.uid_from_update(update)
     keywords = Keyword.select().where(Keyword.entity == to_edit)
@@ -187,6 +191,7 @@ def add_keyword(bot, update, chat_data):
     kw_obj = Keyword(name=kw, entity=bot_to_edit)
     kw_obj.save()
     set_keywords(bot, update, chat_data, bot_to_edit)
+    Statistic.of(update, 'added keyword {} to'.format(kw), bot_to_edit.username)
 
 
 @restricted
@@ -208,8 +213,10 @@ def delete_bot_confirm(bot, update, to_edit):
 @restricted
 def delete_bot(bot, update, to_edit):
     chat_id = util.uid_from_update(update)
+    username = to_edit.username
     to_edit.delete_instance()
     bot.formatter.send_or_edit(chat_id, "Bot has been deleted.", to_edit=util.mid_from_update(update))
+    Statistic.of(update, 'delete', username, Statistic.IMPORTANT)
 
 
 @restricted
@@ -231,6 +238,7 @@ def check_suggestion_limit(bot, update, user):
         bot.formatter.send_failure(cid,
                                   "You have reached the limit of {} suggestions. Please wait for "
                                   "the Moderators to approve of some of them.".format(settings.SUGGESTION_LIMIT))
+        Statistic.of(update, 'hit the suggestion limit')
         return True
     return False
 

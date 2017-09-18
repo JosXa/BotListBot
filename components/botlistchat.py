@@ -13,6 +13,7 @@ import util
 from components import basic
 from const import CallbackActions
 from model import Bot
+from model import track_activity
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -48,6 +49,7 @@ def append_delete_button(update, chat_data, reply_markup):
     return reply_markup, append_callback
 
 
+@track_activity('issued deletion of conversation in BotListChat')
 def delete_conversation(bot, update, chat_data):
     cid = update.effective_chat.id
     uid = update.effective_user.id

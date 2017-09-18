@@ -71,6 +71,7 @@ class Suggestion(BaseModel):
 
     @staticmethod
     def add_or_update(user, action, subject, value):
+        from model import Statistic
         # value may be None
         already_exists = Suggestion.get_pending(action, subject, user)
         if already_exists:
@@ -83,11 +84,14 @@ class Suggestion(BaseModel):
             already_exists.value = value
             already_exists.save()
 
+            Statistic.of(user, 'made changes to their suggestion: ', already_exists._md_plaintext())
+
             return already_exists
         else:
             new_suggestion = Suggestion(user=user, action=action, date=datetime.date.today(),
                                         subject=subject, value=value)
             new_suggestion.save()
+            Statistic.of(user, 'suggestion', new_suggestion._md_plaintext())
             return new_suggestion
 
     @staticmethod
@@ -184,11 +188,11 @@ class Suggestion(BaseModel):
             except Bot.DoesNotExist:
                 suggestion.delete_instance()
 
-    def __str__(self):
+    def _md_plaintext(self):
         uname = util.escape_markdown(self.subject.username)
         value = str(self.value)
 
-        text = str(self.user) + ": "
+        text = ''
         if self.action == 'category':
             from model import Category
             try:
@@ -223,4 +227,8 @@ class Suggestion(BaseModel):
             text += "set offline {}".format(uname)
         elif self.action == 'spam':
             text += "mark {} as spammy".format(uname)
+        return text
+
+    def __str__(self):
+        text = str(self.user) + ": " + self._md_plaintext()
         return text.encode('utf-8').decode('utf-8')

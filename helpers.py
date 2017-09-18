@@ -1,6 +1,7 @@
 import logging
 import re
 
+import maya
 from telegram import ParseMode, InlineKeyboardMarkup, InlineKeyboardButton
 
 import captions
@@ -11,6 +12,12 @@ from settings import SELF_CHANNEL_USERNAME
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
+
+
+def slang_datetime(dt) -> str:
+    maya_date = maya.MayaDT(dt.timestamp())
+    return maya_date.slang_time()
+
 
 
 def validate_username(username: str):

@@ -10,6 +10,8 @@ from model.user import User
 from model.suggestion import Suggestion
 from model.favorite import Favorite
 from model.message import Message
+from model.statistic import Statistic
+from model.statistic import track_activity
 
 if __name__ == "__main__":
     Category.create_table(fail_silently=True)

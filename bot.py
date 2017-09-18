@@ -23,6 +23,8 @@ from lib.markdownformatter import MarkdownFormatter
 #
 #
 ###
+from model import Statistic
+
 
 def setup_logger():
     logger = logging.getLogger()
@@ -73,6 +75,10 @@ def main():
     # updater.bot._msg_queue = message_queue
     # updater.bot.queuedmessage = messagequeue.queuedmessage
     # updater.bot.send_message = updater.bot.queuedmessage(updater.bot.send_message)
+
+
+    Statistic.drop_table(fail_silently=True)
+    Statistic.create_table()
 
     routing.register(dp)
     basic.register(dp)

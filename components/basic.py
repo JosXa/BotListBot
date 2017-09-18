@@ -21,11 +21,13 @@ from components.botlist import new_channel_post
 from components.search import search_query, search_handler
 from dialog import messages
 from model import User, Category
+from model.statistic import track_activity, Statistic
 from util import track_groups
 
 log = logging.getLogger(__name__)
 
 
+@track_activity('command', 'start')
 @track_groups
 def start(bot, update, chat_data, args):
     tg_user = update.message.from_user
@@ -79,6 +81,7 @@ def main_menu_buttons(admin=False):
     return buttons
 
 
+@track_activity('menu', 'main menu')
 def main_menu(bot, update):
     chat_id = update.effective_chat.id
     is_admin = chat_id in settings.MODERATORS
@@ -104,6 +107,7 @@ def error(bot, update, error):
     log.error(error)
 
 
+@track_activity('remove', 'keyboard')
 def remove_keyboard(bot, update):
     update.message.reply_text("Keyboard removed.", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END

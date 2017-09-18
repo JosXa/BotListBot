@@ -18,6 +18,8 @@ from custemoji import Emoji
 from dialog import messages
 from model import Bot, Country
 from model import Category
+from model import Statistic
+from model import track_activity
 from model.channel import Channel
 from model import Notifications
 from model.revision import Revision
@@ -322,6 +324,7 @@ def send_botlist(bot, update, resend=False, silent=False):
     botlist.send_footer()
     botlist.finish()
     channel.save()
+    Statistic.of(update, 'send', 'botlist (resend: {})'.format(str(resend)), Statistic.IMPORTANT)
 
 
 def new_channel_post(bot, update, photo=None):

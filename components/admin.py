@@ -21,26 +21,30 @@ from custemoji import Emoji
 from dialog import messages
 from model import Bot
 from model import Category
+from model import Statistic
 from model import Suggestion
 from model import User
+from model import track_activity
 from util import restricted
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
+@track_activity('menu', 'Administration', Statistic.DEBUG)
 @restricted
 def menu(bot, update):
     uid = update.effective_user.id
 
-    buttons = _admin_buttons(send_botlist_button=uid in settings.ADMINS)
+    is_admin = uid in settings.ADMINS
+    buttons = _admin_buttons(send_botlist_button=is_admin, logs_button=is_admin)
 
     bot.formatter.send_message(uid, "🛃 Administration menu",
                                reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True))
     return BotStates.ADMIN_MENU
 
 
-def _admin_buttons(send_botlist_button=True):
+def _admin_buttons(send_botlist_button=False, logs_button=False):
     n_unapproved = len(Bot.select().where(Bot.approved == False))
     n_suggestions = len(Suggestion.select_all())
     n_pending = len(Bot.select_pending_update())
@@ -64,9 +68,12 @@ def _admin_buttons(send_botlist_button=True):
     update_row = list()
     if n_pending > 0:
         update_row.append(
-            KeyboardButton(captions.PENDING_UPDATE + ' {}{}'.format(mdformat.number_as_emoji(n_pending), captions.SUGGESTION_PENDING_EMOJI)))
+            KeyboardButton(captions.PENDING_UPDATE + ' {}{}'.format(mdformat.number_as_emoji(n_pending),
+                                                                    captions.SUGGESTION_PENDING_EMOJI)))
     if send_botlist_button:
         update_row.append(KeyboardButton(captions.SEND_BOTLIST))
+    if logs_button:
+        update_row.append(KeyboardButton(captions.SEND_ACTIVITY_LOGS))
 
     if len(update_row) > 0:
         buttons.insert(1, update_row)
@@ -80,6 +87,7 @@ def _admin_buttons(send_botlist_button=True):
 def _input_failed(bot, update, chat_data, text):
     chat_id = util.uid_from_update(update)
     bot.formatter.send_failure(chat_id, text)
+    Statistic.of(update, 'error', 'input failed in admin menu for {}'.format(text), Statistic.DEBUG)
     chat_data['add_bot_message'] = None
 
 
@@ -175,6 +183,7 @@ def _edit_bot_buttons(to_edit: Bot, pending_suggestions: Dict, is_moderator):
     return util.build_menu(buttons, n_cols=2, header_buttons=header, footer_buttons=footer)
 
 
+@track_activity('menu', 'bot editing', Statistic.DEBUG)
 @restricted
 def edit_bot(bot, update, chat_data, to_edit=None):
     uid = util.uid_from_update(update)
@@ -234,6 +243,7 @@ def prepare_transmission(bot, update, chat_data):
                          reply_markup=reply_markup)
 
 
+@track_activity('menu', 'approve suggestions', Statistic.DEBUG)
 @restricted
 def approve_suggestions(bot, update, page=0):
     uid = util.uid_from_update(update)
@@ -302,6 +312,7 @@ def approve_suggestions(bot, update, page=0):
     return CallbackStates.APPROVING_BOTS
 
 
+@track_activity('menu', 'approve bots', Statistic.DEBUG)
 @restricted
 def approve_bots(bot, update, page=0, override_list=None):
     chat_id = util.uid_from_update(update)
@@ -388,6 +399,7 @@ def approve_bots(bot, update, page=0, override_list=None):
     return CallbackStates.APPROVING_BOTS
 
 
+@track_activity('menu', 'recommend moderator', Statistic.DETAILED)
 def recommend_moderator(bot, update, bot_in_question, page):
     uid = update.effective_user.id
     mid = util.mid_from_update(update)
@@ -424,8 +436,10 @@ def share_with_moderator(bot, update, bot_in_question, moderator):
         user.markdown_short, bot_in_question
     )
     util.send_md_message(bot, moderator.chat_id, text, reply_markup=reply_markup, disable_web_page_preview=True)
+    Statistic.of(update, 'share', 'submission {} with {}'.format(bot_in_question.username, moderator.plaintext))
 
 
+@track_activity('menu', 'edit bot category', Statistic.DETAILED)
 @restricted
 def edit_bot_category(bot, update, for_bot, callback_action=None):
     if callback_action is None:
@@ -481,24 +495,7 @@ def accept_bot_submission(bot, update, of_bot: Bot, category):
         bot.formatter.send_failure(uid, "An error has occured. Bot not added.")
 
 
-@restricted
-def send_runtime_files(bot, update):
-    def send_file(path):
-        try:
-            uid = update.effective_user.id
-            bot.sendDocument(uid, open(path, 'rb'), filename=os.path.split(path)[-1])
-        except:
-            pass
-
-    send_file('files/intro_en.txt')
-    send_file('files/intro_es.txt')
-    send_file('files/new_bots_list.txt')
-    send_file('files/category_list.txt')
-    send_file('files/commands.txt')
-    send_file('error.log')
-    send_file('debug.log')
-
-
+@track_activity('request', 'list of offline bots')
 @restricted
 def send_offline(bot, update):
     chat_id = util.uid_from_update(update)
@@ -536,10 +533,13 @@ def reject_bot_submission(bot, update, to_reject=None, verbose=True, notify_subm
             return
 
         if to_reject.approved is True:
+            msg = "{} has already been accepted, so it cannot be rejected anymore.".format(username)
+            log.warning("Race condition detected: " + msg)
             bot.sendMessage(uid, util.failure(
-                "{} has already been accepted, so it cannot be rejected anymore.".format(username)))
+                msg))
             return
 
+    Statistic.of(update, 'reject', to_reject.username)
     log_msg = "{} rejected by {}.".format(to_reject.username, user)
     notification_successful = None
     if notify_submittant:
@@ -607,8 +607,10 @@ def ban_user(bot, update, user: User, ban_state: bool):
             b.delete_instance()
         update.message.reply_text(mdformat.success("User {} banned and all bot submissions removed.".format(user)),
                                   parse_mode='markdown')
+        Statistic.of(update, 'ban', user.markdown_short)
     else:
         update.message.reply_text(mdformat.success("User {} unbanned.".format(user)), parse_mode='markdown')
+        Statistic.of(update, 'unban', user.markdown_short)
     user.save()
 
 
@@ -650,8 +652,10 @@ def apply_all_changes(bot, update, chat_data, to_edit):
 
     refreshed_bot = Bot.get(id=to_edit.id)
     edit_bot(bot, update, chat_data, refreshed_bot)
+    Statistic.of(update, 'apply', refreshed_bot.username)
 
 
+@track_activity('menu', 'pending bots for next update', Statistic.DEBUG)
 def pending_update(bot, update):
     uid = update.effective_chat.id
     bots = Bot.select_pending_update()
@@ -664,3 +668,43 @@ def pending_update(bot, update):
         txt += '\n'.join([str(b) for b in bots])
 
     bot.formatter.send_message(uid, txt)
+
+
+@track_activity('request', 'runtime files')
+@restricted
+def send_runtime_files(bot, update):
+    def send_file(path):
+        try:
+            uid = update.effective_user.id
+            bot.sendDocument(uid, open(path, 'rb'), filename=os.path.split(path)[-1])
+        except:
+            pass
+
+    send_file('files/intro_en.txt')
+    send_file('files/intro_es.txt')
+    send_file('files/new_bots_list.txt')
+    send_file('files/category_list.txt')
+    send_file('files/commands.txt')
+    send_file('error.log')
+    send_file('debug.log')
+
+
+@restricted
+def send_activity_logs(bot, update, level=Statistic.INFO):
+    uid = update.effective_user.id
+
+    # TODO: Merge logging output config('LOG_DIR')/debug.log
+    effective_level = level
+    recent_statistic = Statistic.collect_recent(min_level=level)
+    # text = ''
+    # last_date = None
+    # for i in recent_statistic:
+    #     date = helpers.slang_datetime(i.date)
+    #     if last_date and last_date == date:
+    #         text += '\n{}'.format(i.md_str(no_date=True))
+
+    step_size = 30
+    for i in range(0, len(recent_statistic), step_size):
+        items = recent_statistic[i: i + step_size]
+        text = '\n'.join(x.md_str() for x in items)
+        bot.formatter.send_message(uid, text)
