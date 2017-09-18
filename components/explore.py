@@ -17,6 +17,9 @@ from telegram import InlineKeyboardButton
 from telegram import InlineKeyboardMarkup
 from telegram.ext import CommandHandler
 from telegram.ext import ConversationHandler
+
+from model import Statistic
+from model import track_activity
 from util import track_groups, private_chat_only
 
 
@@ -25,6 +28,7 @@ def show_official(bot, update):
     update.effective_message.reply_text(text + Bot.get_official_bots_markdown(), parse_mode='markdown')
 
 
+@track_activity('explore', 'bots', Statistic.ANALYSIS)
 def explore(bot, update, chat_data):
     cid = update.effective_chat.id
     uid = update.effective_user.id
@@ -91,6 +95,7 @@ def _select_category_buttons(callback_action=None):
     return buttons
 
 
+@track_activity('menu', 'select category', Statistic.ANALYSIS)
 @track_groups
 def select_category(bot, update, chat_data, callback_action=None):
     chat_id = update.effective_chat.id
@@ -103,6 +108,7 @@ def select_category(bot, update, chat_data, callback_action=None):
     return ConversationHandler.END
 
 
+@track_activity('explore', 'new bots', Statistic.ANALYSIS)
 def show_new_bots(bot, update, chat_data, back_button=False):
     chat_id = update.effective_chat.id
     channel = helpers.get_channel()
@@ -124,7 +130,6 @@ def show_new_bots(bot, update, chat_data, back_button=False):
 
 
 def send_category(bot, update, chat_data, category=None):
-    print(category)
     uid = util.uid_from_update(update)
     cid = update.effective_chat.id
     bots = Bot.of_category_without_new(category)[:settings.MAX_BOTS_PER_MESSAGE]
@@ -161,6 +166,7 @@ def send_category(bot, update, chat_data, category=None):
     reply_markup, callback = botlistchat.append_delete_button(update, chat_data, reply_markup)
     msg = bot.formatter.send_or_edit(cid, txt, to_edit=util.mid_from_update(update), reply_markup=reply_markup)
     callback(msg)
+    Statistic.of(update, 'menu', 'of category {}'.format(str(category)), Statistic.ANALYSIS)
 
 
 def send_bot_details(bot, update, chat_data, item=None):
@@ -237,6 +243,7 @@ def send_bot_details(bot, update, chat_data, item=None):
                                        reply_markup=reply_markup
                                        )
     callback(msg)
+    Statistic.of(update, 'view-details', item.username, Statistic.ANALYSIS)
     return CallbackStates.SHOWING_BOT_DETAILS
 
 

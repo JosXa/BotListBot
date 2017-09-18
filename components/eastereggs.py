@@ -11,8 +11,10 @@ import util
 from telegram import KeyboardButton
 
 import captions
+from model import track_activity
 
 
+@track_activity('easteregg', '"crappy troll markup"')
 def _crapPy_Tr0ll_kbmarkup(rows=None):
     if rows is None:
         rows = 4
@@ -48,5 +50,6 @@ def send_next(bot, update, args=None):
 
 
 def send_random_bot(bot, update):
+    from components.explore import send_bot_details
     random_bot = Bot.select().where((Bot.approved == True), (Bot.description.is_null(False))).order_by(fn.Random()).limit(1)[0]
     send_bot_details(bot, update, random_bot)

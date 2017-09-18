@@ -205,7 +205,7 @@ class Suggestion(BaseModel):
         elif self.action == 'username':
             text += "set username {} ➜ {}".format(uname, value)
         elif self.action == 'description':
-            text += "change description text {}".format(uname)
+            text += "change description text of {}".format(uname)
         elif self.action == 'extra':
             text += "change extra text {}".format(uname)
         elif self.action == 'country':

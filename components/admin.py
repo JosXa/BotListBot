@@ -31,7 +31,7 @@ logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
-@track_activity('menu', 'Administration', Statistic.DEBUG)
+@track_activity('menu', 'Administration', Statistic.ANALYSIS)
 @restricted
 def menu(bot, update):
     uid = update.effective_user.id
@@ -87,7 +87,7 @@ def _admin_buttons(send_botlist_button=False, logs_button=False):
 def _input_failed(bot, update, chat_data, text):
     chat_id = util.uid_from_update(update)
     bot.formatter.send_failure(chat_id, text)
-    Statistic.of(update, 'error', 'input failed in admin menu for {}'.format(text), Statistic.DEBUG)
+    Statistic.of(update, 'error', 'input failed in admin menu for {}'.format(text), Statistic.ANALYSIS)
     chat_data['add_bot_message'] = None
 
 
@@ -183,7 +183,7 @@ def _edit_bot_buttons(to_edit: Bot, pending_suggestions: Dict, is_moderator):
     return util.build_menu(buttons, n_cols=2, header_buttons=header, footer_buttons=footer)
 
 
-@track_activity('menu', 'bot editing', Statistic.DEBUG)
+@track_activity('menu', 'bot editing', Statistic.ANALYSIS)
 @restricted
 def edit_bot(bot, update, chat_data, to_edit=None):
     uid = util.uid_from_update(update)
@@ -243,7 +243,7 @@ def prepare_transmission(bot, update, chat_data):
                          reply_markup=reply_markup)
 
 
-@track_activity('menu', 'approve suggestions', Statistic.DEBUG)
+@track_activity('menu', 'approve suggestions', Statistic.ANALYSIS)
 @restricted
 def approve_suggestions(bot, update, page=0):
     uid = util.uid_from_update(update)
@@ -312,7 +312,7 @@ def approve_suggestions(bot, update, page=0):
     return CallbackStates.APPROVING_BOTS
 
 
-@track_activity('menu', 'approve bots', Statistic.DEBUG)
+@track_activity('menu', 'approve bots', Statistic.ANALYSIS)
 @restricted
 def approve_bots(bot, update, page=0, override_list=None):
     chat_id = util.uid_from_update(update)
@@ -655,7 +655,7 @@ def apply_all_changes(bot, update, chat_data, to_edit):
     Statistic.of(update, 'apply', refreshed_bot.username)
 
 
-@track_activity('menu', 'pending bots for next update', Statistic.DEBUG)
+@track_activity('menu', 'pending bots for next update', Statistic.ANALYSIS)
 def pending_update(bot, update):
     uid = update.effective_chat.id
     bots = Bot.select_pending_update()

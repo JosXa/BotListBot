@@ -18,6 +18,7 @@ from components import favorites
 from dialog import messages
 from model import Bot, Category
 from model import Favorite
+from model import Statistic
 from model import User
 
 # CONSTANTS
@@ -111,6 +112,10 @@ def favorites_article(user):
 
 def inlinequery_handler(bot, update, chat_data):
     query = update.inline_query.query.lower()
+
+    # TODO: remove or enhance eventually, this is potentially very spammy
+    Statistic.of(update, 'inlinequery', '"{}"'.format(query), Statistic.DETAILED)
+
     user = User.from_update(update)
     results_list = list()
 
@@ -211,3 +216,4 @@ def inlinequery_handler(bot, update, chat_data):
 def chosen_result(bot, update, chat_data):
     if update.chosen_inline_result.inline_message_id:
         chat_data['sent_inlinequery'] = update.chosen_inline_result.inline_message_id
+    Statistic.of(update, 'chosen-inlinequery-result', level=Statistic.ANALYSIS)

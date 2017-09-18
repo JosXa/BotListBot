@@ -9,6 +9,8 @@ from telegram import InlineKeyboardButton
 from telegram import InlineKeyboardMarkup
 from telegram import ParseMode
 from telegram.ext import ConversationHandler
+
+from model import track_activity
 from util import track_groups
 
 
@@ -17,6 +19,7 @@ def available_commands(bot, update):
 
 
 @track_groups
+@track_activity('command', 'help')
 def help(bot, update):
     mid = util.mid_from_update(update)
     cid = update.effective_chat.id
@@ -24,6 +27,7 @@ def help(bot, update):
     return ConversationHandler.END
 
 
+@track_activity('command', 'contributing')
 def contributing(bot, update, quote=True):
     mid = util.mid_from_update(update)
     cid = update.effective_chat.id
@@ -31,6 +35,7 @@ def contributing(bot, update, quote=True):
     return ConversationHandler.END
 
 
+@track_activity('command', 'examples')
 def examples(bot, update, quote=True):
     mid = util.mid_from_update(update)
     cid = update.effective_chat.id
@@ -38,6 +43,7 @@ def examples(bot, update, quote=True):
     return ConversationHandler.END
 
 
+@track_activity('command', 'rules')
 def rules(bot, update, quote=True):
     chat_id = update.effective_chat.id
     if chat_id == settings.BOTLISTCHAT_ID or util.is_private_message(update):

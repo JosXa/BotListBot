@@ -417,7 +417,8 @@ def register(dp):
     dp.add_handler(CommandHandler("accesstoken", access_token))
 
     dp.add_handler(CommandHandler(('log', 'logs'), admin.send_activity_logs))
-    dp.add_handler(CommandHandler('debug', lambda bot, update: admin.send_activity_logs(bot, update, Statistic.DEBUG)))
+    dp.add_handler(CommandHandler(('debug', 'analysis', 'ana', 'analyze'),
+                                  lambda bot, update: admin.send_activity_logs(bot, update, Statistic.ANALYSIS)))
     dp.add_handler(CommandHandler('info', lambda bot, update: admin.send_activity_logs(bot, update, Statistic.INFO)))
     dp.add_handler(
         CommandHandler('detailed', lambda bot, update: admin.send_activity_logs(bot, update, Statistic.DETAILED)))

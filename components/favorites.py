@@ -17,8 +17,10 @@ from dialog import messages
 from layouts import Layouts
 from model import Bot
 from model import Favorite
+from model import Statistic
 from model import User
 from const import CallbackActions, DeepLinkingActions
+from model import track_activity
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -74,6 +76,7 @@ def add_favorite(bot, update, item: Bot, callback_alert=None):
 
     fav, created = Favorite.add(user=user, item=item)
     if created:
+        Statistic.of(user, 'add-favorite', item.username)
         text = mdformat.love("{} added to your {}favorites.".format(fav.bot, '' if callback_alert else '/'))
         if callback_alert:
             update.callback_query.answer(text=text, show_alert=False)
@@ -92,6 +95,7 @@ def add_favorite(bot, update, item: Bot, callback_alert=None):
     return ConversationHandler.END
 
 
+@track_activity('view-favorites', level=Statistic.ANALYSIS)
 def send_favorites_list(bot, update, to_edit=None):
     uid = util.uid_from_update(update)
     user = User.from_update(update)
@@ -132,6 +136,7 @@ def send_favorites_list(bot, update, to_edit=None):
                                  to_edit=to_edit, reply_markup=reply_markup)
 
 
+@track_activity('toggled their favorites layout', level=Statistic.ANALYSIS)
 def toggle_favorites_layout(bot, update, value):
     uid = util.uid_from_update(update)
     user = User.from_update(update)
@@ -188,6 +193,7 @@ def _favorites_categories_md(favorites, layout=None):
     return text
 
 
+@track_activity('menu', 'remove favorite', Statistic.DETAILED)
 def remove_favorite_menu(bot, update):
     uid = util.uid_from_update(update)
     user = User.from_update(update)
@@ -209,12 +215,15 @@ def remove_favorite_menu(bot, update):
 
 def _too_many_favorites_handler(bot, update, user):
     uid = util.uid_from_update(update)
+    any_removed = False
     while too_many_favorites(user):
         oldest = Favorite.get_oldest(user)
-        print(oldest.bot)
+        oldest.delete_instance()
+        any_removed = True
+        Statistic.of(update, 'had to lose a favorite because HE HAD TOO FUCKIN MANY 😬')
+    if any_removed:
         txt = "You have too many favorites, _they do not fit into a single message_. That's why I removed your " \
               "oldest bot, *{}*, from your list of favorites.".format(oldest.bot if oldest.bot else oldest.custom_bot)
-        oldest.delete_instance()
         util.send_md_message(bot, uid, txt)
 
 

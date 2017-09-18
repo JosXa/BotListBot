@@ -26,14 +26,15 @@ class Statistic(BaseModel):
     IMPORTANT = 30
     WARN = logging.WARNING
     INFO = logging.INFO
-    DEBUG = logging.DEBUG
+    ANALYSIS = logging.DEBUG
     DETAILED = 9
 
     ACTIONS = {
         'search': 'searched for',
         'button-press': 'clicked on',
         'command': 'executed command',
-        'inlinequery': 'invoked inlinequery with',
+        'chosen-inlinequery-result': 'sent an inline query',
+        'inlinequery': 'did an inline query: ',
         'menu': 'entered menu',
         'error': 'received error',
         'share': 'shared',
@@ -46,7 +47,12 @@ class Statistic(BaseModel):
         'remove': 'removed',
         'send': 'sent',
         'delete': 'deleted',
-        'suggestion': 'made a suggestion to'
+        'suggestion': 'made a suggestion to',
+        'easteregg': 'tried out the easteregg',
+        'explore': 'explored',
+        'view-details': 'viewed details of',
+        'add-favorite': 'added a new favorite:',
+        'view-favorites': 'viewed their favorites',
     }
     user = ForeignKeyField(User)
     date = DateTimeField()
@@ -58,7 +64,7 @@ class Statistic(BaseModel):
         IMPORTANT: '🔴',
         WARN: '🔺',
         INFO: '⚪️',
-        DEBUG: '▫️',
+        ANALYSIS: '▫️',
         DETAILED: '▪️'
     }
 
@@ -77,12 +83,14 @@ class Statistic(BaseModel):
     def __format_entity(self):
         if self.action == 'command':
             return '/' + self.entity
+        if self.action == 'menu':
+            return self.entity.title()
         return self.entity
 
 
     @classmethod
     # @run_async
-    def of(cls, issuer, action: str, entity: str, level=logging.INFO):
+    def of(cls, issuer, action: str, entity: str = None, level=logging.INFO):
         # if action not in Statistic.ACTIONS.keys():
         #     raise ValueError('"{}" is not a valid action. Refer to Statistic.ACTIONS for available keys.')
 
