@@ -421,7 +421,8 @@ def register(dp):
                                   lambda bot, update: admin.send_activity_logs(bot, update, Statistic.ANALYSIS)))
     dp.add_handler(CommandHandler('info', lambda bot, update: admin.send_activity_logs(bot, update, Statistic.INFO)))
     dp.add_handler(
-        CommandHandler('detailed', lambda bot, update: admin.send_activity_logs(bot, update, Statistic.DETAILED)))
+        CommandHandler(('detail', 'detailed'),
+                       lambda bot, update: admin.send_activity_logs(bot, update, Statistic.DETAILED)))
     dp.add_handler(
         CommandHandler(('warn', 'warning'), lambda bot, update: admin.send_activity_logs(bot, update, Statistic.WARN)))
     dp.add_handler(
