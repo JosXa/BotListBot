@@ -81,7 +81,7 @@ def main_menu_buttons(admin=False):
     return buttons
 
 
-@track_activity('menu', 'main menu')
+@track_activity('menu', 'main menu', Statistic.DEBUG)
 def main_menu(bot, update):
     chat_id = update.effective_chat.id
     is_admin = chat_id in settings.MODERATORS
