@@ -284,9 +284,6 @@ def reply_router(bot, update, chat_data):
     try:
         partition = text.partition(messages.BOTPROPERTY_STARTSWITH)
     except AttributeError as e:
-        print("An exception has been raised for partitioning the text in reply_to_message (reply_router):")
-        print(e)
-        pprint(update.message.reply_to_message.to_dict())
         return  # raise DispatcherHandlerStop # TODO
     if partition[1] != '':
         bot_property = next(p for p in bot_properties if partition[2].startswith(p))
@@ -326,7 +323,6 @@ def register(dp):
         ],
         per_user=True,
         allow_reentry=False
-
     )
 
     dp.add_handler(keywords_handler)

@@ -26,3 +26,7 @@ MAX_SEARCH_RESULTS = 25
 MAX_BOTS_PER_MESSAGE = 140
 BOT_ACCEPTED_IDLE_TIME = 2  # minutes
 SUGGESTION_LIMIT = 25
+
+ERROR_LOG_FILE = os.path.join(LOG_DIR, "error.log")
+DEBUG_LOG_FILE = os.path.join(LOG_DIR, "bot.log")
+

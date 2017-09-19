@@ -689,13 +689,27 @@ def send_runtime_files(bot, update):
     send_file('debug.log')
 
 
+def _merge_statistic_logs(statistic, file):
+    handle = open(file, 'r')
+    lines = handle.readlines()
+
+    for l in lines:
+        print()
+        print(l)
+
+    return statistic
+
+
 @restricted
 def send_activity_logs(bot, update, level=Statistic.INFO):
     uid = update.effective_user.id
 
-    # TODO: Merge logging output config('LOG_DIR')/debug.log
+    log.info("info")
+    log.debug("debug")
+    log.error("error")
+
     effective_level = level
-    recent_statistic = Statistic.collect_recent(min_level=level)
+    recent_statistic = _merge_statistic_logs(Statistic.collect_recent(min_level=effective_level), settings.DEBUG_LOG_FILE)
     # text = ''
     # last_date = None
     # for i in recent_statistic:
@@ -707,4 +721,9 @@ def send_activity_logs(bot, update, level=Statistic.INFO):
     for i in range(0, len(recent_statistic), step_size):
         items = recent_statistic[i: i + step_size]
         text = '\n'.join(x.md_str() for x in items)
+
+        # TODO
+        if not settings.DEV:
+            print(text)
+
         bot.formatter.send_message(uid, text)

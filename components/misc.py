@@ -6,6 +6,7 @@ from telegram import ParseMode
 from telegram.ext import ConversationHandler
 
 import util
+from model import Statistic
 from model import User, Bot, Notifications
 from pwrtelegram import PWRTelegram
 
@@ -16,7 +17,7 @@ def access_token(bot, update):
 
 
 def credits(bot, update):
-    users_contrib = User.select().join()
+    users_contrib = User.select().join(Bot)
     pass
     Bot.select(Bot.submitted_by)
     return ConversationHandler.END
@@ -37,17 +38,20 @@ def t3chnostats(bot, update):
 
 
 def set_notifications(bot, update, value: bool):
-    chat_id = update.effective_chat.id
+    cid = update.effective_chat.id
     try:
-        notifications = Notifications.get(Notifications.chat_id == chat_id)
+        notifications = Notifications.get(Notifications.chat_id == cid)
     except Notifications.DoesNotExist:
-        notifications = Notifications(chat_id=chat_id)
+        notifications = Notifications(chat_id=cid)
     notifications.enabled = value
     notifications.save()
 
+    Statistic.of(update, ('enabled' if value else 'disabled') + ' notifications for their group {}'.format(
+        cid))
+
     msg = util.success("Nice! Notifications enabled.") if value else "Ok, notifications disabled."
     msg += '\nYou can always adjust this setting with the /subscribe command.'
-    bot.formatter.send_or_edit(chat_id, msg, to_edit=util.mid_from_update(update))
+    bot.formatter.send_or_edit(cid, msg, to_edit=util.mid_from_update(update))
     return ConversationHandler.END
 
 

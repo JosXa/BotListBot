@@ -30,6 +30,9 @@ def setup_logger():
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
+    if not os.path.exists(settings.LOG_DIR):
+        os.makedirs(settings.LOG_DIR)
+
     console_formatter = logging.Formatter("%(name)-12s: %(levelname)-8s %(message)s")
     file_formatter = logging.Formatter("[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
 
@@ -40,13 +43,13 @@ def setup_logger():
     logger.addHandler(handler)
 
     # create error file handler and set level to error
-    handler = logging.FileHandler(os.path.join(settings.LOG_DIR, "error.log"), "w", encoding=None, delay="true")
+    handler = logging.FileHandler(settings.ERROR_LOG_FILE, "w", encoding=None, delay="true")
     handler.setLevel(logging.ERROR)
     handler.setFormatter(file_formatter)
     logger.addHandler(handler)
 
     # create debug file handler and set level to debug
-    handler = logging.FileHandler(os.path.join(settings.LOG_DIR, "debug.log"), "w", encoding=None, delay="true")
+    handler = logging.FileHandler(settings.DEBUG_LOG_FILE, "w", encoding=None, delay="true")
     handler.setLevel(logging.DEBUG)
     handler.setFormatter(file_formatter)
     logger.addHandler(handler)
