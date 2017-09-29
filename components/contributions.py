@@ -2,21 +2,32 @@
 import datetime
 import logging
 import re
+from pprint import pprint
 
 from peewee import fn
+from telegram import Message as TelegramMessage
+from telegram import ParseMode
+from telegram.ext import ConversationHandler
 
 import mdformat
 import settings
 import util
-from model import User, Bot, Suggestion, Country, Message
-from telegram import ParseMode
-from telegram.ext import ConversationHandler
-
+from model import User, Bot, Suggestion, Country
 from model.revision import Revision
 from util import track_groups
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
+
+
+def extract_bot_mentions(message: TelegramMessage):
+    text = message.text
+
+    matches = re.findall(settings.REGEX_BOT_IN_TEXT, text)
+    pprint(matches)
+
+    # If it ends in "bot", we can be sure it's a bot.
+    # Other ones will be thrown away, assuming that we already have all the verified bots
 
 
 def notify_bot_spam(bot, update, args=None):

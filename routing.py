@@ -430,3 +430,4 @@ def register(dp):
     dp.add_handler(ChosenInlineResultHandler(inlinequeries.chosen_result, pass_chat_data=True))
     dp.add_handler(InlineQueryHandler(inlinequeries.inlinequery_handler, pass_chat_data=True))
     dp.add_handler(MessageHandler(Filters.all, all_handler, pass_chat_data=True), group=98)
+

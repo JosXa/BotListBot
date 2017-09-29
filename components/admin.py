@@ -3,8 +3,10 @@ import datetime
 import logging
 import os
 import re
+from pprint import pprint
 from typing import Dict
 
+import dateutil.parser
 import emoji
 from telegram import ForceReply
 from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup, TelegramError
@@ -485,7 +487,8 @@ def accept_bot_submission(bot, update, of_bot: Bot, category):
         if of_bot.submitted_by != user:
             try:
                 bot.sendMessage(of_bot.submitted_by.chat_id,
-                                util.success(messages.ACCEPTANCE_PRIVATE_MESSAGE.format(of_bot.username)))
+                                util.success(
+                                    messages.ACCEPTANCE_PRIVATE_MESSAGE.format(of_bot.username, of_bot.category)))
                 log_msg += "\nUser {} was notified.".format(str(of_bot.submitted_by))
             except TelegramError:
                 log_msg += "\nUser {} could NOT be contacted/notified in private.".format(str(of_bot.submitted_by))
@@ -670,7 +673,7 @@ def pending_update(bot, update):
     bot.formatter.send_message(uid, txt)
 
 
-@track_activity('request', 'runtime files')
+@track_activity('request', 'runtime files', Statistic.ANALYSIS)
 @restricted
 def send_runtime_files(bot, update):
     def send_file(path):
@@ -689,17 +692,27 @@ def send_runtime_files(bot, update):
     send_file('debug.log')
 
 
-def _merge_statistic_logs(statistic, file):
+def _merge_statistic_logs(statistic, file, level):
+    all_logs = {s.date: s for s in statistic}
     handle = open(file, 'r')
     lines = handle.readlines()
 
+    pattern = re.compile(r'\[(.*)\] .* (INFO|DEBUG|WARNING|ERROR|EXCEPTION) - (.*)')
     for l in lines:
-        print()
-        print(l)
+        reg = re.match(pattern, l)
+        groups = reg.groups()
+        lvl = logging.getLevelName(groups[1])
+        if level < lvl:
+            continue
+        date = dateutil.parser.parse(groups[0])
+        message = groups[2]
 
-    return statistic
+        all_logs[date] = message
+    sorted(all_logs, key=lambda x: )
+    return all_logs
 
 
+@track_activity('request', 'activity logs', Statistic.ANALYSIS)
 @restricted
 def send_activity_logs(bot, update, level=Statistic.INFO):
     uid = update.effective_user.id
@@ -709,7 +722,10 @@ def send_activity_logs(bot, update, level=Statistic.INFO):
     log.error("error")
 
     effective_level = level
-    recent_statistic = _merge_statistic_logs(Statistic.collect_recent(min_level=effective_level), settings.DEBUG_LOG_FILE)
+    recent_statistic = _merge_statistic_logs(Statistic.collect_recent(min_level=effective_level),
+                                             settings.DEBUG_LOG_FILE,
+                                             level)
+    pprint(recent_statistic)
     # text = ''
     # last_date = None
     # for i in recent_statistic:
@@ -720,7 +736,7 @@ def send_activity_logs(bot, update, level=Statistic.INFO):
     step_size = 30
     for i in range(0, len(recent_statistic), step_size):
         items = recent_statistic[i: i + step_size]
-        text = '\n'.join(x.md_str() for x in items)
+        text = '\n'.join(x.md_str() if isinstance(x, Statistic) else x for x in items)
 
         # TODO
         if not settings.DEV:

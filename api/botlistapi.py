@@ -1,4 +1,5 @@
 import datetime
+import random
 
 from flask import Flask, request, jsonify
 from flask.ext.admin import Admin
@@ -25,11 +26,9 @@ admin.add_view(ModelView(Favorite))
 admin.add_view(ModelView(Group))
 admin.add_view(ModelView(Suggestion))
 
-app.config['APPLICATION_ROOT'] = '/botlist/api/v1'
 
-
-# Open inceptionhosting ports for me:
-# 2601-2620
+# TODO: doesn't work
+# app.config['APPLICATION_ROOT'] = '/botlist/api/v1'
 
 def start_server():
     http_server = WSGIServer(('', 7070), app)
@@ -198,6 +197,26 @@ def categories_endpoint():
             res = _error('No categories found.')
             res.status_code = 500
         return res
+
+
+@app.route('/random', methods=['GET'])
+@auto.doc()
+def random_bot():
+    """
+    Returns a random bot from the BotList
+    """
+    random_bot = random.choice(Bot.explorable_bots())
+    data = random_bot.serialize
+
+    if data:
+        res = jsonify({
+            'search_result': data,
+            'meta': {'url': request.url}
+        })
+        res.status_code = 200
+    else:
+        res = _error("No bot found.")
+    return res
 
 
 @app.route('/')
