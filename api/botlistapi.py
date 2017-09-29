@@ -1,23 +1,42 @@
 import datetime
 import random
 
+import markdown
 from flask import Flask, request, jsonify
-from flask.ext.admin import Admin
-from flask.ext.admin.contrib.peewee import ModelView
+from flask import Markup
 from flask_autodoc import Autodoc
 from gevent.wsgi import WSGIServer
 from peewee import fn
 
 from model import Bot
 from model import Category
-from model import Channel
-from model import Favorite
-from model import Group
-from model import Suggestion
 from model.apiaccess import APIAccess
 
-app = Flask(__name__)
+
+def md2html(text):
+    text = str(text)
+    import textwrap
+    res = Markup(markdown.markdown(
+        textwrap.dedent(text),
+        [
+            'markdown.extensions.codehilite',
+            'markdown.extensions.nl2br',
+            'markdown.extensions.extra',
+            'markdown.extensions.admonition'
+        ], extension_configs={
+            'markdown.extensions.codehilite': {
+                'noclasses': True,
+                'pygments_style': 'colorful'
+            }
+        }))
+    return res
+
+
+app = Flask(__name__, static_url_path='/doc')
+app.jinja_env.filters['markdown'] = md2html
+
 auto = Autodoc(app)
+
 
 # Disabled until security issues are figured out
 # admin = Admin(app, name='botlist', template_mode='bootstrap3')
@@ -207,7 +226,7 @@ def categories_endpoint():
 def random_bot():
     """
     Returns a random bot from the BotList. By default, only "interesting" bots with description and tags are shown.
-    Use the parameter ?all=True to receive all possible choices.
+    Use the parameter `?all=True` to receive _all_ possible choices.
     """
     show_all = bool(request.args.get("all", False))
 
@@ -235,6 +254,7 @@ def documentation():
         title='BotListBot API',
         author='JosXa',
     )
+
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -37,6 +37,10 @@
             ul.arguments li:after { content: ","; }
             ul.arguments li:last-child:after { content: ""; }
             .docstring:before { content: "Description: "; }
+
+            code {
+                font-family: monospace;
+            }
         </style>
     </head>
     <body>
@@ -49,6 +53,7 @@
         </h1>
 
         {% for doc in autodoc %}
+
         <div class="mapping">
             <a id="rule-{{doc.rule|urlencode}}" class="rule"><h2>{{doc.rule|escape}}</h2></a>
             <ul class="methods">
@@ -70,7 +75,7 @@
                 </li>
                 {% endfor %}
             </ul>
-            <p class="docstring">{{doc.docstring|urlize|nl2br}}</p>
+            <p class="docstring">{% autoescape false %}{{doc.docstring|markdown}}{% endautoescape %}</p>
         </div>
         {% endfor %}
     </body>

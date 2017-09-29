@@ -12,3 +12,4 @@ flask-admin==1.5.0
 wtf-peewee==0.2.6
 python-decouple==3.1.0
 maya==0.3.2
+markdown==2.6.9
