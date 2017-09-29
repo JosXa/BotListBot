@@ -18,14 +18,16 @@ from model.apiaccess import APIAccess
 
 app = Flask(__name__)
 auto = Autodoc(app)
-admin = Admin(app, name='botlist', template_mode='bootstrap3')
 
-admin.add_view(ModelView(Bot))
-admin.add_view(ModelView(Category))
-admin.add_view(ModelView(Channel))
-admin.add_view(ModelView(Favorite))
-admin.add_view(ModelView(Group))
-admin.add_view(ModelView(Suggestion))
+# Disabled until security issues are figured out
+# admin = Admin(app, name='botlist', template_mode='bootstrap3')
+#
+# admin.add_view(ModelView(Bot))
+# admin.add_view(ModelView(Category))
+# admin.add_view(ModelView(Channel))
+# admin.add_view(ModelView(Favorite))
+# admin.add_view(ModelView(Group))
+# admin.add_view(ModelView(Suggestion))
 
 
 # TODO: doesn't work
@@ -215,7 +217,6 @@ def random_bot():
         random_bot = random.choice(Bot.explorable_bots())
     data = random_bot.serialize
 
-
     if data:
         res = jsonify({
             'search_result': data,
@@ -229,8 +230,11 @@ def random_bot():
 
 @app.route('/')
 def documentation():
-    return auto.html()
-
+    return auto.html(
+        template='autodoc.html',
+        title='BotListBot API',
+        author='JosXa',
+    )
 
 if __name__ == '__main__':
     app.run(debug=True)
