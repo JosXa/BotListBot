@@ -708,7 +708,7 @@ def _merge_statistic_logs(statistic, file, level):
         message = groups[2]
 
         all_logs[date] = message
-    sorted(all_logs, key=lambda x: )
+    # sorted(all_logs, key=lambda x: ) # TODO
     return all_logs
 
 

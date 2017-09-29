@@ -6,6 +6,7 @@ from flask.ext.admin import Admin
 from flask.ext.admin.contrib.peewee import ModelView
 from flask_autodoc import Autodoc
 from gevent.wsgi import WSGIServer
+from peewee import fn
 
 from model import Bot
 from model import Category
@@ -203,10 +204,17 @@ def categories_endpoint():
 @auto.doc()
 def random_bot():
     """
-    Returns a random bot from the BotList
+    Returns a random bot from the BotList. By default, only "interesting" bots with description and tags are shown.
+    Use the parameter ?all=True to receive all possible choices.
     """
-    random_bot = random.choice(Bot.explorable_bots())
+    show_all = bool(request.args.get("all", False))
+
+    if show_all:
+        random_bot = Bot.select().order_by(fn.Random()).limit(1)[0]
+    else:
+        random_bot = random.choice(Bot.explorable_bots())
     data = random_bot.serialize
+
 
     if data:
         res = jsonify({
