@@ -9,16 +9,17 @@ e.g: @BotListBot music
 
 The @BotList will be updated automatically by the @BotListBot which also helps us receive and manage each bot that you send us through @BotListChat to be evaluated and classified in each category.
 
-•Instructions:
+• Instructions:
 Share your bots in the @BotListChat by typing the hashtag #new followed by the Bot name so that the @BotListBot helps us classify it on the list besides giving us and users the possibility to help the community by editing every bot description.
 
 
-•History:
+• History:
 @BotList has always been FOR and BY the Telegram community. Our philosophy has always been to say NO to bridges, NO to spam and NO to ads. Growing by doing things right and by word of mouth. The BotList started of as a simple personal list and now helps manage, share and consult in an interactive and comfortable way, with the help of @BotListBot, only bots that have proven that are here to stay and that they're really useful to a lot of users.
 @BotList has always been and will be driven by the eagerness to help users and not for profit. A project carried out by the enthusiasm of people who appreciate the existence of Telegram and those who make it possible. Thank you all. 🙏
 
 
-•We say we don't advertise, but nonetheless we want to help newcomers a couple of nameworthy things:
+• We say we don't advertise, but nonetheless we want to help newcomers with a couple of nameworthy things:
+
 Looking for channels? Try @canalestelegram
 A little lost with all of Telegram's awesome features? @Tutorials4Telegram
 
