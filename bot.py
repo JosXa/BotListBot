@@ -12,6 +12,8 @@ from api import botlistapi
 from components import _playground
 from components import admin
 from components import basic
+from components.userbot import botchecker
+from components.userbot.botchecker import BotChecker
 from lib.markdownformatter import MarkdownFormatter
 
 
@@ -23,7 +25,6 @@ from lib.markdownformatter import MarkdownFormatter
 #
 #
 ###
-from model import Statistic
 
 
 def setup_logger():
@@ -59,7 +60,7 @@ def main():
     setup_logger()
     log = logging.getLogger(__name__)
 
-    # #TODO Start BotList API
+    # Start API
     thread = Thread(target=botlistapi.start_server)
     thread.start()
 
@@ -68,9 +69,14 @@ def main():
     updater = Updater(bot_token, workers=settings.WORKER_COUNT)
     updater.bot.formatter = MarkdownFormatter(updater.bot)
 
+    # Start Userbot
+    api_id = 34057
+    api_hash = 'a89154bb0cde970cae0848dc7f7a6108'
+    phone = '+79639953313'
+    bot_checker = BotChecker('botchecker', api_id, api_hash, phone, updater)
+
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
-
 
     # message_queue = MessageQueue()
     # message_queue._is_messages_queued_default = True
@@ -84,8 +90,8 @@ def main():
     _playground.register(dp)
 
     # JOBS
-    # updater.job_queue.put(Job(channel_checker_job, TIME), next_t=0)
-    updater.job_queue.run_repeating(admin.last_update_job, interval=60 * 60 * 24)
+    updater.job_queue.run_repeating(admin.last_update_job, interval=3600 * 24)
+    updater.job_queue.run_repeating(botchecker.job_callback, context=bot_checker, first=0, interval=3600 * 2)
 
     updater.start_polling()
 
@@ -93,7 +99,7 @@ def main():
     updater.bot.send_message(settings.ADMINS[0], "Ready to rock")
     updater.idle()
 
-    # log.info('Disconnecting...')
+    log.info('Disconnecting...')
     # appglobals.disconnect()
 
 

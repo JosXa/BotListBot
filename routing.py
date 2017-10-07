@@ -2,7 +2,6 @@ import json
 import logging
 import re
 import traceback
-from pprint import pprint
 
 from telegram.ext import CallbackQueryHandler
 from telegram.ext import ChosenInlineResultHandler
@@ -380,6 +379,9 @@ def register(dp):
     dp.add_handler(CommandHandler('reject', admin.reject_bot_submission))
     dp.add_handler(CommandHandler('rej', admin.reject_bot_submission))
 
+    dp.add_handler(RegexHandler("^/approve\d+$", admin.edit_bot, pass_chat_data=True), group=1)
+    dp.add_handler(CommandHandler('approve', admin.short_approve_list))
+
     dp.add_handler(CommandHandler('new', contributions.new_bot_submission, pass_args=True, pass_chat_data=True))
     dp.add_handler(RegexHandler('.*#new.*', contributions.new_bot_submission, pass_chat_data=True), group=1)
     dp.add_handler(CommandHandler('offline', contributions.notify_bot_offline, pass_args=True))
@@ -412,17 +414,23 @@ def register(dp):
 
     dp.add_handler(CommandHandler("accesstoken", access_token))
 
-    dp.add_handler(CommandHandler(('log', 'logs'), admin.send_activity_logs))
+    dp.add_handler(CommandHandler(('stat', 'stats', 'statistic', 'statistics'), admin.send_statistic))
+
+    dp.add_handler(CommandHandler(('log', 'logs'), admin.send_activity_logs, pass_args=True))
     dp.add_handler(CommandHandler(('debug', 'analysis', 'ana', 'analyze'),
-                                  lambda bot, update: admin.send_activity_logs(bot, update, Statistic.ANALYSIS)))
-    dp.add_handler(CommandHandler('info', lambda bot, update: admin.send_activity_logs(bot, update, Statistic.INFO)))
+                                  lambda bot, update, args: admin.send_activity_logs(bot, update, args, Statistic.ANALYSIS),
+                                  pass_args=True))
+    dp.add_handler(CommandHandler('info', lambda bot, update, args: admin.send_activity_logs(bot, update, args, Statistic.INFO),
+                                  pass_args=True))
     dp.add_handler(
         CommandHandler(('detail', 'detailed'),
-                       lambda bot, update: admin.send_activity_logs(bot, update, Statistic.DETAILED)))
+                       lambda bot, update, args: admin.send_activity_logs(bot, update, args, Statistic.DETAILED), pass_args=True))
     dp.add_handler(
-        CommandHandler(('warn', 'warning'), lambda bot, update: admin.send_activity_logs(bot, update, Statistic.WARN)))
+        CommandHandler(('warn', 'warning'), lambda bot, update, args: admin.send_activity_logs(bot, update, args, Statistic.WARN),
+                       pass_args=True))
     dp.add_handler(
-        CommandHandler('important', lambda bot, update: admin.send_activity_logs(bot, update, Statistic.IMPORTANT)))
+        CommandHandler('important', lambda bot, update, args: admin.send_activity_logs(bot, update, args, Statistic.IMPORTANT),
+                       pass_args=True))
 
     dp.add_handler(MessageHandler(Filters.text, lambda bot, update: botlistchat.text_message_logger(bot, update, log)),
                    group=99)
@@ -430,4 +438,3 @@ def register(dp):
     dp.add_handler(ChosenInlineResultHandler(inlinequeries.chosen_result, pass_chat_data=True))
     dp.add_handler(InlineQueryHandler(inlinequeries.inlinequery_handler, pass_chat_data=True))
     dp.add_handler(MessageHandler(Filters.all, all_handler, pass_chat_data=True), group=98)
-

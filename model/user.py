@@ -3,6 +3,7 @@ import inflect
 from peewee import *
 from telegram import User as TelegramUser
 
+import util
 from layouts import Layouts
 from model.basemodel import BaseModel
 
@@ -70,13 +71,13 @@ class User(BaseModel):
 
     @property
     def markdown_short(self):
-        full_name = ''
+        displayname = ''
         if self.first_name:
-            full_name = self.first_name
+            displayname = util.escape_markdown(self.first_name)
         if self.username:
-            text = '[👤 {}](https://t.me/{})'.format(full_name, self.username)
+            text = '[👤 {}](https://t.me/{})'.format(displayname, util.escape_markdown(self.username))
         else:
-            text = full_name
+            text = displayname
         return text.encode('utf-8').decode('utf-8')
 
     @property

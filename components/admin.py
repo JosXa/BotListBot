@@ -3,11 +3,10 @@ import datetime
 import logging
 import os
 import re
-from pprint import pprint
 from typing import Dict
 
-import dateutil.parser
 import emoji
+from peewee import fn
 from telegram import ForceReply
 from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup, TelegramError
 from telegram.ext import ConversationHandler, Job
@@ -195,7 +194,11 @@ def edit_bot(bot, update, chat_data, to_edit=None):
     if not to_edit:
         if update.message:
             command = update.message.text
-            b_id = re.match(r'^/edit(\d+)$', command).groups()[0]
+
+            if 'edit' in command:
+                b_id = re.match(r'^/edit(\d+)$', command).groups()[0]
+            if 'approve' in command:
+                b_id = re.match(r'^/approve(\d+)$', command).groups()[0]
 
             try:
                 to_edit = Bot.get(id=b_id)
@@ -206,7 +209,8 @@ def edit_bot(bot, update, chat_data, to_edit=None):
             bot.formatter.send_failure(uid, "An unexpected error occured.")
             return
 
-    # chat_data['bot_to_edit'] = bot_to_edit
+    if not to_edit.approved:
+        return approve_bots(bot, update, override_list=[to_edit])
 
     pending_suggestions = Suggestion.pending_for_bot(to_edit, user)
     reply_markup = InlineKeyboardMarkup(_edit_bot_buttons(to_edit, pending_suggestions, uid in settings.MODERATORS))
@@ -232,7 +236,7 @@ def prepare_transmission(bot, update, chat_data):
             CallbackActions.SEND_BOTLIST, {'silent': True}
         ))],
         [
-            InlineKeyboardButton("Re-send all Messages (delete all first)", callback_data=util.callback_for_action(
+            InlineKeyboardButton("Re-send all Messages", callback_data=util.callback_for_action(
                 CallbackActions.SEND_BOTLIST, {'silent': True, 're': True}))
         ]
     ])
@@ -393,7 +397,7 @@ def approve_bots(bot, update, page=0, override_list=None):
     buttons.append(page_arrows)
 
     reply_markup = InlineKeyboardMarkup(buttons)
-    text = "What to do with {}?".format(unapproved[0].username) if len(
+    text = "What to do with {}?".format(util.escape_markdown(unapproved[0].username)) if len(
         unapproved) == 1 else "Please select a bot you want to accept for the BotList"
     bot.formatter.send_or_edit(chat_id,
                                util.action_hint(text),
@@ -411,7 +415,7 @@ def recommend_moderator(bot, update, bot_in_question, page):
             CallbackActions.SELECT_MODERATOR,
             {'bot_id': bot_in_question.id, 'uid': u.id, 'page': page}))
         for u in moderators
-        ]
+    ]
     buttons.insert(0, InlineKeyboardButton(captions.BACK,
                                            callback_data=util.callback_for_action(CallbackActions.SWITCH_APPROVALS_PAGE,
                                                                                   {'page': page})))
@@ -662,6 +666,11 @@ def apply_all_changes(bot, update, chat_data, to_edit):
 def pending_update(bot, update):
     uid = update.effective_chat.id
     bots = Bot.select_pending_update()
+
+    if len(bots) == 0:
+        update.message.reply_text("No bots pending for update.")
+        return
+
     txt = 'Bots pending for next Update:\n\n'
 
     if uid in settings.MODERATORS and util.is_private_message(update):
@@ -692,54 +701,75 @@ def send_runtime_files(bot, update):
     send_file('debug.log')
 
 
-def _merge_statistic_logs(statistic, file, level):
-    all_logs = {s.date: s for s in statistic}
-    handle = open(file, 'r')
-    lines = handle.readlines()
-
-    pattern = re.compile(r'\[(.*)\] .* (INFO|DEBUG|WARNING|ERROR|EXCEPTION) - (.*)')
-    for l in lines:
-        reg = re.match(pattern, l)
-        groups = reg.groups()
-        lvl = logging.getLevelName(groups[1])
-        if level < lvl:
-            continue
-        date = dateutil.parser.parse(groups[0])
-        message = groups[2]
-
-        all_logs[date] = message
-    # sorted(all_logs, key=lambda x: ) # TODO
-    return all_logs
+# def _merge_statistic_logs(statistic, file, level):
+#     all_logs = {s.date: s for s in statistic}
+#     handle = open(file, 'r')
+#     lines = handle.readlines()
+#
+#     pattern = re.compile(r'\[(.*)\] .* (INFO|DEBUG|WARNING|ERROR|EXCEPTION) - (.*)')
+#     for l in lines:
+#         reg = re.match(pattern, l)
+#         groups = reg.groups()
+#         lvl = logging.getLevelName(groups[1])
+#         if level < lvl:
+#             continue
+#         date = dateutil.parser.parse(groups[0])
+#         message = groups[2]
+#
+#         all_logs[date] = message
+#     # sorted(all_logs, key=lambda x: ) # TODO
+#     return all_logs
 
 
 @track_activity('request', 'activity logs', Statistic.ANALYSIS)
 @restricted
-def send_activity_logs(bot, update, level=Statistic.INFO):
+def send_activity_logs(bot, update, args=None, level=Statistic.INFO):
+    num = 200
+    if args:
+        try:
+            num = int(args[0])
+            num = min(num, 500)
+        except:
+            pass
     uid = update.effective_user.id
-
-    log.info("info")
-    log.debug("debug")
-    log.error("error")
-
-    effective_level = level
-    recent_statistic = _merge_statistic_logs(Statistic.collect_recent(min_level=effective_level),
-                                             settings.DEBUG_LOG_FILE,
-                                             level)
-    pprint(recent_statistic)
-    # text = ''
-    # last_date = None
-    # for i in recent_statistic:
-    #     date = helpers.slang_datetime(i.date)
-    #     if last_date and last_date == date:
-    #         text += '\n{}'.format(i.md_str(no_date=True))
+    recent_statistic = Statistic.select().order_by(Statistic.date.desc()).limit(num)
+    recent_statistic = list(reversed(recent_statistic))
 
     step_size = 30
     for i in range(0, len(recent_statistic), step_size):
         items = recent_statistic[i: i + step_size]
-        text = '\n'.join(x.md_str() if isinstance(x, Statistic) else x for x in items)
-
-        # TODO
-        if not settings.DEV:
-            print(text)
+        text = '\n'.join(x.md_str() for x in items)
 
         bot.formatter.send_message(uid, text)
+
+
+@track_activity('request', 'activity logs', Statistic.ANALYSIS)
+@restricted
+def send_statistic(bot, update):
+    pass
+    # recent_statistic = Statistic.select(fn.count(Statistic.entity).alias('count'), Statistic.entity).group_by(Statistic.action)
+    # recent_statistic = Statistic.select().where(Statistic.action == 'menu')
+    # update.message.reply_text('\n'.join(
+    #     '{}: {}'.format(x.entity, x.count)
+    #     for x in recent_statistic))
+    # print(recent_statistic)
+
+
+@track_activity('menu', 'short approve list', Statistic.ANALYSIS)
+def short_approve_list(bot, update):
+    uid = update.effective_chat.id
+    bots = Bot.select_unapproved()
+
+    if len(bots) == 0:
+        update.message.reply_text("No bots to be approved.")
+        return
+
+    txt = 'Bots pending approval:\n\n'
+
+    if uid in settings.MODERATORS and util.is_private_message(update):
+        # append admin edit buttons
+        txt += '\n'.join(["{} — /approve{}".format(b, b.id) for b in bots])
+    else:
+        txt += '\n'.join([str(b) for b in bots])
+
+    bot.formatter.send_message(uid, txt)

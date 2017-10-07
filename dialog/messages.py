@@ -102,6 +102,7 @@ BOTPROPERTY_STARTSWITH = "Please send me a "
 SET_BOTPROPERTY = "Please send me a {} for {} ― `{}` to clear"
 
 
+
 def rand_call_to_action():
     choices = ["Check out", "You might like", "What about", "You should try", "Have a look at", "Why don't you try"]
     return random.choice(choices)

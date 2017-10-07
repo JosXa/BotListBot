@@ -4,8 +4,10 @@ import datetime
 import logging
 from peewee import *
 from telegram import Update
+from telegram.ext import run_async
 
 import helpers
+import util
 from model import User
 from model.basemodel import BaseModel
 
@@ -84,12 +86,12 @@ class Statistic(BaseModel):
         if self.action == 'command':
             return '/' + self.entity
         if self.action == 'menu':
-            return self.entity.title()
-        return self.entity
+            return util.escape_markdown(self.entity.title())
+        return util.escape_markdown(self.entity)
 
 
     @classmethod
-    # @run_async
+    @run_async
     def of(cls, issuer, action: str, entity: str = None, level=logging.INFO):
         # if action not in Statistic.ACTIONS.keys():
         #     raise ValueError('"{}" is not a valid action. Refer to Statistic.ACTIONS for available keys.')
@@ -105,9 +107,9 @@ class Statistic(BaseModel):
         return obj
 
     def md_str(self, no_date=False):
-        return '{} {}{} *{}*{}.'.format(
+        return '{} {}{} _{}_{}.'.format(
             self.EMOJIS[self.level],
-            '' if no_date else '_{}:_ '.format(helpers.slang_datetime(self.date)),
+            '' if no_date else '{}: '.format(helpers.slang_datetime(self.date)),
             self.user.markdown_short,
             self.__get_action_text(),
             ' ' + self.__format_entity() if self.entity else ''

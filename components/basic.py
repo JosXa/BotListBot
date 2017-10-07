@@ -1,6 +1,10 @@
 import logging
 import os
+import signal
 import time
+from pprint import pprint
+
+import sys
 
 from telegram import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardButton, \
     InlineKeyboardMarkup
@@ -93,14 +97,13 @@ def main_menu(bot, update):
                     reply_markup=reply_markup)
 
 
-# @restricted
-# def restart(bot, update):
-#     chat_id = util.uid_from_update(update)
-#     bot.formatter.send_failure(chat_id, "There were issues with this function. No need to use it anyway, "
-#                                         "since now the bot restarts every 24 hours automatically.")
-    # bot.formatter.send_success(chat_id, "Bot is restarting...")
-    # time.sleep(0.3)
-    # os.execl(sys.executable, sys.executable, *sys.argv)
+@util.restricted
+def restart(bot, update):
+    chat_id = util.uid_from_update(update)
+    os.kill(os.getpid(), signal.SIGINT)
+    bot.formatter.send_success(chat_id, "Bot is restarting...")
+    time.sleep(0.3)
+    os.execl(sys.executable, sys.executable, *sys.argv)
 
 
 def error(bot, update, error):
@@ -192,7 +195,7 @@ def register(dp):
     dp.add_handler(CommandHandler('start', start, pass_args=True, pass_chat_data=True))
     dp.add_handler(CommandHandler("menu", main_menu))
     dp.add_handler(RegexHandler(captions.EXIT, main_menu))
-    # dp.add_handler(CommandHandler('r', restart))
+    dp.add_handler(CommandHandler('r', restart))
     dp.add_error_handler(error)
     dp.add_handler(
         MessageHandler(Filters.text & Filters.group, plaintext_group, pass_chat_data=True, pass_update_queue=True))

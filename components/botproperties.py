@@ -191,7 +191,7 @@ def add_keyword(bot, update, chat_data):
     kw_obj = Keyword(name=kw, entity=bot_to_edit)
     kw_obj.save()
     set_keywords(bot, update, chat_data, bot_to_edit)
-    Statistic.of(update, 'added keyword {} to'.format(kw), bot_to_edit.username)
+    Statistic.of(update, 'added keyword to'.format(kw), bot_to_edit.username)
 
 
 @restricted

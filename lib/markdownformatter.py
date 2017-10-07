@@ -76,4 +76,4 @@ class MarkdownFormatter:
             if 'not modified' in e.message.lower():
                 pass
             else:
-                traceback.print_exc()
+                return self.send_message(chat_id, text=text, **kwargs)

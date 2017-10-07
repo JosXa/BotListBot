@@ -8,7 +8,6 @@ from telegram.ext import ConversationHandler
 import util
 from model import Statistic
 from model import User, Bot, Notifications
-from pwrtelegram import PWRTelegram
 
 
 def access_token(bot, update):
@@ -53,20 +52,3 @@ def set_notifications(bot, update, value: bool):
     msg += '\nYou can always adjust this setting with the /subscribe command.'
     bot.formatter.send_or_edit(cid, msg, to_edit=util.mid_from_update(update))
     return ConversationHandler.END
-
-
-def bot_checker_job(bot, job):
-    pwt = PWRTelegram('your_token')
-    bots = Bot.select()
-    for b in bots:
-        print('Sending /start to {}...'.format(b.username))
-        msg = pwt.send_message(b.username, '/start')
-        print('Awaiting response...')
-        if msg:
-            resp = pwt.await_response(msg)
-            if resp:
-                print('{} answered.'.format(b.username))
-            else:
-                print('{} is offline.'.format(b.username))
-        else:
-            print('Could not contact {}.'.format(b.username))

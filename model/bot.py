@@ -37,6 +37,10 @@ class Bot(BaseModel):
         return Bot.select().where(Bot.approved == True, Bot.revision <= Revision.get_instance().nr)
 
     @staticmethod
+    def select_unapproved():
+        return Bot.select().where(Bot.approved == False)
+
+    @staticmethod
     def select_pending_update():
         return Bot.select().where(Bot.approved == True, Bot.revision == Revision.get_instance().next)
 

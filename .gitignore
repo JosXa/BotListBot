@@ -66,6 +66,7 @@ target/
 #Ipython Notebook
 .ipynb_checkpoints
 
-# Electro Events Bot
 files/ical
 .directory
+
+*.session
