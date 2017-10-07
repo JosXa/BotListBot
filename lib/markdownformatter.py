@@ -1,6 +1,6 @@
 import traceback
 
-from telegram import Message
+from telegram import Message, Bot
 from telegram import ParseMode
 from telegram import ReplyKeyboardRemove
 from telegram.error import BadRequest
@@ -9,7 +9,7 @@ from mdformat import success, failure, action_hint
 
 
 class MarkdownFormatter:
-    def __init__(self, bot):
+    def __init__(self, bot: Bot):
         self.bot = bot
 
     def send_message(self, chat_id, text: str, **kwargs):
@@ -60,6 +60,8 @@ class MarkdownFormatter:
 
         if 'disable_web_page_preview' not in kwargs:
             kwargs['disable_web_page_preview'] = True
+        if 'parse_mode' not in kwargs:
+            kwargs['parse_mode'] = ParseMode.MARKDOWN
 
         try:
             if to_edit:
@@ -67,7 +69,6 @@ class MarkdownFormatter:
                     text,
                     chat_id=chat_id,
                     message_id=mid,
-                    parse_mode=ParseMode.MARKDOWN,
                     **kwargs
                 )
 

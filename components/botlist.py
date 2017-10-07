@@ -62,12 +62,12 @@ class BotList:
     def notify_admin(self, txt):
         self.bot.formatter.send_or_edit(self.chat_id, Emoji.HOURGLASS_WITH_FLOWING_SAND + ' ' + txt,
                                         to_edit=self.message_id,
-                                        disable_web_page_preview=True, disable_notification=True)
+                                        disable_web_page_preview=True, disable_notification=False)
 
     def notify_admin_err(self, txt):
         self.bot.formatter.send_or_edit(self.chat_id, util.failure(txt),
                                         to_edit=self.message_id,
-                                        disable_web_page_preview=True, disable_notification=True)
+                                        disable_web_page_preview=True, disable_notification=False)
 
     def _delete_message(self, message_id):
         self.bot.delete_message(self.channel.chat_id, message_id)
