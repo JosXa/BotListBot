@@ -91,7 +91,7 @@ def main():
 
     # JOBS
     updater.job_queue.run_repeating(admin.last_update_job, interval=3600 * 24)
-    updater.job_queue.run_repeating(botchecker.job_callback, context=bot_checker, first=0, interval=3600 * 2)
+    # updater.job_queue.run_repeating(botchecker.job_callback, context=bot_checker, first=0, interval=3600 * 2)
 
     updater.start_polling()
 
