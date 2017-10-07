@@ -18,10 +18,9 @@ from custemoji import Emoji
 from dialog import messages
 from model import Bot, Country
 from model import Category
-from model import Statistic
-from model import track_activity
-from model.channel import Channel
 from model import Notifications
+from model import Statistic
+from model.channel import Channel
 from model.revision import Revision
 from util import restricted
 
@@ -117,7 +116,6 @@ class BotList:
                                                            timeout=120, disable_web_page_preview=True,
                                                            disable_notification=True)
         except BadRequest as e:
-            print(e)
             if 'chat not found' in e.message.lower():
                 self.notify_admin_err(
                     "I can't reach BotList Bot with chat-id `{}` (CHAT NOT FOUND error). "
@@ -194,21 +192,18 @@ class BotList:
         self._save_channel()
 
     def update_categories(self, categories: List):
-        counter = 0
-        n = len(categories)
+        self.notify_admin("Updating BotList categories to Revision {}...".format(Revision.get_instance().nr))
+
         for cat in categories:
             text = _format_category_bots(cat)
-
-            counter += 1
-            if counter % 5 == 1:
-                self.notify_admin("Sending/Updating categories *{} to {}* ({} total)...".format(
-                    counter, n if counter + 4 > n else counter + 4, n
-                ))
 
             msg = self.send_or_edit(text, cat.current_message_id)
             if msg:
                 cat.current_message_id = msg.message_id
-                self.sent['category'].append("Updated {}".format(cat))
+                self.sent['category'].append("{} {}".format(
+                    'Resent' if self.resend else 'Updated',
+                    cat
+                ))
             cat.save()
 
         self._save_channel()
@@ -245,8 +240,7 @@ class BotList:
         # add footer as notification
         footer = '\n```'
         footer += '\n' + mdformat.centered(
-            "• @BotList •\nRevision {}\n{}\n{} bots".format(
-                Revision.get_instance().nr,
+            "• @BotList •\n{}\n{} bots".format(
                 datetime.date.today().strftime("%d-%m-%Y"),
                 num_bots
             ))
@@ -256,7 +250,6 @@ class BotList:
             try:
                 self._delete_message(self.channel.footer_mid)
             except BadRequest as e:
-                print(e)
                 pass
             footer_to_edit = None
         else:
@@ -303,6 +296,17 @@ class BotList:
         log.info(self.sent)
         self.bot.formatter.send_or_edit(self.chat_id, text, to_edit=self.message_id)
 
+    def delete_full_botlist(self):
+        all_cats = Category.select_all()
+        start = all_cats[0].current_message_id - 3  # Some wiggle room and GIF
+        end = all_cats[-1].current_message_id + 4  # Some wiggle room
+        self.notify_admin("Deleting all messages...")
+        for m in range(start, end):
+            try:
+                self.bot.delete_message(self.channel.chat_id, m)
+            except BadRequest as e:
+                pass
+
 
 @restricted(strict=True)
 @run_async
@@ -317,6 +321,8 @@ def send_botlist(bot, update, resend=False, silent=False):
     all_categories = Category.select_all()
 
     botlist = BotList(bot, update, channel, resend, silent)
+    if resend:
+        botlist.delete_full_botlist()
     botlist.update_intro()
     botlist.update_categories(all_categories)
     botlist.update_new_bots_list()
@@ -372,8 +378,6 @@ def new_channel_post(bot, update, photo=None):
                     new_bot = Bot.by_username(username)
                 except Bot.DoesNotExist:
                     new_bot = Bot(username=username)
-
-                    print("New bot created: {}".format(username))
 
                 new_bot.category = cat
 
