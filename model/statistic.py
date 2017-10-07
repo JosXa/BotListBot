@@ -4,7 +4,6 @@ import datetime
 import logging
 from peewee import *
 from telegram import Update
-from telegram.ext import run_async
 
 import helpers
 import util
@@ -91,7 +90,6 @@ class Statistic(BaseModel):
 
 
     @classmethod
-    @run_async
     def of(cls, issuer, action: str, entity: str = None, level=logging.INFO):
         # if action not in Statistic.ACTIONS.keys():
         #     raise ValueError('"{}" is not a valid action. Refer to Statistic.ACTIONS for available keys.')

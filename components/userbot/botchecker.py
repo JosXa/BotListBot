@@ -193,7 +193,7 @@ def _check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: Bot):
             bot.send_sticker(settings.BOTLIST_NOTIFICATIONS_ID, open(photo_file, 'rb'))
 
     to_check.save()
-    time.sleep(2)
+    time.sleep(2.3)
 
 
 def job_callback(bot, job):
