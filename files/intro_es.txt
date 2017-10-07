@@ -18,7 +18,7 @@ El @BotList siempre ha sido por y para la comunidad de Telegram. Nuestra filosof
 El @BotList siempre ha sido y será un proyecto con afán de ayudar a los usuarios y sin ánimo de lucro. Llevado a cabo por el entusiasmo de personas que agradecen de la existencia de Telegram y los que lo hacen posible. Gracias a todos. 🙏
 
 
-• Decimos que no hacemos publicidad, pero también queremos ayudar a los recien llegados a Telegram con algunas cosas dignas de nombrar:
+• Decimos que no hacemos publicidad, pero también queremos ayudar a los recién llegados a Telegram con algunas cosas dignas de nombrar:
 
 ¿ Buscando canales ? @canalestelegram
 ¿ Un poco perdido con todas funcionalidades increíbles de Telegram ? @Tutorials4Telegram
