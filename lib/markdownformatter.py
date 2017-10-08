@@ -1,6 +1,6 @@
 import traceback
 
-from telegram import Message, Bot
+from telegram import Message
 from telegram import ParseMode
 from telegram import ReplyKeyboardRemove
 from telegram.error import BadRequest
@@ -9,13 +9,18 @@ from mdformat import success, failure, action_hint
 
 
 class MarkdownFormatter:
-    def __init__(self, bot: Bot):
+    def __init__(self, bot):
         self.bot = bot
 
-    def send_message(self, chat_id, text: str, **kwargs):
+    def _set_defaults(self, kwargs):
         if 'disable_web_page_preview' not in kwargs:
             kwargs['disable_web_page_preview'] = True
-        return self.bot.sendMessage(chat_id, text, parse_mode=ParseMode.MARKDOWN, **kwargs)
+        if 'parse_mode' not in kwargs:
+            kwargs['parse_mode'] = ParseMode.MARKDOWN
+        return kwargs
+
+    def send_message(self, chat_id, text: str, **kwargs):
+        return self.bot.sendMessage(chat_id, text, **self._set_defaults(kwargs))
 
     def send_success(self, chat_id, text: str, add_punctuation=True, reply_markup=None, **kwargs):
         if add_punctuation:
@@ -27,10 +32,8 @@ class MarkdownFormatter:
         return self.bot.sendMessage(
             chat_id,
             success(text),
-            parse_mode=ParseMode.MARKDOWN,
-            disable_web_page_preview=True,
             reply_markup=reply_markup,
-            **kwargs)
+            **self._set_defaults(kwargs))
 
     def send_failure(self, chat_id, text: str, **kwargs):
         text = str.strip(text)
@@ -39,9 +42,7 @@ class MarkdownFormatter:
         return self.bot.sendMessage(
             chat_id,
             failure(text),
-            parse_mode=ParseMode.MARKDOWN,
-            disable_web_page_preview=True,
-            **kwargs)
+            **self._set_defaults(kwargs))
 
     def send_action_hint(self, chat_id, text: str, **kwargs):
         if text[-1] == '.':
@@ -49,19 +50,12 @@ class MarkdownFormatter:
         return self.bot.sendMessage(
             chat_id,
             action_hint(text),
-            parse_mode=ParseMode.MARKDOWN,
-            disable_web_page_preview=True,
-            **kwargs)
+            **self._set_defaults(kwargs))
 
     def send_or_edit(self, chat_id, text, to_edit=None, **kwargs):
         mid = to_edit
         if isinstance(to_edit, Message):
             mid = to_edit.message_id
-
-        if 'disable_web_page_preview' not in kwargs:
-            kwargs['disable_web_page_preview'] = True
-        if 'parse_mode' not in kwargs:
-            kwargs['parse_mode'] = ParseMode.MARKDOWN
 
         try:
             if to_edit:
@@ -69,12 +63,12 @@ class MarkdownFormatter:
                     text,
                     chat_id=chat_id,
                     message_id=mid,
-                    **kwargs
+                    **self._set_defaults(kwargs)
                 )
 
-            return self.send_message(chat_id, text=text, **kwargs)
+            return self.send_message(chat_id, text=text, **self._set_defaults(kwargs))
         except BadRequest as e:
             if 'not modified' in e.message.lower():
                 pass
             else:
-                return self.send_message(chat_id, text=text, **kwargs)
+                return self.send_message(chat_id, text=text, **self._set_defaults(kwargs))
