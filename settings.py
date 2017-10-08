@@ -11,7 +11,16 @@ else:
 ### BOT CONFIGURATION ###
 LOG_DIR = config('LOG_DIR', default=os.path.dirname(os.path.abspath(__file__)))
 BOT_THUMBNAIL_DIR = config('BOT_THUMBNAIL_DIR', default=os.path.expanduser('~/data/botlistbot/bot-profile-pictures'))
-MODERATORS = [62056065, 918962, 7679610, 278941742, 127782573, 43740047, 353341197, 317434635, 2591224]
+MODERATORS = [62056065,  # JosXa
+              918962,  # T3CHNO
+              7679610,
+              278941742,
+              127782573,
+              43740047,
+              317434635,
+              2591224,  # OWL
+              473862645  # Lulzx
+              ]
 ADMINS = [62056065, 918962]
 BOT_CONSIDERED_NEW = 1  # Revision difference
 WORKER_COUNT = 5 if DEV else 20
