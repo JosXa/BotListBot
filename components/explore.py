@@ -248,12 +248,11 @@ def send_bot_details(bot, update, chat_data, item=None):
 
     if os.path.exists(item.thumbnail_file):
         preview = True
-        photo = '[\xad]({})'.format('{}:{}/thumbnail/{}.jpg'.format(
+        photo = '[\xad]({})'.format('{}:{}/thumbnail/{}'.format(
             settings.API_URL,
             settings.API_PORT,
             item.username
         ))
-        log.info(photo)
         txt = photo + txt
     else:
         preview = False

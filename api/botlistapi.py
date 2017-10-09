@@ -248,7 +248,7 @@ def random_bot():
         res = _error("No bot found.")
     return res
 
-@app.route('/thumbnail/<username>.jpg', methods=['GET'])
+@app.route('/thumbnail/<username>.jpeg', methods=['GET'])
 @auto.doc()
 def thumbnail(username):
     if username[0] != '@':
