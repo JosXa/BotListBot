@@ -3,7 +3,7 @@ import random
 
 import markdown
 import os
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, send_file
 from flask import Markup
 from flask_autodoc.autodoc import Autodoc
 from gevent.wsgi import WSGIServer
@@ -262,8 +262,7 @@ def thumbnail(username):
     if not os.path.exists(item.thumbnail_file):
         return _error("Sorry, we don't have a thumbnail for this bot.")
 
-    path, file = os.path.split(item.thumbnail_file)
-    return send_from_directory(path, file)
+    return send_file(item.thumbnail_file, mimetype='image/jpeg')
 
 @app.route('/')
 def documentation():
