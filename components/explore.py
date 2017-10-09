@@ -248,7 +248,7 @@ def send_bot_details(bot, update, chat_data, item=None):
 
     if os.path.exists(item.thumbnail_file):
         preview = True
-        photo = '[\xad]({})'.format('{}:{}/thumbnail/{}.jpeg'.format(
+        photo = '[\xad]({})'.format('http://{}:{}/thumbnail/{}.jpeg'.format(
             settings.API_URL,
             settings.API_PORT,
             item.username[1:]
