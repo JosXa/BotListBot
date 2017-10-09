@@ -244,6 +244,7 @@ def send_bot_details(bot, update, chat_data, item=None):
         reply_markup = InlineKeyboardMarkup(buttons)
     reply_markup, callback = botlistchat.append_delete_button(update, chat_data, reply_markup)
 
+    print(item.thumbnail_file)
     if os.path.exists(item.thumbnail_file):
         preview = True
         photo = '[\xad]({})'.format('{}:{}/thumbnail/{}'.format(
@@ -251,9 +252,12 @@ def send_bot_details(bot, update, chat_data, item=None):
             settings.API_PORT,
             item.username
         ))
+        print(photo)
         txt = photo + txt
     else:
         preview = False
+
+    print(not preview)
 
     msg = bot.formatter.send_or_edit(
         cid,
