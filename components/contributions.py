@@ -216,5 +216,4 @@ def new_bot_submission(bot, update, chat_data, args=None):
         msg = update.message.reply_text(
             util.success("You submitted {} for approval.{}".format(new_bot, description_notify)),
             parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
-        Message.get_or_create(msg, 'new', new_bot)
     return ConversationHandler.END
