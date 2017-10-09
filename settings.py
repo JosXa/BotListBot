@@ -11,7 +11,8 @@ else:
 ### BOT CONFIGURATION ###
 LOG_DIR = config('LOG_DIR', default=os.path.dirname(os.path.abspath(__file__)))
 BOT_THUMBNAIL_DIR = config('BOT_THUMBNAIL_DIR',
-                           default=os.path.expanduser('~/data/botlistbot/bot-profile-pictures'))
+                           default=os.path.expanduser(
+                               '/home/joscha/data/botlistbot/bot-profile-pictures'))
 MODERATORS = [62056065,  # JosXa
               918962,  # T3CHNO
               7679610,

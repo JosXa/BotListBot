@@ -99,7 +99,6 @@ def main():
     updater.start_polling()
 
     log.info('Listening...')
-    log.info(settings.BOT_THUMBNAIL_DIR)
     updater.bot.send_message(settings.ADMINS[0], "Ready to rock")
     updater.idle()
 
