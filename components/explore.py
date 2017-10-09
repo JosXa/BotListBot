@@ -20,7 +20,9 @@ from model import Bot, Category, User, Keyword, Favorite
 from model import Statistic
 from model import track_activity
 from util import track_groups
+import logging
 
+log = logging.getLogger()
 
 def show_official(bot, update):
     text = '*Official Telegram Bots:*\n\n'
@@ -244,7 +246,6 @@ def send_bot_details(bot, update, chat_data, item=None):
         reply_markup = InlineKeyboardMarkup(buttons)
     reply_markup, callback = botlistchat.append_delete_button(update, chat_data, reply_markup)
 
-    print(item.thumbnail_file)
     if os.path.exists(item.thumbnail_file):
         preview = True
         photo = '[\xad]({})'.format('{}:{}/thumbnail/{}'.format(
@@ -252,12 +253,10 @@ def send_bot_details(bot, update, chat_data, item=None):
             settings.API_PORT,
             item.username
         ))
-        print(photo)
+        log.info(photo)
         txt = photo + txt
     else:
         preview = False
-
-    print(not preview)
 
     msg = bot.formatter.send_or_edit(
         cid,
