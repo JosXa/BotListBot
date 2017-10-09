@@ -36,7 +36,8 @@ def setup_logger():
         os.makedirs(settings.LOG_DIR)
 
     console_formatter = logging.Formatter("%(name)-12s: %(levelname)-8s %(message)s")
-    file_formatter = logging.Formatter("[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
+    file_formatter = logging.Formatter(
+        "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
 
     # create console handler and set level to info
     handler = logging.StreamHandler()
@@ -92,11 +93,13 @@ def main():
 
     # JOBS
     updater.job_queue.run_repeating(admin.last_update_job, interval=3600 * 24)
-    updater.job_queue.run_repeating(botchecker.job_callback, context=bot_checker, first=0, interval=3600 * 2)
+    updater.job_queue.run_repeating(botchecker.job_callback, context=bot_checker, first=0,
+                                    interval=3600 * 2)
 
     updater.start_polling()
 
     log.info('Listening...')
+    log.info(settings.BOT_THUMBNAIL_DIR)
     updater.bot.send_message(settings.ADMINS[0], "Ready to rock")
     updater.idle()
 
