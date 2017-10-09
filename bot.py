@@ -99,6 +99,7 @@ def main():
     updater.start_polling()
 
     log.info('Listening...')
+    log.info(os.path.exists('/home/joscha/data/botlistbot/bot-profile-pictures/t3chnobot.jpg'))
     updater.bot.send_message(settings.ADMINS[0], "Ready to rock")
     updater.idle()
 
