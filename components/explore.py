@@ -253,7 +253,7 @@ def send_bot_details(bot, update, chat_data, item=None):
             settings.API_PORT,
             item.username[1:]
         ))
-        print(photo)
+        log.info(photo)
         txt = photo + txt
     else:
         preview = False
