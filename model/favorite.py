@@ -58,7 +58,7 @@ class Favorite(BaseModel):
     @staticmethod
     def search_by_bot(user, bot):
         fav = Favorite.select().where(
-            Favorite.user == user
-            and (Favorite.bot == bot or Favorite.custom_bot == bot)
+            Favorite.user == user,
+            (Favorite.bot == bot or (Favorite.custom_bot != None and Favorite.custom_bot == bot))
         ).first()
         return fav

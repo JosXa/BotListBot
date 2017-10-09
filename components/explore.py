@@ -1,7 +1,11 @@
+import os
 import random
 import re
 
 import emoji
+from telegram import InlineKeyboardButton
+from telegram import InlineKeyboardMarkup
+from telegram.ext import ConversationHandler
 
 import captions
 import helpers
@@ -13,19 +17,15 @@ from const import CallbackActions, CallbackStates
 from dialog import messages
 from lib import InlineCallbackButton
 from model import Bot, Category, User, Keyword, Favorite
-from telegram import InlineKeyboardButton
-from telegram import InlineKeyboardMarkup
-from telegram.ext import CommandHandler
-from telegram.ext import ConversationHandler
-
 from model import Statistic
 from model import track_activity
-from util import track_groups, private_chat_only
+from util import track_groups
 
 
 def show_official(bot, update):
     text = '*Official Telegram Bots:*\n\n'
-    update.effective_message.reply_text(text + Bot.get_official_bots_markdown(), parse_mode='markdown')
+    update.effective_message.reply_text(text + Bot.get_official_bots_markdown(),
+                                        parse_mode='markdown')
 
 
 @track_activity('explore', 'bots', Statistic.ANALYSIS)
@@ -76,7 +76,8 @@ def explore(bot, update, chat_data):
 
 
 def random_explore_text():
-    choices = ["Explore", "Get me another", "Next", "Another one", "More", "One more", "Next one", "Hit me"]
+    choices = ["Explore", "Get me another", "Next", "Another one", "More", "One more", "Next one",
+               "Hit me"]
     return '{} 🔄'.format(random.choice(choices))
 
 
@@ -102,8 +103,8 @@ def select_category(bot, update, chat_data, callback_action=None):
     reply_markup = InlineKeyboardMarkup(_select_category_buttons(callback_action))
     reply_markup, callback = botlistchat.append_delete_button(update, chat_data, reply_markup)
     msg = bot.formatter.send_or_edit(chat_id, util.action_hint(messages.SELECT_CATEGORY),
-                                       to_edit=util.mid_from_update(update),
-                                       reply_markup=reply_markup)
+                                     to_edit=util.mid_from_update(update),
+                                     reply_markup=reply_markup)
     callback(msg)
     return ConversationHandler.END
 
@@ -114,17 +115,21 @@ def show_new_bots(bot, update, chat_data, back_button=False):
     channel = helpers.get_channel()
     buttons = [[
         InlineKeyboardButton("Show in BotList",
-                             url="http://t.me/{}/{}".format(channel.username, channel.new_bots_mid)),
+                             url="http://t.me/{}/{}".format(channel.username,
+                                                            channel.new_bots_mid)),
         InlineKeyboardButton("Share", switch_inline_query=messages.NEW_BOTS_INLINEQUERY)
     ]]
     if back_button:
-        buttons[0].insert(0, InlineKeyboardButton(captions.BACK, callback_data=util.callback_for_action(
-            CallbackActions.SELECT_CATEGORY
-        )))
+        buttons[0].insert(0, InlineKeyboardButton(captions.BACK,
+                                                  callback_data=util.callback_for_action(
+                                                      CallbackActions.SELECT_CATEGORY
+                                                  )))
     reply_markup = InlineKeyboardMarkup(buttons)
     reply_markup, callback = botlistchat.append_delete_button(update, chat_data, reply_markup)
-    msg = bot.formatter.send_or_edit(chat_id, _new_bots_text(), to_edit=util.mid_from_update(update),
-                                       reply_markup=reply_markup, reply_to_message_id=util.mid_from_update(update))
+    msg = bot.formatter.send_or_edit(chat_id, _new_bots_text(),
+                                     to_edit=util.mid_from_update(update),
+                                     reply_markup=reply_markup,
+                                     reply_to_message_id=util.mid_from_update(update))
     callback(msg)
     return ConversationHandler.END
 
@@ -148,7 +153,8 @@ def send_category(bot, update, chat_data, category=None):
         InlineKeyboardButton(captions.BACK, callback_data=util.callback_for_action(
             CallbackActions.SELECT_CATEGORY
         )),
-        InlineKeyboardButton("Show in BotList", url='http://t.me/botlist/{}'.format(category.current_message_id)),
+        InlineKeyboardButton("Show in BotList",
+                             url='http://t.me/botlist/{}'.format(category.current_message_id)),
         InlineKeyboardButton("Share", switch_inline_query=category.name)
     ])
     txt = "There are *{}* bots in the category *{}*:\n\n".format(len(bots), str(category))
@@ -164,7 +170,8 @@ def send_category(bot, update, chat_data, category=None):
 
     reply_markup = InlineKeyboardMarkup(menu)
     reply_markup, callback = botlistchat.append_delete_button(update, chat_data, reply_markup)
-    msg = bot.formatter.send_or_edit(cid, txt, to_edit=util.mid_from_update(update), reply_markup=reply_markup)
+    msg = bot.formatter.send_or_edit(cid, txt, to_edit=util.mid_from_update(update),
+                                     reply_markup=reply_markup)
     callback(msg)
     Statistic.of(update, 'menu', 'of category {}'.format(str(category)), Statistic.ANALYSIS)
 
@@ -184,7 +191,6 @@ def send_bot_details(bot, update, chat_data, item=None):
             bot_in_text = re.findall(settings.REGEX_BOT_IN_TEXT, text)[0]
             item = Bot.by_username(bot_in_text)
 
-        # except (AttributeError, Bot.DoesNotExist):
         except Bot.DoesNotExist:
             update.message.reply_text(util.failure(
                 "This bot is not in the @BotList. If you think this is a mistake, see the /examples for /contributing."))
@@ -195,11 +201,9 @@ def send_bot_details(bot, update, chat_data, item=None):
         txt = item.detail_text
         if item.description is None and not Keyword.select().where(Keyword.entity == item).exists():
             txt += ' is in the @BotList.'
-        btn = InlineCallbackButton(captions.BACK_TO_CATEGORY, CallbackActions.SELECT_BOT_FROM_CATEGORY,
+        btn = InlineCallbackButton(captions.BACK_TO_CATEGORY,
+                                   CallbackActions.SELECT_BOT_FROM_CATEGORY,
                                    {'id': item.category.id})
-        # btn = InlineKeyboardButton(captions.BACK_TO_CATEGORY, callback_data=util.callback_for_action(
-        #     CallbackActions.SELECT_BOT_FROM_CATEGORY, {'id': item.category.id}
-        # ))
         first_row.insert(0, btn)
         first_row.append(InlineKeyboardButton(captions.SHARE, switch_inline_query=item.username))
 
@@ -226,22 +230,37 @@ def send_bot_details(bot, update, chat_data, item=None):
         if favorite_found:
             buttons.append([
                 InlineKeyboardButton(captions.REMOVE_FAVORITE_VERBOSE,
-                                     callback_data=util.callback_for_action(CallbackActions.REMOVE_FAVORITE,
-                                                                            {'id': favorite_found.id, 'details': True}))
+                                     callback_data=util.callback_for_action(
+                                         CallbackActions.REMOVE_FAVORITE,
+                                         {'id': favorite_found.id, 'details': True}))
             ])
         else:
             buttons.append([
                 InlineKeyboardButton(captions.ADD_TO_FAVORITES,
-                                     callback_data=util.callback_for_action(CallbackActions.ADD_TO_FAVORITES,
-                                                                            {'id': item.id, 'details': True}))
+                                     callback_data=util.callback_for_action(
+                                         CallbackActions.ADD_TO_FAVORITES,
+                                         {'id': item.id, 'details': True}))
             ])
         reply_markup = InlineKeyboardMarkup(buttons)
     reply_markup, callback = botlistchat.append_delete_button(update, chat_data, reply_markup)
-    msg = bot.formatter.send_or_edit(cid,
-                                       txt,
-                                       to_edit=util.mid_from_update(update),
-                                       reply_markup=reply_markup
-                                       )
+
+    if os.path.exists(item.thumbnail_file):
+        preview = True
+        txt = '[\xad]({})'.format('{}:{}/thumbnail/{}'.format(
+            settings.API_URL,
+            settings.API_PORT,
+            item.username
+        ))
+    else:
+        preview = False
+
+    msg = bot.formatter.send_or_edit(
+        cid,
+        txt,
+        to_edit=util.mid_from_update(update),
+        reply_markup=reply_markup,
+        disable_web_page_preview=not preview
+    )
     callback(msg)
     Statistic.of(update, 'view-details', item.username, Statistic.ANALYSIS)
     return CallbackStates.SHOWING_BOT_DETAILS

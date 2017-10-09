@@ -6,6 +6,7 @@ import sys
 from gevent.threading import Thread
 from telegram.ext import Updater
 
+import appglobals
 import routing
 import settings
 from api import botlistapi
@@ -91,7 +92,7 @@ def main():
 
     # JOBS
     updater.job_queue.run_repeating(admin.last_update_job, interval=3600 * 24)
-    # updater.job_queue.run_repeating(botchecker.job_callback, context=bot_checker, first=0, interval=3600 * 2)
+    updater.job_queue.run_repeating(botchecker.job_callback, context=bot_checker, first=0, interval=3600 * 2)
 
     updater.start_polling()
 
@@ -100,7 +101,7 @@ def main():
     updater.idle()
 
     log.info('Disconnecting...')
-    # appglobals.disconnect()
+    appglobals.disconnect()
 
 
 if __name__ == '__main__':

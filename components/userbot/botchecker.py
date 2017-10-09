@@ -5,6 +5,7 @@ import logging
 import os
 import shutil
 import time
+from pprint import pprint
 from threading import Thread
 
 from PIL import Image
@@ -12,11 +13,12 @@ from telegram import Bot as TelegramBot
 from telegram import ForceReply
 from telegram.ext import Filters
 from telegram.ext import MessageHandler
-from telethon.errors import FloodWaitError
 
 import settings
-from model import Bot
+from appglobals import db
+from model import Bot as BotModel
 from telethon import TelegramClient
+from telethon.errors import FloodWaitError
 from telethon.tl.types import User
 
 log = logging.getLogger(__name__)
@@ -157,7 +159,7 @@ def make_sticker(filename, out_file, max_height=512, transparent=True):
     return out_file
 
 
-def _check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: Bot):
+def _check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
     entity = bot_checker.get_bot_entity(to_check.username)
 
     # Check basic properties
@@ -167,15 +169,15 @@ def _check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: Bot):
     # Check online state
     bot_offline = not bot_checker.ping_bot(to_check.username, timeout=5)
     if to_check.offline != bot_offline:
+        to_check.offline = bot_offline
         bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, '{} went {}.'.format(
             to_check.str_no_md,
             'offline' if bot_offline else 'online'
         ))
-        to_check.offline = bot_offline
 
     # Download profile picture
     tmp_file = os.path.join(settings.BOT_THUMBNAIL_DIR, '_tmp.jpg')
-    photo_file = os.path.join(settings.BOT_THUMBNAIL_DIR, to_check.username[1:].lower() + '.jpg')
+    photo_file = to_check.thumbnail_file
     sticker_file = os.path.join(settings.BOT_THUMBNAIL_DIR, '_sticker_tmp.webp')
 
     downloaded = bot_checker.client.download_profile_photo(entity, tmp_file)
@@ -199,11 +201,15 @@ def _check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: Bot):
 def job_callback(bot, job):
     bot_checker = job.context
 
-    all_bots = Bot.select()
+    total_bot_count = BotModel.select().count()
+    batch_size = 5
 
     try:
-        for b in all_bots:
-            _check_bot(bot, bot_checker, b)
+        for i in range(1, int(total_bot_count / batch_size) + 1):
+            bots_page = list(BotModel.select().paginate(i, batch_size))
+            log.info("Checking {}...".format(', '.join(x.username for x in bots_page)))
+            for b in bots_page:
+                _check_bot(bot, bot_checker, b)
     except FloodWaitError as e:
         log.error("Userbot received a Flood Wait timeout: {} minutes".format(int(e.seconds / 60)))
 

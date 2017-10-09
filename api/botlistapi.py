@@ -2,12 +2,14 @@ import datetime
 import random
 
 import markdown
-from flask import Flask, request, jsonify
+import os
+from flask import Flask, request, jsonify, send_from_directory
 from flask import Markup
 from flask_autodoc import Autodoc
 from gevent.wsgi import WSGIServer
 from peewee import fn
 
+import settings
 from model import Bot
 from model import Category
 from model.apiaccess import APIAccess
@@ -53,7 +55,7 @@ auto = Autodoc(app)
 # app.config['APPLICATION_ROOT'] = '/botlist/api/v1'
 
 def start_server():
-    http_server = WSGIServer(('', 7070), app)
+    http_server = WSGIServer((settings.API_URL, settings.API_PORT), app)
     return http_server.serve_forever()
 
 
@@ -246,6 +248,22 @@ def random_bot():
         res = _error("No bot found.")
     return res
 
+@app.route('/thumbnail/<username>', methods=['GET'])
+@auto.doc()
+def thumbnail(username):
+    if username[0] != '@':
+        username = '@' + username
+    try:
+        item = Bot.by_username(username)
+    except Bot.DoesNotExist:
+        item = None
+    if not item:
+        return _error("There is no bot in the BotList with the username {}.".format(username))
+    if not os.path.exists(item.thumbnail_file):
+        return _error("Sorry, we don't have a thumbnail for this bot.")
+
+    path, file = os.path.split(item.thumbnail_file)
+    return send_from_directory(path, file)
 
 @app.route('/')
 def documentation():

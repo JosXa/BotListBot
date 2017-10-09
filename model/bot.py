@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from typing import List
 
+import os
 from peewee import *
 
 import helpers
@@ -153,3 +154,15 @@ class Bot(BaseModel):
     def keywords(self):
         from model.keywordmodel import Keyword
         return Keyword.select().where(Keyword.entity == self)
+
+    @property
+    def thumbnail_file(self):
+        path = os.path.join(settings.BOT_THUMBNAIL_DIR, self.username[1:].lower() + '.jpg')
+        return path
+
+
+
+
+
+
+

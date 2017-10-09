@@ -16,6 +16,7 @@ def db():
 
 
 def disconnect():
+    global _db
     _db.close()
 
 
