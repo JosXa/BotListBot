@@ -40,7 +40,7 @@ MAX_BOTS_PER_MESSAGE = 140
 BOT_ACCEPTED_IDLE_TIME = 2  # minutes
 SUGGESTION_LIMIT = 25
 API_URL = "localhost" if DEV else "josxa.jumpingcrab.com"
-API_PORT = 7070
+API_PORT = 8080
 
 ERROR_LOG_FILE = os.path.join(LOG_DIR, "error.log")
 DEBUG_LOG_FILE = os.path.join(LOG_DIR, "bot.log")
