@@ -26,7 +26,7 @@ from model import track_activity
 from telegram import ForceReply
 from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, \
     InlineKeyboardMarkup, TelegramError
-from telegram.ext import ConversationHandler, Job, run_async
+from telegram.ext import ConversationHandler, Job
 from util import restricted
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
@@ -666,7 +666,6 @@ def ban_user(bot, update, user: User, ban_state: bool):
     user.save()
 
 
-@run_async
 def last_update_job(bot, job: Job):
     ## SEND A MESSAGE
     # user_ids = [u.chat_id for u in User.select()]

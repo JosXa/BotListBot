@@ -228,7 +228,7 @@ def _check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
     to_check.username = '@' + str(entity.username)
 
     # Check online state
-    bot_offline = not bot_checker.ping_bot(to_check.username, timeout=15)
+    bot_offline = not bot_checker.ping_bot(to_check.username, timeout=25)
 
     if to_check.offline != bot_offline:
         to_check.offline = bot_offline
