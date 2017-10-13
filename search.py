@@ -7,6 +7,7 @@ import settings
 from model import Bot
 from model import Category
 from model import Keyword
+from model.revision import Revision
 
 
 def search_bots(query):
@@ -21,7 +22,9 @@ def search_bots(query):
     where_query = (
         (fn.lower(Bot.username).contains(query)) |
         (fn.lower(Bot.name) << split) |
-        (fn.lower(Bot.extra) ** query)
+        (fn.lower(Bot.extra) ** query) &
+        (Bot.revision <= Revision.get_instance().nr &
+         Bot.approved == True)
     )
     results = set(Bot.select().distinct().where(where_query))
 
