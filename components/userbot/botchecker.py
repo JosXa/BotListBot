@@ -5,20 +5,21 @@ import logging
 import os
 import shutil
 import time
-from pprint import pprint
+import traceback
 from threading import Thread
 
 from PIL import Image
-from telegram import Bot as TelegramBot
-from telegram import ForceReply
-from telegram.ext import Filters
-from telegram.ext import MessageHandler
+from peewee import JOIN
+from telethon.tl.functions.messages import DeleteHistoryRequest
 
 import settings
-from appglobals import db
-from model import Bot as BotModel
+from model import Bot as BotModel, Ping
+from telegram import Bot as TelegramBot
+from telegram import ForceReply
+from telegram.ext import Filters, run_async
+from telegram.ext import MessageHandler
 from telethon import TelegramClient
-from telethon.errors import FloodWaitError
+from telethon.errors import FloodWaitError, UsernameNotOccupiedError
 from telethon.tl.types import User
 
 log = logging.getLogger(__name__)
@@ -27,6 +28,24 @@ log.setLevel(logging.DEBUG)
 client_log = logging.getLogger(TelegramClient.__name__).setLevel(logging.DEBUG)
 
 CONFIRM_PHONE_CODE = "Userbot authorization required. Enter the code you received..."
+ZERO_CHAR1 = u"\u200C"  # ZERO-WIDTH-NON-JOINER
+ZERO_CHAR2 = u"\u200B"  # ZERO-WIDTH-SPACE
+
+
+class NotABotError(Exception):
+    pass
+
+
+def zero_width_encoding(encoded_string):
+    if not encoded_string:
+        return None
+    result = ''
+    for c in encoded_string:
+        if c in (ZERO_CHAR1, ZERO_CHAR2):
+            result += c
+        else:
+            return result
+    return None
 
 
 def extract_updates(update):
@@ -48,13 +67,14 @@ class BotChecker(object):
         self.client = TelegramClient(session_name, api_id, api_hash, update_workers=2)
         self.client.connect()
         self._pinged_bots = []
-        self._responses = []
+        self._responses = {}
 
         if not self.client.is_user_authorized():
             log.info("Sending code request...")
             self.client.send_code_request(phone_number)
             if updater:
-                updater.bot.send_message(settings.ADMINS[0], CONFIRM_PHONE_CODE, reply_markup=ForceReply())
+                updater.bot.send_message(settings.ADMINS[0], CONFIRM_PHONE_CODE,
+                                         reply_markup=ForceReply())
                 updater.dispatcher.add_handler(MessageHandler(
                     Filters.reply & Filters.user(settings.ADMINS[0]),
                     lambda bot, update: authorization_handler(bot, update, self)),
@@ -65,6 +85,10 @@ class BotChecker(object):
                 self.client.sign_in(phone_number, input('Enter code: '))
         else:
             self._initialize()
+
+    def reset(self):
+        self._pinged_bots = []
+        self._responses = {}
 
     def authorize(self, code):
         self.client.sign_in(self.phone_number, code)
@@ -83,7 +107,12 @@ class BotChecker(object):
             except:
                 return
         if uid in self._pinged_bots:
-            self._responses.append(uid)
+            message_text = None
+            if hasattr(update, 'message'):
+                if hasattr(update.message, 'message'):
+                    message_text = update.message.message
+
+            self._responses[uid] = message_text
 
     def _init_thread(self, target, *args, **kwargs):
         thr = Thread(target=target, args=args, kwargs=kwargs)
@@ -91,14 +120,23 @@ class BotChecker(object):
 
     def get_bot_entity(self, username) -> User:
         entity = self.client.get_entity(username)
-        if not entity.bot:
-            raise AttributeError("This user is not a bot.")
+        if not hasattr(entity, 'bot'):
+            raise NotABotError("This user is not a bot.")
         # pprint(entity.to_dict())
         return entity
 
+    def _response_received(self, bot_user_id):
+        return bot_user_id in [k for k in self._responses.keys()]
+
+    def _delete_response(self, bot_user_id):
+        del self._responses[bot_user_id]
+
+    def delete_history(self, entity):
+        self.client(DeleteHistoryRequest(entity, 9999999), retry_interval=3)
+
     def ping_bot(self, username, timeout=30):
-        # TODO: No check yet if the username is really a bot
         entity = self.client.get_input_entity(username)
+        time.sleep(1)
         bot_user_id = entity.user_id
 
         # self._init_thread(self._send_message_await_response(entity, '/start'))
@@ -106,20 +144,34 @@ class BotChecker(object):
         self.client.send_message(entity, '/start')
 
         start = datetime.datetime.now()
-        while bot_user_id not in self._responses:
+        while not self._response_received(bot_user_id):
             if datetime.datetime.now() - start > datetime.timedelta(seconds=timeout):
+                self._pinged_bots.remove(bot_user_id)
                 return False
 
             time.sleep(0.2)
 
-        self._responses.remove(bot_user_id)
+        response_text = self._responses[bot_user_id]
+
+        # Evaluate WJClub's ParkMeBot flags
+        reserved_username = ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR1
+        parked = ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR2
+        maintenance = ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR2 + ZERO_CHAR1
+
+        parkmebot_offline = False
+        # print("Encoded: " + str(zero_width_encoding(response_text).encode("unicode-escape")))
+        if zero_width_encoding(response_text) in (reserved_username, parked, maintenance):
+            parkmebot_offline = True
+
+        self._delete_response(bot_user_id)
         self._pinged_bots.remove(bot_user_id)
+
+        if parkmebot_offline:
+            return False
         return True
 
-    def get_last_activity(self, entity):
-        entity = self.client.get_entity(entity)
-        if not entity.bot:
-            raise AttributeError("This user is not a bot.")
+    def get_bot_last_activity(self, entity):
+        entity = self.get_bot_entity(entity)
 
         _, messages, _ = self.client.get_message_history(entity, limit=5)
 
@@ -160,14 +212,24 @@ def make_sticker(filename, out_file, max_height=512, transparent=True):
 
 
 def _check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
-    entity = bot_checker.get_bot_entity(to_check.username)
+    try:
+        entity = bot_checker.get_bot_entity(to_check.username)
+    except UsernameNotOccupiedError:
+        bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID,
+                         "{} deleted because the username does not exist (anymore).".format(
+                             to_check.username))
+        to_check.delete_instance()
+        return
+    time.sleep(2.5)
 
     # Check basic properties
     to_check.official = bool(entity.verified)
     to_check.inlinequeries = bool(entity.bot_inline_placeholder)
+    to_check.username = '@' + str(entity.username)
 
     # Check online state
-    bot_offline = not bot_checker.ping_bot(to_check.username, timeout=5)
+    bot_offline = not bot_checker.ping_bot(to_check.username, timeout=15)
+
     if to_check.offline != bot_offline:
         to_check.offline = bot_offline
         bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, '{} went {}.'.format(
@@ -175,11 +237,19 @@ def _check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
             'offline' if bot_offline else 'online'
         ))
 
+    # Add entry to pings database
+    now = datetime.datetime.now()
+    ping, created = Ping.get_or_create(bot=to_check, last_ping=now)
+    # ping.last_ping = now
+    ping.last_response = ping.last_response if to_check.offline else now
+    ping.save()
+
     # Download profile picture
     tmp_file = os.path.join(settings.BOT_THUMBNAIL_DIR, '_tmp.jpg')
     photo_file = to_check.thumbnail_file
     sticker_file = os.path.join(settings.BOT_THUMBNAIL_DIR, '_sticker_tmp.webp')
 
+    time.sleep(1)
     downloaded = bot_checker.client.download_profile_photo(entity, tmp_file)
 
     if downloaded:
@@ -190,28 +260,57 @@ def _check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
 
         if not similar:
             shutil.copy(tmp_file, photo_file)
-            make_sticker(photo_file, sticker_file)
-            bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, "New profile picture of {}:".format(to_check.username))
-            bot.send_sticker(settings.BOTLIST_NOTIFICATIONS_ID, open(photo_file, 'rb'))
+            if not created:  # if this bot has been pinged before and its pp changed
+                make_sticker(photo_file, sticker_file)
+                bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID,
+                                 "New profile picture of {}:".format(to_check.username),
+                                 timeout=360)
+                bot.send_sticker(settings.BOTLIST_NOTIFICATIONS_ID,
+                                 open(photo_file, 'rb'), timeout=360)
 
     to_check.save()
-    time.sleep(2.3)
+
+    # Sleep to give Userbot time to breathe
+    time.sleep(3)
 
 
+@run_async
 def job_callback(bot, job):
-    bot_checker = job.context
+    bot_checker = job.context.get('checker')
+    bot_checker.reset()
 
     total_bot_count = BotModel.select().count()
     batch_size = 5
 
-    try:
-        for i in range(1, int(total_bot_count / batch_size) + 1):
-            bots_page = list(BotModel.select().paginate(i, batch_size))
+    for i in range(1, int(total_bot_count / batch_size) + 1):
+        try:
+            bots_page = list(
+                BotModel.select().join(Ping, JOIN.LEFT_OUTER).order_by(
+                    Ping.last_ping.asc()
+                ).paginate(i, batch_size)
+            )
             log.info("Checking {}...".format(', '.join(x.username for x in bots_page)))
             for b in bots_page:
-                _check_bot(bot, bot_checker, b)
-    except FloodWaitError as e:
-        log.error("Userbot received a Flood Wait timeout: {} minutes".format(int(e.seconds / 60)))
+                if job.context.get('stop').is_set():
+                    raise StopAsyncIteration()
+                try:
+                    _check_bot(bot, bot_checker, b)
+                except NotABotError:
+                    log.info('{} is probably a userbot.'.format(b))
+        except FloodWaitError as e:
+            bot.formatter.send_failure(settings.ADMINS[0],
+                                       "Userbot received a Flood Wait timeout: {} seconds".format(
+                                           e.seconds))
+            log.error("Userbot received a Flood Wait timeout: {} seconds".format(e.seconds))
+            time.sleep(10)
+            return
+        except StopAsyncIteration:
+            break
+        except:
+            traceback.print_exc()
+            log.debug("Continuing...")
+            time.sleep(5)
+            continue
 
 
 if __name__ == '__main__':

@@ -1,4 +1,5 @@
-from model import Statistic
+from model.ping import Ping
 
-Statistic.drop_table(fail_silently=True)
-Statistic.create_table()
+Ping.drop_table(fail_silently=True)
+Ping.create_table()
+

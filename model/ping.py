@@ -15,6 +15,6 @@ from model.user import User
 
 
 class Ping(BaseModel):
-    bot = ForeignKeyField(Bot, unique=True)
+    bot = ForeignKeyField(Bot, primary_key=True)
     last_ping = DateTimeField()
-    last_response = DateTimeField()
+    last_response = DateTimeField(null=True)

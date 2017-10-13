@@ -2,9 +2,11 @@
 import logging
 import os
 import sys
+import threading
+from signal import signal, SIGINT, SIGTERM, SIGABRT
 
+import time
 from gevent.threading import Thread
-from telegram.ext import Updater
 
 import appglobals
 import routing
@@ -16,6 +18,7 @@ from components import basic
 from components.userbot import botchecker
 from components.userbot.botchecker import BotChecker
 from lib.markdownformatter import MarkdownFormatter
+from telegram.ext import Updater
 
 
 ### TODO ###
@@ -58,10 +61,18 @@ def setup_logger():
     logger.addHandler(handler)
 
 
-def main():
-    setup_logger()
-    log = logging.getLogger(__name__)
+setup_logger()
+log = logging.getLogger(__name__)
 
+botchecker_context = None
+
+
+def signal_handler():
+    log.info("Signaling stop to all jobs")
+    botchecker_context.get('stop').set()
+
+
+def main():
     # Start API
     thread = Thread(target=botlistapi.start_server)
     thread.start()
@@ -70,12 +81,6 @@ def main():
 
     updater = Updater(bot_token, workers=settings.WORKER_COUNT)
     updater.bot.formatter = MarkdownFormatter(updater.bot)
-
-    # Start Userbot
-    api_id = 34057
-    api_hash = 'a89154bb0cde970cae0848dc7f7a6108'
-    phone = '+79639953313'
-    bot_checker = BotChecker('botchecker', api_id, api_hash, phone, updater)
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
@@ -91,20 +96,36 @@ def main():
     basic.register(dp)
     _playground.register(dp)
 
-    # JOBS
-    updater.job_queue.run_repeating(admin.last_update_job, interval=3600 * 24)
-    updater.job_queue.run_repeating(botchecker.job_callback, context=bot_checker, first=0,
-                                    interval=3600 * 2)
+    # Start Userbot
+    if settings.RUN_BOTCHECKER:
+        api_id = 34057
+        api_hash = 'a89154bb0cde970cae0848dc7f7a6108'
+        phone = '+79639953313'
+        session_file = settings.USERBOT_SESSION  # botchecker
+        bot_checker = BotChecker(session_file, api_id, api_hash, phone, updater)
 
+        global botchecker_context
+        botchecker_context = {'checker': bot_checker, 'stop': threading.Event()}
+        updater.job_queue.run_repeating(
+            botchecker.job_callback, context=botchecker_context,
+            first=5,
+            interval=3600 * 2)
+
+    updater.job_queue.run_repeating(admin.last_update_job, interval=3600 * 24)
     updater.start_polling()
 
     log.info('Listening...')
-    log.info(os.path.exists('/home/joscha/data/botlistbot/bot-profile-pictures/t3chnobot.jpg'))
     updater.bot.send_message(settings.ADMINS[0], "Ready to rock")
-    updater.idle()
 
-    log.info('Disconnecting...')
-    appglobals.disconnect()
+    # Idling
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        signal_handler()
+        updater.stop()
+        log.info('Disconnecting...')
+        appglobals.disconnect()
 
 
 if __name__ == '__main__':

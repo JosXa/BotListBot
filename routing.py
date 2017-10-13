@@ -252,7 +252,7 @@ def callback_router(bot, update, chat_data, user_data, job_queue):
 
 
 def forward_router(bot, update, chat_data):
-    text = update.message.text
+    text = update.effective_message.text
 
     # match first username in forwarded message
     try:
@@ -264,7 +264,7 @@ def forward_router(bot, update, chat_data):
 
         send_bot_details(bot, update, chat_data, item)
 
-    except (AttributeError, Bot.DoesNotExist):
+    except (AttributeError, TypeError, Bot.DoesNotExist):
         pass  # no valid username in forwarded message
 
 

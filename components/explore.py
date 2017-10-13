@@ -246,23 +246,23 @@ def send_bot_details(bot, update, chat_data, item=None):
         reply_markup = InlineKeyboardMarkup(buttons)
     reply_markup, callback = botlistchat.append_delete_button(update, chat_data, reply_markup)
 
-    if os.path.exists(item.thumbnail_file):
-        preview = True
-        photo = '[\xad]({})'.format('{}/thumbnail/{}.jpeg'.format(
-            settings.API_URL,
-            item.username[1:]
-        ))
-        log.info(photo)
-        txt = photo + txt
-    else:
-        preview = False
+    # Should we ever decide to show thumbnails *shrug*
+    # if os.path.exists(item.thumbnail_file):
+    #     preview = True
+    #     photo = '[\xad]({})'.format('{}/thumbnail/{}.jpeg'.format(
+    #         settings.API_URL,
+    #         item.username[1:]
+    #     ))
+    #     log.info(photo)
+    #     txt = photo + txt
+    # else:
+    #     preview = False
 
     msg = bot.formatter.send_or_edit(
         cid,
         txt,
         to_edit=util.mid_from_update(update),
-        reply_markup=reply_markup,
-        disable_web_page_preview=not preview
+        reply_markup=reply_markup
     )
     callback(msg)
     Statistic.of(update, 'view-details', item.username, Statistic.ANALYSIS)

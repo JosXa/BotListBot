@@ -16,8 +16,9 @@ def db():
 
 
 def disconnect():
-    global _db
-    _db.close()
+    # global _db
+    # _db.close()
+    pass  # I assume this is done by peewee automatically upon receiving a signal
 
 
 # globals

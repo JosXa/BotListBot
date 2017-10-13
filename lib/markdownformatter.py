@@ -1,7 +1,7 @@
 import traceback
 from pprint import pprint
 
-from telegram import Message
+from telegram import Message, constants
 from telegram import ParseMode
 from telegram import ReplyKeyboardRemove
 from telegram.error import BadRequest
@@ -21,7 +21,24 @@ class MarkdownFormatter:
         return kwargs
 
     def send_message(self, chat_id, text: str, **kwargs):
-        return self.bot.sendMessage(chat_id, text, **self._set_defaults(kwargs))
+        if len(text) <= constants.MAX_MESSAGE_LENGTH:
+            return self.bot.sendMessage(chat_id, text, **self._set_defaults(kwargs))
+
+        parts = []
+        while len(text) > 0:
+            if len(text) > constants.MAX_MESSAGE_LENGTH:
+                part = text[:constants.MAX_MESSAGE_LENGTH]
+                first_lnbr = part.rfind('\n')
+                parts.append(part[:first_lnbr])
+                text = text[first_lnbr:]
+            else:
+                parts.append(text)
+                break
+
+        msg = None
+        for part in parts:
+            msg = self.bot.sendMessage(chat_id, part, **self._set_defaults(kwargs))
+        return msg
 
     def send_success(self, chat_id, text: str, add_punctuation=True, reply_markup=None, **kwargs):
         if add_punctuation:

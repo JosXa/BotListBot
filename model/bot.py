@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
+import os
 from typing import List
 
-import os
 from peewee import *
 
 import helpers
@@ -43,7 +43,8 @@ class Bot(BaseModel):
 
     @staticmethod
     def select_pending_update():
-        return Bot.select().where(Bot.approved == True, Bot.revision == Revision.get_instance().next)
+        return Bot.select().where(Bot.approved == True,
+                                  Bot.revision == Revision.get_instance().next)
 
     @property
     def serialize(self):
@@ -127,7 +128,8 @@ class Bot(BaseModel):
     @staticmethod
     def of_category_without_new(category):
         return Bot.select().where(
-            Bot.category == category, Bot.approved == True, Bot.revision <= Revision.get_instance().nr
+            Bot.category == category, Bot.approved == True,
+            Bot.revision <= Revision.get_instance().nr
         ).order_by(fn.Lower(Bot.username))
 
     @staticmethod
@@ -136,7 +138,10 @@ class Bot(BaseModel):
 
     @staticmethod
     def select_new_bots():
-        return Bot.select().where(Bot.revision >= Revision.get_instance().nr - settings.BOT_CONSIDERED_NEW + 1)
+        return Bot.select().where(
+            (Bot.revision >= Revision.get_instance().nr - settings.BOT_CONSIDERED_NEW + 1) &
+            Bot.approved == True
+        )
 
     @staticmethod
     def get_official_bots_markdown():
@@ -159,10 +164,3 @@ class Bot(BaseModel):
     def thumbnail_file(self):
         path = os.path.join(settings.BOT_THUMBNAIL_DIR, self.username[1:].lower() + '.jpg')
         return path
-
-
-
-
-
-
-
