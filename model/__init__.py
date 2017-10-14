@@ -13,6 +13,7 @@ from model.message import Message
 from model.statistic import Statistic
 from model.statistic import track_activity
 from model.ping import Ping
+from model.revision import Revision
 
 if __name__ == "__main__":
     Category.create_table(fail_silently=True)

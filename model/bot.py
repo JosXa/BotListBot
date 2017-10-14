@@ -28,6 +28,7 @@ class Bot(BaseModel):
     extra = CharField(null=True)
     offline = BooleanField(default=False)
     spam = BooleanField(default=False)
+    userbot = BooleanField(default=False)
 
     approved = BooleanField(default=True)
     submitted_by = ForeignKeyField(User, null=True, related_name='submitted_by')
@@ -144,6 +145,7 @@ class Bot(BaseModel):
     def select_new_bots():
         return Bot.select().where(
             (Bot.revision >= Revision.get_instance().nr - settings.BOT_CONSIDERED_NEW + 1) &
+            (Bot.revision < Revision.get_instance().next) &
             Bot.approved == True
         )
 

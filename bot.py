@@ -118,15 +118,14 @@ def main():
     updater.bot.send_message(settings.ADMINS[0], "Ready to rock")
 
     # Idling
-    updater.idle()
-    # try:
-    #     while True:
-    #         time.sleep(1)
-    # except KeyboardInterrupt:
-    #     signal_handler()
-    #     updater.stop()
-    #     log.info('Disconnecting...')
-    #     appglobals.disconnect()
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        signal_handler()
+        updater.stop()
+        log.info('Disconnecting...')
+        appglobals.disconnect()
 
 
 if __name__ == '__main__':

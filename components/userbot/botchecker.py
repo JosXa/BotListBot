@@ -6,11 +6,11 @@ import os
 import shutil
 import time
 import traceback
+from pprint import pprint
 from threading import Thread
 
 from PIL import Image
 from peewee import JOIN
-from telethon.tl.functions.messages import DeleteHistoryRequest
 
 import settings
 from model import Bot as BotModel, Ping
@@ -20,6 +20,7 @@ from telegram.ext import Filters, run_async
 from telegram.ext import MessageHandler
 from telethon import TelegramClient
 from telethon.errors import FloodWaitError, UsernameNotOccupiedError
+from telethon.tl.functions.messages import DeleteHistoryRequest
 from telethon.tl.types import User
 
 log = logging.getLogger(__name__)
@@ -64,7 +65,7 @@ def authorization_handler(bot, update, checker):
 class BotChecker(object):
     def __init__(self, session_name, api_id, api_hash, phone_number, updater=None):
         self.phone_number = phone_number
-        self.client = TelegramClient(session_name, api_id, api_hash, update_workers=2)
+        self.client = TelegramClient(session_name, api_id, api_hash, update_workers=1)
         self.client.connect()
         self._pinged_bots = []
         self._responses = {}
@@ -106,13 +107,17 @@ class BotChecker(object):
                 uid = update.user_id
             except:
                 return
+        print(f"{uid}")
         if uid in self._pinged_bots:
+            print(f"{uid} SUCCESSFUL")
             message_text = None
             if hasattr(update, 'message'):
                 if hasattr(update.message, 'message'):
                     message_text = update.message.message
 
             self._responses[uid] = message_text
+        else:
+            pprint(update.to_dict())
 
     def _init_thread(self, target, *args, **kwargs):
         thr = Thread(target=target, args=args, kwargs=kwargs)
@@ -123,6 +128,7 @@ class BotChecker(object):
         if not hasattr(entity, 'bot'):
             raise NotABotError("This user is not a bot.")
         # pprint(entity.to_dict())
+        time.sleep(1)
         return entity
 
     def _response_received(self, bot_user_id):
@@ -141,15 +147,21 @@ class BotChecker(object):
 
         # self._init_thread(self._send_message_await_response(entity, '/start'))
         self._pinged_bots.append(bot_user_id)
+        print()
+        print(f'================== {username} ==================')
         self.client.send_message(entity, '/start')
 
         start = datetime.datetime.now()
+        count = 1
         while not self._response_received(bot_user_id):
             if datetime.datetime.now() - start > datetime.timedelta(seconds=timeout):
                 self._pinged_bots.remove(bot_user_id)
+                print(f'{username} did not respond after {timeout} seconds.')
                 return False
 
-            time.sleep(0.2)
+            time.sleep(1)
+            print(count)
+            count += 1
 
         response_text = self._responses[bot_user_id]
 
@@ -228,7 +240,7 @@ def _check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
     to_check.username = '@' + str(entity.username)
 
     # Check online state
-    bot_offline = not bot_checker.ping_bot(to_check.username, timeout=25)
+    bot_offline = not bot_checker.ping_bot(to_check.username, timeout=12)
 
     if to_check.offline != bot_offline:
         to_check.offline = bot_offline
@@ -271,7 +283,7 @@ def _check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
     to_check.save()
 
     # Sleep to give Userbot time to breathe
-    time.sleep(3)
+    time.sleep(2)
 
 
 @run_async
@@ -279,13 +291,14 @@ def job_callback(bot, job):
     bot_checker = job.context.get('checker')
     bot_checker.reset()
 
-    total_bot_count = BotModel.select().count()
+    total_bot_count = BotModel.select().where(BotModel.userbot == False).count()
     batch_size = 5
 
     for i in range(1, int(total_bot_count / batch_size) + 1):
         try:
             bots_page = list(
-                BotModel.select().join(Ping, JOIN.LEFT_OUTER).order_by(
+                BotModel.select().where(BotModel.userbot == False).join(Ping,
+                                                                        JOIN.LEFT_OUTER).order_by(
                     Ping.last_ping.asc()
                 ).paginate(i, batch_size)
             )
@@ -296,11 +309,13 @@ def job_callback(bot, job):
                 try:
                     _check_bot(bot, bot_checker, b)
                 except NotABotError:
-                    log.info('{} is probably a userbot.'.format(b))
+                    b.userbot = True
+                    b.save()
         except FloodWaitError as e:
             bot.formatter.send_failure(settings.ADMINS[0],
                                        "Userbot received a Flood Wait timeout: {} seconds".format(
                                            e.seconds))
+            traceback.print_exc()
             log.error("Userbot received a Flood Wait timeout: {} seconds".format(e.seconds))
             time.sleep(10)
             return

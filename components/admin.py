@@ -17,7 +17,7 @@ from const import *
 from const import BotStates, CallbackActions
 from custemoji import Emoji
 from dialog import messages
-from model import Bot, Ping
+from model import Bot, Ping, Revision
 from model import Category
 from model import Statistic
 from model import Suggestion
@@ -42,7 +42,8 @@ def menu(bot, update):
     is_admin = uid in settings.ADMINS
     buttons = _admin_buttons(send_botlist_button=is_admin, logs_button=is_admin)
 
-    bot.formatter.send_message(uid, "🛃 Administration menu",
+    txt = "🛃 Administration menu. Current revision: {}".format(Revision.get_instance().nr)
+    bot.formatter.send_message(uid, txt,
                                reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True))
     return BotStates.ADMIN_MENU
 
