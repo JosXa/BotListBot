@@ -29,7 +29,11 @@ def search_bots(query):
     results = set(Bot.select().distinct().where(where_query))
 
     # keyword results
-    keyword_results = Bot.select(Bot).join(Keyword).where(fn.lower(Keyword.name) << split)
+    keyword_results = Bot.select(Bot).join(Keyword).where(
+        (fn.lower(Keyword.name) << split) &
+        (Bot.revision <= Revision.get_instance().nr &
+         Bot.approved == True)
+    )
     results.update(keyword_results)
 
     # many @usernames

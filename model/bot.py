@@ -119,7 +119,11 @@ class Bot(BaseModel):
 
     @staticmethod
     def many_by_usernames(names: List):
-        results = Bot.select().where(fn.lower(Bot.username) << [n.lower() for n in names])
+        results = Bot.select().where(
+            (fn.lower(Bot.username) << [n.lower() for n in names]) &
+            (Bot.revision <= Revision.get_instance().nr &
+             Bot.approved == True)
+        )
         if len(results) > 0:
             return results
         else:
