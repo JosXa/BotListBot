@@ -2,7 +2,6 @@ import re
 
 from peewee import fn
 
-import const
 import settings
 from model import Bot
 from model import Category
@@ -20,9 +19,9 @@ def search_bots(query):
 
     # exact results
     where_query = (
-        (fn.lower(Bot.username).contains(query)) |
-        (fn.lower(Bot.name) << split) |
-        (fn.lower(Bot.extra) ** query) &
+        (fn.lower(Bot.username).contains(query) |
+         fn.lower(Bot.name) << split |
+         fn.lower(Bot.extra) ** query) &
         (Bot.revision <= Revision.get_instance().nr &
          Bot.approved == True)
     )
@@ -31,8 +30,8 @@ def search_bots(query):
     # keyword results
     keyword_results = Bot.select(Bot).join(Keyword).where(
         (fn.lower(Keyword.name) << split) &
-        (Bot.revision <= Revision.get_instance().nr &
-         Bot.approved == True)
+        (Bot.revision <= Revision.get_instance().nr) &
+        (Bot.approved == True)
     )
     results.update(keyword_results)
 
