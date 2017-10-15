@@ -108,7 +108,7 @@ def main():
         botchecker_context = {'checker': bot_checker, 'stop': threading.Event()}
         updater.job_queue.run_repeating(
             botchecker.job_callback, context=botchecker_context,
-            first=3,
+            first=1.5,
             interval=3600 * 2)
 
     updater.job_queue.run_repeating(admin.last_update_job, interval=3600 * 24)

@@ -322,7 +322,7 @@ if __name__ == '__main__':
     api_id = 34057
     api_hash = 'a89154bb0cde970cae0848dc7f7a6108'
     phone = '+79639953313'
-    session_file = settings.USERBOT_SESSION  # botchecker
-    checker = BotChecker(session_file, api_id, api_hash, phone)
+    # session_file = settings.USERBOT_SESSION  # botchecker
+    checker = BotChecker('/home/joscha/accounts/79691987276', api_id, api_hash, phone)
 
-    checker.delete_all_conversations()
+    ent = checker.get_bot_entity('@junction_bot')
