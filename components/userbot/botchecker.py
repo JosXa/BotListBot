@@ -4,6 +4,7 @@ import filecmp
 import logging
 import os
 import shutil
+import threading
 import time
 import traceback
 from pprint import pprint
@@ -65,7 +66,7 @@ def authorization_handler(bot, update, checker):
 class BotChecker(object):
     def __init__(self, session_name, api_id, api_hash, phone_number, updater=None):
         self.phone_number = phone_number
-        self.client = TelegramClient(session_name, api_id, api_hash, update_workers=1)
+        self.client = TelegramClient(session_name, api_id, api_hash, update_workers=5)
         self.client.connect()
         self._pinged_bots = []
         self._responses = {}
@@ -100,24 +101,30 @@ class BotChecker(object):
         self.client.add_update_handler(self._update_handler)
 
     def _update_handler(self, update):
-        try:
-            uid = update.message.from_id
-        except:
+        def inner(self, update):
+            log.debug('Handling an update...')
             try:
-                uid = update.user_id
-            except:
-                return
-        print(f"{uid}")
-        if uid in self._pinged_bots:
-            print(f"{uid} SUCCESSFUL")
-            message_text = None
-            if hasattr(update, 'message'):
-                if hasattr(update.message, 'message'):
-                    message_text = update.message.message
+                uid = update.message.from_id
+            except AttributeError:
+                try:
+                    uid = update.user_id
+                except AttributeError:
+                    return
 
-            self._responses[uid] = message_text
-        else:
-            pprint(update.to_dict())
+            entity = self.client.get_entity(uid)
+
+            log.debug("Received response from @{}".format(entity.username))
+            if uid in self._pinged_bots:
+                print("{} FOUND".format(uid))
+                message_text = None
+                if hasattr(update, 'message'):
+                    if hasattr(update.message, 'message'):
+                        message_text = update.message.message
+
+                self._responses[uid] = message_text
+        thr = threading.Thread(target=inner, args=(self, update))
+        thr.start()
+
 
     def _init_thread(self, target, *args, **kwargs):
         thr = Thread(target=target, args=args, kwargs=kwargs)
@@ -148,7 +155,7 @@ class BotChecker(object):
         # self._init_thread(self._send_message_await_response(entity, '/start'))
         self._pinged_bots.append(bot_user_id)
         print()
-        print(f'================== {username} ==================')
+        print('================== {username} =================='.format(username=username))
         self.client.send_message(entity, '/start')
 
         start = datetime.datetime.now()
@@ -156,11 +163,10 @@ class BotChecker(object):
         while not self._response_received(bot_user_id):
             if datetime.datetime.now() - start > datetime.timedelta(seconds=timeout):
                 self._pinged_bots.remove(bot_user_id)
-                print(f'{username} did not respond after {timeout} seconds.')
+                print('{} did not respond after {} seconds.'.format(username, timeout))
                 return False
-
             time.sleep(1)
-            print(count)
+            # print(count)
             count += 1
 
         response_text = self._responses[bot_user_id]
@@ -251,8 +257,7 @@ def _check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
 
     # Add entry to pings database
     now = datetime.datetime.now()
-    ping, created = Ping.get_or_create(bot=to_check, last_ping=now)
-    # ping.last_ping = now
+    ping, created = Ping.get_or_create(bot=to_check, defaults={'last_ping': now})
     ping.last_response = ping.last_response if to_check.offline else now
     ping.save()
 
@@ -331,11 +336,10 @@ def job_callback(bot, job):
 if __name__ == '__main__':
     api_id = 34057
     api_hash = 'a89154bb0cde970cae0848dc7f7a6108'
-    phone = '+79639953313'
+    phone = '+79691987276'
 
-    checker = BotChecker('hehe', api_id, api_hash, phone)
+    checker = BotChecker('/home/joscha/accounts/79691987276', api_id, api_hash, phone)
 
-    print(checker.ping_bot('@josxasandboxbot', timeout=5))
-    print(checker.ping_bot('@globaltimezonebot', timeout=5))
-    print(checker.ping_bot('@kekbot', timeout=5))
-    print(checker.ping_bot('@idletownbot', timeout=5))
+    while True:
+        print(checker.ping_bot('@Likeandsharebot', timeout=5))
+        time.sleep(3)
