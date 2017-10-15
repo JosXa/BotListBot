@@ -231,7 +231,7 @@ def check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
     to_check.username = '@' + str(entity.username)
 
     # Check online state
-    bot_offline = not bot_checker.ping_bot(entity, timeout=12)
+    bot_offline = not bot_checker.ping_bot(entity, timeout=15)
 
     if to_check.offline != bot_offline:
         to_check.offline = bot_offline
@@ -325,4 +325,5 @@ if __name__ == '__main__':
     # session_file = settings.USERBOT_SESSION  # botchecker
     checker = BotChecker('/home/joscha/accounts/79691987276', api_id, api_hash, phone)
 
-    ent = checker.get_bot_entity('@junction_bot')
+    ent = checker.get_bot_entity('@feed_reader_bot')
+    print(checker.ping_bot(ent))
