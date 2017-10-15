@@ -2,6 +2,8 @@ import logging
 import re
 
 import maya
+from PIL import Image
+
 from telegram import ParseMode, InlineKeyboardMarkup, InlineKeyboardButton
 
 import captions
@@ -86,3 +88,29 @@ def reroute_private_chat(bot, update, quote, action, message, redirect_message=N
             bot.formatter.send_or_edit(cid, message, mid, reply_markup=reply_markup)
         else:
             update.message.reply_text(message, quote=quote, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
+
+
+def make_sticker(filename, out_file, max_height=512, transparent=True):
+    image = Image.open(filename)
+
+    # resize sticker to match new max height
+    # optimize image dimensions for stickers
+    if max_height == 512:
+        resize_ratio = min(512 / image.width, 512 / image.height)
+        image = image.resize((int(image.width * resize_ratio), int(image.height * resize_ratio)))
+    else:
+        image.thumbnail((512, max_height), Image.ANTIALIAS)
+
+    if transparent:
+        canvas = Image.new('RGBA', (512, image.height))
+    else:
+        canvas = Image.new('RGB', (512, image.height), color='white')
+
+    pos = (0, 0)
+    try:
+        canvas.paste(image, pos, mask=image)
+    except ValueError:
+        canvas.paste(image, pos)
+
+    canvas.save(out_file)
+    return out_file

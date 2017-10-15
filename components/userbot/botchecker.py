@@ -7,19 +7,18 @@ import shutil
 import threading
 import time
 import traceback
-from pprint import pprint
 from threading import Thread
 
-from PIL import Image
-from peewee import JOIN
+from peewee import JOIN, fn
 
 import settings
+from helpers import make_sticker
 from model import Bot as BotModel, Ping
 from telegram import Bot as TelegramBot
 from telegram import ForceReply
 from telegram.ext import Filters, run_async
 from telegram.ext import MessageHandler
-from telethon import TelegramClient
+from telethon import TelegramClient, utils
 from telethon.errors import FloodWaitError, UsernameNotOccupiedError
 from telethon.tl.functions.messages import DeleteHistoryRequest
 from telethon.tl.types import User
@@ -66,7 +65,7 @@ def authorization_handler(bot, update, checker):
 class BotChecker(object):
     def __init__(self, session_name, api_id, api_hash, phone_number, updater=None):
         self.phone_number = phone_number
-        self.client = TelegramClient(session_name, api_id, api_hash, update_workers=5)
+        self.client = TelegramClient(session_name, api_id, api_hash, update_workers=1)
         self.client.connect()
         self._pinged_bots = []
         self._responses = {}
@@ -102,7 +101,6 @@ class BotChecker(object):
 
     def _update_handler(self, update):
         def inner(self, update):
-            log.debug('Handling an update...')
             try:
                 uid = update.message.from_id
             except AttributeError:
@@ -111,30 +109,51 @@ class BotChecker(object):
                 except AttributeError:
                     return
 
-            entity = self.client.get_entity(uid)
+            try:
+                entity = self.client.get_entity(uid)
+                log.debug("Received response from @{}".format(entity.username))
+            except:
+                log.debug("Received message from {}".format(uid))
 
-            log.debug("Received response from @{}".format(entity.username))
             if uid in self._pinged_bots:
-                print("{} FOUND".format(uid))
                 message_text = None
                 if hasattr(update, 'message'):
                     if hasattr(update.message, 'message'):
                         message_text = update.message.message
 
                 self._responses[uid] = message_text
+
         thr = threading.Thread(target=inner, args=(self, update))
         thr.start()
-
 
     def _init_thread(self, target, *args, **kwargs):
         thr = Thread(target=target, args=args, kwargs=kwargs)
         thr.start()
 
+    def schedule_conversation_deletion(self, peer, delay=5):
+        def inner():
+            time.sleep(delay)
+            entity = self.client.get_input_entity(peer)
+            self.client(DeleteHistoryRequest(entity, max_id=999999999))
+            log.debug("Deleted conversation with {}".format(entity))
+
+        thr = threading.Thread(target=inner, args=())
+        thr.start()
+
+    def delete_all_conversations(self):
+        all_peers = [utils.resolve_id(x[0]) for x in self.client.session.entities.get_input_list()]
+        for peer in all_peers:
+            log.debug("Deleting conversation with {}...".format(peer))
+            try:
+                input_entity = self.client.session.entities.get_input_entity(peer[0])
+                self.client(DeleteHistoryRequest(input_entity, max_id=9999999999999999))
+            except:
+                log.error("Couldn't find {}".format(peer[0]))
+
     def get_bot_entity(self, username) -> User:
         entity = self.client.get_entity(username)
         if not hasattr(entity, 'bot'):
             raise NotABotError("This user is not a bot.")
-        # pprint(entity.to_dict())
         time.sleep(1)
         return entity
 
@@ -144,30 +163,23 @@ class BotChecker(object):
     def _delete_response(self, bot_user_id):
         del self._responses[bot_user_id]
 
-    def delete_history(self, entity):
-        self.client(DeleteHistoryRequest(entity, 9999999), retry_interval=3)
-
-    def ping_bot(self, username, timeout=30):
-        entity = self.client.get_input_entity(username)
+    def ping_bot(self, entity, timeout=30):
+        input_entity = utils.get_input_peer(entity)
         time.sleep(1)
-        bot_user_id = entity.user_id
+        bot_user_id = input_entity.user_id
 
-        # self._init_thread(self._send_message_await_response(entity, '/start'))
         self._pinged_bots.append(bot_user_id)
-        print()
-        print('================== {username} =================='.format(username=username))
-        self.client.send_message(entity, '/start')
+        log.debug('Pinging @{username}...'.format(
+            username=entity.username))
+        self.client.send_message(input_entity, '/start')
 
         start = datetime.datetime.now()
-        count = 1
         while not self._response_received(bot_user_id):
             if datetime.datetime.now() - start > datetime.timedelta(seconds=timeout):
                 self._pinged_bots.remove(bot_user_id)
-                print('{} did not respond after {} seconds.'.format(username, timeout))
+                log.debug('@{} did not respond after {} seconds.'.format(entity.username, timeout))
                 return False
-            time.sleep(1)
-            # print(count)
-            count += 1
+            time.sleep(0.2)
 
         response_text = self._responses[bot_user_id]
 
@@ -177,7 +189,6 @@ class BotChecker(object):
         maintenance = ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR2 + ZERO_CHAR1
 
         parkmebot_offline = False
-        # print("Encoded: " + str(zero_width_encoding(response_text).encode("unicode-escape")))
         if zero_width_encoding(response_text) in (reserved_username, parked, maintenance):
             parkmebot_offline = True
 
@@ -203,33 +214,7 @@ class BotChecker(object):
         self.client.disconnect()
 
 
-def make_sticker(filename, out_file, max_height=512, transparent=True):
-    image = Image.open(filename)
-
-    # resize sticker to match new max height
-    # optimize image dimensions for stickers
-    if max_height == 512:
-        resize_ratio = min(512 / image.width, 512 / image.height)
-        image = image.resize((int(image.width * resize_ratio), int(image.height * resize_ratio)))
-    else:
-        image.thumbnail((512, max_height), Image.ANTIALIAS)
-
-    if transparent:
-        canvas = Image.new('RGBA', (512, image.height))
-    else:
-        canvas = Image.new('RGB', (512, image.height), color='white')
-
-    pos = (0, 0)
-    try:
-        canvas.paste(image, pos, mask=image)
-    except ValueError:
-        canvas.paste(image, pos)
-
-    canvas.save(out_file)
-    return out_file
-
-
-def _check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
+def check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
     try:
         entity = bot_checker.get_bot_entity(to_check.username)
     except UsernameNotOccupiedError:
@@ -246,7 +231,7 @@ def _check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
     to_check.username = '@' + str(entity.username)
 
     # Check online state
-    bot_offline = not bot_checker.ping_bot(to_check.username, timeout=12)
+    bot_offline = not bot_checker.ping_bot(entity, timeout=12)
 
     if to_check.offline != bot_offline:
         to_check.offline = bot_offline
@@ -287,6 +272,8 @@ def _check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
 
     to_check.save()
 
+    bot_checker.schedule_conversation_deletion(entity, 8)
+
     # Sleep to give Userbot time to breathe
     time.sleep(2)
 
@@ -302,17 +289,15 @@ def job_callback(bot, job):
     for i in range(1, int(total_bot_count / batch_size) + 1):
         try:
             bots_page = list(
-                BotModel.select().where(BotModel.userbot == False).join(Ping,
-                                                                        JOIN.LEFT_OUTER).order_by(
-                    Ping.last_ping.asc()
-                ).paginate(i, batch_size)
+                BotModel.select().where(BotModel.userbot == False).join(
+                    Ping, JOIN.LEFT_OUTER).order_by(fn.Random()).paginate(i, batch_size)
             )
             log.info("Checking {}...".format(', '.join(x.username for x in bots_page)))
             for b in bots_page:
                 if job.context.get('stop').is_set():
                     raise StopAsyncIteration()
                 try:
-                    _check_bot(bot, bot_checker, b)
+                    check_bot(bot, bot_checker, b)
                 except NotABotError:
                     b.userbot = True
                     b.save()
@@ -336,10 +321,8 @@ def job_callback(bot, job):
 if __name__ == '__main__':
     api_id = 34057
     api_hash = 'a89154bb0cde970cae0848dc7f7a6108'
-    phone = '+79691987276'
+    phone = '+79639953313'
+    session_file = settings.USERBOT_SESSION  # botchecker
+    checker = BotChecker(session_file, api_id, api_hash, phone)
 
-    checker = BotChecker('/home/joscha/accounts/79691987276', api_id, api_hash, phone)
-
-    while True:
-        print(checker.ping_bot('@Likeandsharebot', timeout=5))
-        time.sleep(3)
+    checker.delete_all_conversations()

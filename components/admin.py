@@ -29,7 +29,6 @@ from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, 
 from telegram.ext import ConversationHandler, Job
 from util import restricted
 
-
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
 
@@ -541,14 +540,15 @@ def send_offline(bot, update):
 
     def offline_since(b):
         if not b.ping.last_response:
-            return None
-        return helpers.slang_datetime(b.ping.last_response)
+            return 'a long time'
+        slanged_time = helpers.slang_datetime(b.ping.last_response)
+        return slanged_time.replace(' ago', '')
 
     if len(offline) > 0:
         text = "Offline Bots:\n\n"
         text += '\n'.join(["{}{} — /edit{}".format(
             str(b),
-            " (since {})".format(offline_since(b)) if b.ping.last_response else '',
+            " (for {})".format(offline_since(b)),
             b.id
         ) for b in offline])
     else:
