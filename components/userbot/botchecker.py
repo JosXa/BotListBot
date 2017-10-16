@@ -231,7 +231,7 @@ def check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
     to_check.username = '@' + str(entity.username)
 
     # Check online state
-    bot_offline = not bot_checker.ping_bot(entity, timeout=15)
+    bot_offline = not bot_checker.ping_bot(entity, timeout=20)
 
     if to_check.offline != bot_offline:
         to_check.offline = bot_offline
@@ -283,6 +283,8 @@ def job_callback(bot, job):
     bot_checker = job.context.get('checker')
     bot_checker.reset()
 
+    start = datetime.datetime.now()
+
     total_bot_count = BotModel.select().where(BotModel.userbot == False).count()
     batch_size = 5
 
@@ -316,6 +318,9 @@ def job_callback(bot, job):
             log.debug("Continuing...")
             time.sleep(5)
             continue
+
+    duration = datetime.datetime.now() - start
+    bot.send_message(settings.ADMINS[0], "Botchecker completed in {}.".format(duration))
 
 
 if __name__ == '__main__':
