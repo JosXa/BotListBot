@@ -261,7 +261,7 @@ def check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
     sticker_file = os.path.join(settings.BOT_THUMBNAIL_DIR, '_sticker_tmp.webp')
 
     time.sleep(1)
-    downloaded = bot_checker.client.download_profile_photo(entity, tmp_file, download_big=False)
+    downloaded = bot_checker.client.download_profile_photo(entity, tmp_file, download_big=True)
 
     if downloaded:
         try:
