@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import inflect
 from peewee import *
+
+import settings
 from telegram import User as TelegramUser
 
 import util
@@ -101,3 +103,14 @@ class User(BaseModel):
             return result[0]
         else:
             raise User.DoesNotExist()
+
+    @classmethod
+    def botlist_user_instance(cls):
+        if not cls._botlist_user:
+            bl_user, created = User.get_or_create(id=100000, defaults={
+                'chat_id' : settings.SELF_BOT_ID,
+                'username' : '@BotListBot',
+                'first_name' : 'BotListBot',
+            })
+            cls._botlist_user = bl_user
+        return cls._botlist_user

@@ -13,7 +13,7 @@ from peewee import JOIN, fn
 
 import settings
 from helpers import make_sticker
-from model import Bot as BotModel, Ping
+from model import Bot as BotModel, Ping, Suggestion
 from telegram import Bot as TelegramBot
 from telegram import ForceReply
 from telegram.ext import Filters, run_async
@@ -22,6 +22,7 @@ from telethon import TelegramClient, utils
 from telethon.errors import FloodWaitError, UsernameNotOccupiedError
 from telethon.tl.functions.messages import DeleteHistoryRequest
 from telethon.tl.types import User
+from model import User as UserModel
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -31,7 +32,6 @@ client_log = logging.getLogger(TelegramClient.__name__).setLevel(logging.DEBUG)
 CONFIRM_PHONE_CODE = "Userbot authorization required. Enter the code you received..."
 ZERO_CHAR1 = u"\u200C"  # ZERO-WIDTH-NON-JOINER
 ZERO_CHAR2 = u"\u200B"  # ZERO-WIDTH-SPACE
-
 
 class NotABotError(Exception):
     pass
@@ -234,11 +234,20 @@ def check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
     bot_offline = not bot_checker.ping_bot(entity, timeout=20)
 
     if to_check.offline != bot_offline:
-        to_check.offline = bot_offline
-        bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, '{} went {}.'.format(
-            to_check.str_no_md,
-            'offline' if bot_offline else 'online'
-        ))
+
+        # to_check.offline = bot_offline
+
+        Suggestion.add_or_update(
+            UserModel.botlist_user_instance(),
+            'offline',
+            to_check,
+            bot_offline
+        ).save()
+
+        # bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, '{} went {}.'.format(
+        #     to_check.str_no_md,
+        #     'offline' if bot_offline else 'online'
+        # ))
 
     # Add entry to pings database
     now = datetime.datetime.now()
@@ -252,7 +261,7 @@ def check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
     sticker_file = os.path.join(settings.BOT_THUMBNAIL_DIR, '_sticker_tmp.webp')
 
     time.sleep(1)
-    downloaded = bot_checker.client.download_profile_photo(entity, tmp_file)
+    downloaded = bot_checker.client.download_profile_photo(entity, tmp_file, download_big=False)
 
     if downloaded:
         try:

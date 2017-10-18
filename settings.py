@@ -42,7 +42,7 @@ SUGGESTION_LIMIT = 25
 API_URL = "localhost" if DEV else "josxa.jumpingcrab.com"
 API_PORT = 6060
 
-USERBOT_SESSION = "/home/joscha/accounts/79645079134"
+USERBOT_SESSION = "/home/joscha/accounts/79035261420"
 RUN_BOTCHECKER = True
 
 ERROR_LOG_FILE = os.path.join(LOG_DIR, "error.log")
