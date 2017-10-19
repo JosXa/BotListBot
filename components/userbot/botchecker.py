@@ -129,11 +129,17 @@ class BotChecker(object):
 
                 self._responses[uid] = message_text
         while True:
-            ud = self.client.updates.poll()
-            if ud:
-                inner(ud)
-            else:
-                log.error("Received an empty update.")
+            try:
+                ud = self.client.updates.poll()
+                if ud:
+                    inner(ud)
+                else:
+                    log.error("Received an empty update. Assuming that the bot responded.")
+                    for b in self._pinged_bots:
+                        self._responses[b] = True
+            except Exception as e:
+                log.info("Exception in update thread. Continuing...")
+                log.exception(e)
 
     def _init_thread(self, target, *args, **kwargs):
         thr = Thread(target=target, args=args, kwargs=kwargs)
@@ -192,20 +198,21 @@ class BotChecker(object):
 
         response_text = self._responses[bot_user_id]
 
-        # Evaluate WJClub's ParkMeBot flags
-        reserved_username = ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR1
-        parked = ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR2
-        maintenance = ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR2 + ZERO_CHAR1
+        if isinstance(response_text, str):
+            # Evaluate WJClub's ParkMeBot flags
+            reserved_username = ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR1
+            parked = ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR2
+            maintenance = ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR2 + ZERO_CHAR1
 
-        parkmebot_offline = False
-        if zero_width_encoding(response_text) in (reserved_username, parked, maintenance):
-            parkmebot_offline = True
+            parkmebot_offline = False
+            if zero_width_encoding(response_text) in (reserved_username, parked, maintenance):
+                parkmebot_offline = True
 
-        self._delete_response(bot_user_id)
-        self._pinged_bots.remove(bot_user_id)
+            self._delete_response(bot_user_id)
+            self._pinged_bots.remove(bot_user_id)
 
-        if parkmebot_offline:
-            return False
+            if parkmebot_offline:
+                return False
         return True
 
     def get_bot_last_activity(self, entity):
