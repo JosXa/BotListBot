@@ -190,7 +190,7 @@ class Suggestion(BaseModel):
 
     def _md_plaintext(self):
         uname = util.escape_markdown(self.subject.username)
-        value = str(self.value)
+        value = self.value
 
         text = ''
         if self.action == 'category':
@@ -201,9 +201,9 @@ class Suggestion(BaseModel):
             except Category.DoesNotExist:
                 raise AttributeError("Category to change to does not exist.")
         elif self.action == 'name':
-            text += "set name {} ➜ {}".format(uname, value)
+            text += "set name {} ➜ {}".format(uname, str(value))
         elif self.action == 'username':
-            text += "set username {} ➜ {}".format(uname, value)
+            text += "set username {} ➜ {}".format(uname, str(value))
         elif self.action == 'description':
             text += "change description text of {}".format(uname)
         elif self.action == 'extra':
@@ -220,11 +220,11 @@ class Suggestion(BaseModel):
                 except Country.DoesNotExist:
                     raise AttributeError("Country to change to does not exist.")
         elif self.action == 'inlinequeries':
-            text += "toggle inlinequeries {} ➜ {}".format(uname, value)
+            text += "toggle inlinequeries {} ➜ {}".format(uname, str(value))
         elif self.action == 'official':
-            text += "toggle official {} ➜ {}".format(uname, value)
+            text += "toggle official {} ➜ {}".format(uname, str(value))
         elif self.action == 'offline':
-            text += "set offline {}".format(uname)
+            text += "set {} {}".format('offline' if bool(value) else 'online', uname)
         elif self.action == 'spam':
             text += "mark {} as spammy".format(uname)
         return text
