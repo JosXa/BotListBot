@@ -7,6 +7,7 @@ import shutil
 import threading
 import time
 import traceback
+from pprint import pprint
 from threading import Thread
 
 from peewee import JOIN, fn
@@ -65,7 +66,8 @@ def authorization_handler(bot, update, checker):
 class BotChecker(object):
     def __init__(self, session_name, api_id, api_hash, phone_number, updater=None):
         self.phone_number = phone_number
-        self.client = TelegramClient(session_name, api_id, api_hash, update_workers=1)
+        self.client = TelegramClient(session_name, api_id, api_hash, update_workers=1,
+                                     spawn_read_thread=True)
         self.client.connect()
         self._pinged_bots = []
         self._responses = {}
@@ -97,10 +99,14 @@ class BotChecker(object):
 
     def _initialize(self):
         self.pending_authorization = False
-        self.client.add_update_handler(self._update_handler)
+        self._run_update_handler()
 
-    def _update_handler(self, update):
-        def inner(self, update):
+    def _run_update_handler(self):
+        self.update_thread = threading.Thread(target=self._update_handler, daemon=True)
+        self.update_thread.start()
+
+    def _update_handler(self):
+        def inner(update):
             try:
                 uid = update.message.from_id
             except AttributeError:
@@ -122,9 +128,12 @@ class BotChecker(object):
                         message_text = update.message.message
 
                 self._responses[uid] = message_text
-
-        thr = threading.Thread(target=inner, args=(self, update))
-        thr.start()
+        while True:
+            ud = self.client.updates.poll()
+            if ud:
+                inner(ud)
+            else:
+                log.error("Received an empty update.")
 
     def _init_thread(self, target, *args, **kwargs):
         thr = Thread(target=target, args=args, kwargs=kwargs)
@@ -231,7 +240,7 @@ def check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
     to_check.username = '@' + str(entity.username)
 
     # Check online state
-    bot_offline = not bot_checker.ping_bot(entity, timeout=20)
+    bot_offline = not bot_checker.ping_bot(entity, timeout=12)
 
     if to_check.offline != bot_offline:
 
