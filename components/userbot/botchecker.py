@@ -50,13 +50,6 @@ def zero_width_encoding(encoded_string):
     return None
 
 
-def extract_updates(update):
-    if not hasattr(update, 'updates'):
-        return [update]
-    else:
-        return update.updates
-
-
 def authorization_handler(bot, update, checker):
     text = update.message.reply_to_message.text
     if text == CONFIRM_PHONE_CODE:
@@ -71,6 +64,7 @@ class BotChecker(object):
         self.client.connect()
         self._pinged_bots = []
         self._responses = {}
+        self.botbuilders = []
 
         if not self.client.is_user_authorized():
             log.info("Sending code request...")
@@ -203,7 +197,11 @@ class BotChecker(object):
         self._pinged_bots.remove(bot_user_id)
 
         if isinstance(response_text, str):
-            parkmebot_offline = False
+
+            if 'Use /off to pause your subscription.' in response_text \
+                    or 'Use /stop to unsubscribe.' in response_text:
+                self.botbuilders.append(entity)
+
             # Evaluate WJClub's ParkMeBot flags
             reserved_username = ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR1
             parked = ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR2
@@ -243,6 +241,8 @@ def check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
     to_check.official = bool(entity.verified)
     to_check.inlinequeries = bool(entity.bot_inline_placeholder)
     to_check.username = '@' + str(entity.username)
+    if entity in bot_checker.botbuilders:
+        to_check.botbuilder = True
 
     # Check online state
     bot_offline = not bot_checker.ping_bot(entity, timeout=12)

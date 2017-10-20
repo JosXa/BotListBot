@@ -29,6 +29,7 @@ class Bot(BaseModel):
     offline = BooleanField(default=False)
     spam = BooleanField(default=False)
     userbot = BooleanField(default=False)
+    botbuilder = BooleanField(default=False)
 
     approved = BooleanField(default=True)
     submitted_by = ForeignKeyField(User, null=True, related_name='submitted_by')

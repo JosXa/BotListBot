@@ -16,4 +16,19 @@ migrator = SqliteMigrator(appglobals.db)
 #     b.userbot = False
 #     b.save()
 
-User.botlist_user_instance().delete_instance()
+try:
+    User.botlist_user_instance().delete_instance()
+except:
+    pass
+
+
+migrate(
+    # migrator.rename_column("bot", "manybot", "botbuilder"),
+    migrator.add_column("bot", "botbuilder", BooleanField(default=False))
+    # migrator.rename_column("document", "user", "user_id"),
+)
+
+print('Setting all bots to botbuilder=False.......')
+for b in Bot.select():
+    b.botbuilder = False
+    b.save()
