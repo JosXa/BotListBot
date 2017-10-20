@@ -331,12 +331,11 @@ def job_callback(bot, job):
                     b.userbot = True
                     b.save()
         except FloodWaitError as e:
-            bot.formatter.send_failure(settings.ADMINS[0],
-                                       "Userbot received a Flood Wait timeout: {} seconds".format(
-                                           e.seconds))
+            bot.formatter.send_failure(
+                settings.ADMINS[0],
+                "Userbot received a Flood Wait timeout: {} seconds".format(e.seconds))
             traceback.print_exc()
             log.error("Userbot received a Flood Wait timeout: {} seconds".format(e.seconds))
-            time.sleep(10)
             return
         except StopAsyncIteration:
             break
