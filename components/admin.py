@@ -229,8 +229,9 @@ def edit_bot(bot, update, chat_data, to_edit=None):
     pending_suggestions = Suggestion.pending_for_bot(to_edit, user)
     reply_markup = InlineKeyboardMarkup(
         _edit_bot_buttons(to_edit, pending_suggestions, uid in settings.MODERATORS))
-    pending_text = '\n\n{} Some changes are pending approval.'.format(
-        captions.SUGGESTION_PENDING_EMOJI) if pending_suggestions else ''
+    pending_text = '\n\n{} Some changes are pending approval{}.'.format(
+        captions.SUGGESTION_PENDING_EMOJI,
+        '' if user.chat_id in settings.MODERATORS else ' by a moderator') if pending_suggestions else ''
     meta_text = '\n\nDate added: {}\nMember since revision {}\n' \
                 'Submitted by {}\nApproved by {}'.format(
         to_edit.date_added, to_edit.revision, to_edit.submitted_by, to_edit.approved_by)
@@ -264,8 +265,6 @@ def prepare_transmission(bot, update, chat_data):
 
     util.send_md_message(bot, chat_id, text,
                          reply_markup=reply_markup)
-
-
 
 
 @track_activity('menu', 'approve suggestions', Statistic.ANALYSIS)
@@ -339,15 +338,15 @@ def approve_suggestions(bot, update, page=0):
                                disable_web_page_preview=True)
     return CallbackStates.APPROVING_BOTS
 
+
 @restricted
 def accept_suggestion(bot, update, suggestion):
     suggestion.apply()
-    if suggestion.action == 'offline' and bool(suggestion.value) is True:
+    if suggestion.action == 'offline':
         bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, '{} went {}.'.format(
             suggestion.subject.str_no_md,
             'offline'
         ))
-
 
 
 @track_activity('menu', 'approve bots', Statistic.ANALYSIS)
@@ -833,6 +832,7 @@ def short_approve_list(bot, update):
         txt += '\n'.join([str(b) for b in bots])
 
     bot.formatter.send_message(uid, txt)
+
 
 @track_activity('menu', 'manybots', Statistic.ANALYSIS)
 @restricted
