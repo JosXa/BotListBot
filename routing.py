@@ -382,6 +382,8 @@ def register(dp):
     dp.add_handler(RegexHandler("^/approve\d+$", admin.edit_bot, pass_chat_data=True), group=1)
     dp.add_handler(CommandHandler('approve', admin.short_approve_list))
 
+    dp.add_handler(CommandHandler(('manybot', 'manybots'), admin.manybots))
+
     dp.add_handler(CommandHandler('new', contributions.new_bot_submission, pass_args=True, pass_chat_data=True))
     dp.add_handler(RegexHandler('.*#new.*', contributions.new_bot_submission, pass_chat_data=True), group=1)
     dp.add_handler(CommandHandler('offline', contributions.notify_bot_offline, pass_args=True))

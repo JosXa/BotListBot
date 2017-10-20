@@ -833,3 +833,19 @@ def short_approve_list(bot, update):
         txt += '\n'.join([str(b) for b in bots])
 
     bot.formatter.send_message(uid, txt)
+
+@track_activity('menu', 'manybots', Statistic.ANALYSIS)
+@restricted
+def manybots(bot, update):
+    uid = update.effective_chat.id
+    bots = Bot.select().where(Bot.approved == True & Bot.botbuilder == True)
+
+    txt = 'Manybots in the BotList:\n\n'
+
+    # if uid in settings.MODERATORS and util.is_private_message(update):
+    #     # append admin edit buttons
+    #     txt += '\n'.join(["{} — /approve{}".format(b, b.id) for b in bots])
+    # else:
+    txt += '\n'.join([str(b) for b in bots])
+
+    bot.formatter.send_message(uid, txt)
