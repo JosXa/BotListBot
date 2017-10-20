@@ -224,7 +224,7 @@ class Suggestion(BaseModel):
         elif self.action == 'official':
             text += "toggle official {} ➜ {}".format(uname, str(value))
         elif self.action == 'offline':
-            text += "set {} {}".format('offline' if bool(value) else 'online', uname)
+            text += "set {} {}".format('💤' if bool(value) else 'online', uname)
         elif self.action == 'spam':
             text += "mark {} as spammy".format(uname)
         return text
