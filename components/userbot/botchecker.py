@@ -7,7 +7,6 @@ import shutil
 import threading
 import time
 import traceback
-from pprint import pprint
 from threading import Thread
 
 from peewee import JOIN, fn
@@ -15,6 +14,7 @@ from peewee import JOIN, fn
 import settings
 from helpers import make_sticker
 from model import Bot as BotModel, Ping, Suggestion
+from model import User as UserModel
 from telegram import Bot as TelegramBot
 from telegram import ForceReply
 from telegram.ext import Filters, run_async
@@ -23,7 +23,6 @@ from telethon import TelegramClient, utils
 from telethon.errors import FloodWaitError, UsernameNotOccupiedError
 from telethon.tl.functions.messages import DeleteHistoryRequest
 from telethon.tl.types import User
-from model import User as UserModel
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -33,6 +32,7 @@ client_log = logging.getLogger(TelegramClient.__name__).setLevel(logging.DEBUG)
 CONFIRM_PHONE_CODE = "Userbot authorization required. Enter the code you received..."
 ZERO_CHAR1 = u"\u200C"  # ZERO-WIDTH-NON-JOINER
 ZERO_CHAR2 = u"\u200B"  # ZERO-WIDTH-SPACE
+
 
 class NotABotError(Exception):
     pass
@@ -128,6 +128,7 @@ class BotChecker(object):
                         message_text = update.message.message
 
                 self._responses[uid] = message_text
+
         while True:
             try:
                 ud = self.client.updates.poll()
@@ -140,6 +141,7 @@ class BotChecker(object):
             except Exception as e:
                 log.info("Exception in update thread. Continuing...")
                 log.exception(e)
+            time.sleep(0.2)
 
     def _init_thread(self, target, *args, **kwargs):
         thr = Thread(target=target, args=args, kwargs=kwargs)
@@ -197,22 +199,18 @@ class BotChecker(object):
             time.sleep(0.2)
 
         response_text = self._responses[bot_user_id]
+        self._delete_response(bot_user_id)
+        self._pinged_bots.remove(bot_user_id)
 
-        parkmebot_offline = False
         if isinstance(response_text, str):
+            parkmebot_offline = False
             # Evaluate WJClub's ParkMeBot flags
             reserved_username = ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR1
             parked = ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR2
             maintenance = ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR2 + ZERO_CHAR1
 
             if zero_width_encoding(response_text) in (reserved_username, parked, maintenance):
-                parkmebot_offline = True
-
-        self._delete_response(bot_user_id)
-        self._pinged_bots.remove(bot_user_id)
-
-        if parkmebot_offline:
-            return False
+                return False
         return True
 
     def get_bot_last_activity(self, entity):
@@ -250,7 +248,6 @@ def check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
     bot_offline = not bot_checker.ping_bot(entity, timeout=12)
 
     if to_check.offline != bot_offline:
-
         # to_check.offline = bot_offline
 
         Suggestion.add_or_update(
