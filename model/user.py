@@ -109,7 +109,7 @@ class User(BaseModel):
         if not hasattr(cls, '_botlist_user'):
             bl_user, created = User.get_or_create(id=100000, defaults={
                 'chat_id' : settings.SELF_BOT_ID,
-                'username' : '@BotListBot',
+                'username' : 'BotListBot',
                 'first_name' : 'BotListBot',
             })
             cls._botlist_user = bl_user

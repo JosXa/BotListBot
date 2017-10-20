@@ -195,7 +195,7 @@ def callback_router(bot, update, chat_data, user_data, job_queue):
                 send_category(bot, update, to_edit.category)
             elif action == CallbackActions.ACCEPT_SUGGESTION:
                 suggestion = Suggestion.get(id=obj['id'])
-                suggestion.apply()
+                admin.accept_suggestion(bot, update, suggestion)
                 admin.approve_suggestions(bot, update, page=obj['page'])
             elif action == CallbackActions.REJECT_SUGGESTION:
                 suggestion = Suggestion.get(id=obj['id'])

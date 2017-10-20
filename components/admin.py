@@ -266,6 +266,8 @@ def prepare_transmission(bot, update, chat_data):
                          reply_markup=reply_markup)
 
 
+
+
 @track_activity('menu', 'approve suggestions', Statistic.ANALYSIS)
 @restricted
 def approve_suggestions(bot, update, page=0):
@@ -336,6 +338,16 @@ def approve_suggestions(bot, update, page=0):
                                reply_markup=reply_markup, to_edit=util.mid_from_update(update),
                                disable_web_page_preview=True)
     return CallbackStates.APPROVING_BOTS
+
+@restricted
+def accept_suggestion(bot, update, suggestion):
+    suggestion.apply()
+    if suggestion.action == 'offline' and bool(suggestion.value) is True:
+        bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, '{} went {}.'.format(
+            suggestion.subject.str_no_md,
+            'offline'
+        ))
+
 
 
 @track_activity('menu', 'approve bots', Statistic.ANALYSIS)

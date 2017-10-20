@@ -250,17 +250,22 @@ def check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
     if to_check.offline != bot_offline:
         # to_check.offline = bot_offline
 
-        Suggestion.add_or_update(
-            UserModel.botlist_user_instance(),
-            'offline',
-            to_check,
-            bot_offline
-        ).save()
-
-        # bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, '{} went {}.'.format(
-        #     to_check.str_no_md,
-        #     'offline' if bot_offline else 'online'
-        # ))
+        # We get a lot of false negatives, therefore the bot may set bots online, but only makes
+        # a suggestion to set them offline.
+        if bot_offline:
+            Suggestion.add_or_update(
+                UserModel.botlist_user_instance(),
+                'offline',
+                to_check,
+                bot_offline
+            ).save()
+        else:
+            to_check.offline = False
+            to_check.save()
+            bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, '{} went {}.'.format(
+                to_check.str_no_md,
+                'online'
+            ))
 
     # Add entry to pings database
     now = datetime.datetime.now()
