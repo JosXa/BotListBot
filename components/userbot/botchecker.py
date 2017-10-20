@@ -10,7 +10,7 @@ import traceback
 from threading import Thread
 
 from peewee import JOIN, fn
-
+from telethon.errors import UsernameNotOccupiedError, FloodWaitError
 import settings
 from helpers import make_sticker
 from model import Bot as BotModel, Ping, Suggestion
@@ -20,7 +20,6 @@ from telegram import ForceReply
 from telegram.ext import Filters, run_async
 from telegram.ext import MessageHandler
 from telethon import TelegramClient, utils
-from telethon.errors import FloodWaitError, UsernameNotOccupiedError
 from telethon.tl.functions.messages import DeleteHistoryRequest
 from telethon.tl.types import User
 
@@ -302,7 +301,7 @@ def check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
     bot_checker.schedule_conversation_deletion(entity, 8)
 
     # Sleep to give Userbot time to breathe
-    time.sleep(2)
+    time.sleep(4)
 
 
 @run_async
