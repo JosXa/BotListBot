@@ -109,11 +109,11 @@ class BotChecker(object):
                 except AttributeError:
                     return
 
-            try:
-                entity = self.client.get_entity(uid)
-                log.debug("Received response from @{}".format(entity.username))
-            except:
-                log.debug("Received message from {}".format(uid))
+            # try:
+            #     entity = self.client.get_entity(uid)
+            #     log.debug("Received response from @{}".format(entity.username))
+            # except:
+            log.debug("Received message from {}".format(uid))
 
             if uid in self._pinged_bots:
                 message_text = None
