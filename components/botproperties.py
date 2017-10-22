@@ -281,3 +281,13 @@ def remove_keyword(bot, update, chat_data, context):
     kw = context.get('keyword')
     kw.delete_instance()
     return set_keywords(bot, update, chat_data, to_edit)
+
+
+@restricted
+def accept_suggestion(bot, update, suggestion):
+    suggestion.apply()
+    if suggestion.action == 'offline':
+        bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, '{} went {}.'.format(
+            suggestion.subject.str_no_md,
+            'offline' if suggestion.subject.offline else 'online'
+        ))

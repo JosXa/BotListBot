@@ -339,16 +339,6 @@ def approve_suggestions(bot, update, page=0):
     return CallbackStates.APPROVING_BOTS
 
 
-@restricted
-def accept_suggestion(bot, update, suggestion):
-    suggestion.apply()
-    if suggestion.action == 'offline':
-        bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, '{} went {}.'.format(
-            suggestion.subject.str_no_md,
-            'offline'
-        ))
-
-
 @track_activity('menu', 'approve bots', Statistic.ANALYSIS)
 @restricted
 def approve_bots(bot, update, page=0, override_list=None):
