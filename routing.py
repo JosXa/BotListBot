@@ -3,24 +3,17 @@ import logging
 import re
 import traceback
 
-import components.botproperties
-from telegram.ext import CallbackQueryHandler
-from telegram.ext import ChosenInlineResultHandler
-from telegram.ext import CommandHandler
-from telegram.ext import ConversationHandler
-from telegram.ext import Filters
-from telegram.ext import InlineQueryHandler
-from telegram.ext import MessageHandler
-from telegram.ext import RegexHandler
-
 import captions
+import components.botproperties
 import settings
 import util
-from components import botlistchat, help, favorites, admin, basic, botproperties, botlist, broadcasts, explore
+from components import botlistchat, help, favorites, admin, basic, botproperties, botlist, \
+    broadcasts, explore
 from components import contributions
 from components import eastereggs
 from components import inlinequeries
 from components.basic import all_handler
+from components.botlistchat import HINTS
 from components.explore import show_new_bots, send_bot_details, select_category, send_category
 from components.misc import access_token, set_notifications
 from components.misc import t3chnostats
@@ -32,6 +25,14 @@ from misc import manage_subscription
 from model import Keyword
 from model import Statistic
 from model import User, Category, Bot, Favorite, Country, Suggestion
+from telegram.ext import CallbackQueryHandler
+from telegram.ext import ChosenInlineResultHandler
+from telegram.ext import CommandHandler
+from telegram.ext import ConversationHandler
+from telegram.ext import Filters
+from telegram.ext import InlineQueryHandler
+from telegram.ext import MessageHandler
+from telegram.ext import RegexHandler
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -113,7 +114,8 @@ def callback_router(bot, update, chat_data, user_data, job_queue):
             elif action == CallbackActions.REJECT_BOT:
                 to_reject = Bot.get(id=obj['id'])
                 notification = obj.get('ntfc', True)
-                admin.reject_bot_submission(bot, update, to_reject, verbose=False, notify_submittant=notification)
+                admin.reject_bot_submission(bot, update, to_reject, verbose=False,
+                                            notify_submittant=notification)
                 admin.approve_bots(bot, update, obj['page'])
             elif action == CallbackActions.BOT_ACCEPTED:
                 to_accept = Bot.get(id=obj['bid'])
@@ -319,7 +321,8 @@ def register(dp):
             ],
         },
         fallbacks=[
-            CallbackQueryHandler(callback_router, pass_chat_data=True, pass_user_data=True, pass_job_queue=True)
+            CallbackQueryHandler(callback_router, pass_chat_data=True, pass_user_data=True,
+                                 pass_job_queue=True)
         ],
         per_user=True,
         allow_reentry=False
@@ -345,9 +348,12 @@ def register(dp):
     )
     dp.add_handler(broadcasting_handler)
 
-    dp.add_handler(CallbackQueryHandler(callback_router, pass_chat_data=True, pass_user_data=True, pass_job_queue=True))
-    dp.add_handler(CommandHandler(('cat', 'category', 'categories'), select_category, pass_chat_data=True))
-    dp.add_handler(CommandHandler(('s', 'search'), search_handler, pass_args=True, pass_chat_data=True))
+    dp.add_handler(CallbackQueryHandler(callback_router, pass_chat_data=True, pass_user_data=True,
+                                        pass_job_queue=True))
+    dp.add_handler(
+        CommandHandler(('cat', 'category', 'categories'), select_category, pass_chat_data=True))
+    dp.add_handler(
+        CommandHandler(('s', 'search'), search_handler, pass_args=True, pass_chat_data=True))
 
     dp.add_handler(MessageHandler(Filters.reply, reply_router, pass_chat_data=True), group=0)
     dp.add_handler(MessageHandler(Filters.forwarded, forward_router, pass_chat_data=True))
@@ -359,7 +365,8 @@ def register(dp):
     dp.add_handler(RegexHandler(captions.APPROVE_BOTS + '.*', admin.approve_bots))
     dp.add_handler(RegexHandler(captions.APPROVE_SUGGESTIONS + '.*', admin.approve_suggestions))
     dp.add_handler(RegexHandler(captions.PENDING_UPDATE + '.*', admin.pending_update))
-    dp.add_handler(RegexHandler(captions.SEND_BOTLIST, admin.prepare_transmission, pass_chat_data=True))
+    dp.add_handler(
+        RegexHandler(captions.SEND_BOTLIST, admin.prepare_transmission, pass_chat_data=True))
     dp.add_handler(RegexHandler(captions.FIND_OFFLINE, admin.send_offline))
     dp.add_handler(RegexHandler(captions.SEND_CONFIG_FILES, admin.send_runtime_files))
     dp.add_handler(RegexHandler(captions.SEND_ACTIVITY_LOGS, admin.send_activity_logs))
@@ -385,20 +392,24 @@ def register(dp):
 
     dp.add_handler(CommandHandler(('manybot', 'manybots'), admin.manybots))
 
-    dp.add_handler(CommandHandler('new', contributions.new_bot_submission, pass_args=True, pass_chat_data=True))
-    dp.add_handler(RegexHandler('.*#new.*', contributions.new_bot_submission, pass_chat_data=True), group=1)
+    dp.add_handler(CommandHandler('new', contributions.new_bot_submission, pass_args=True,
+                                  pass_chat_data=True))
+    dp.add_handler(RegexHandler('.*#new.*', contributions.new_bot_submission, pass_chat_data=True),
+                   group=1)
     dp.add_handler(CommandHandler('offline', contributions.notify_bot_offline, pass_args=True))
     dp.add_handler(RegexHandler('.*#offline.*', contributions.notify_bot_offline), group=1)
     dp.add_handler(CommandHandler('spam', contributions.notify_bot_spam, pass_args=True))
     dp.add_handler(RegexHandler('.*#spam.*', contributions.notify_bot_spam), group=1)
-    dp.add_handler(RegexHandler('^{}$'.format(settings.REGEX_BOT_ONLY), send_bot_details, pass_chat_data=True))
+    dp.add_handler(
+        RegexHandler('^{}$'.format(settings.REGEX_BOT_ONLY), send_bot_details, pass_chat_data=True))
 
     dp.add_handler(CommandHandler('help', help.help))
     dp.add_handler(CommandHandler(("contribute", "contributing"), help.contributing))
     dp.add_handler(CommandHandler("examples", help.examples))
     dp.add_handler(CommandHandler("rules", help.rules))
 
-    dp.add_handler(CommandHandler(("addfav", "addfavorite"), favorites.add_favorite_handler, pass_args=True))
+    dp.add_handler(
+        CommandHandler(("addfav", "addfavorite"), favorites.add_favorite_handler, pass_args=True))
     dp.add_handler(CommandHandler(("f", "fav", "favorites"), favorites.send_favorites_list))
 
     dp.add_handler(CommandHandler(("e", "explore"), explore.explore, pass_chat_data=True))
@@ -417,26 +428,44 @@ def register(dp):
 
     dp.add_handler(CommandHandler("accesstoken", access_token))
 
-    dp.add_handler(CommandHandler(('stat', 'stats', 'statistic', 'statistics'), admin.send_statistic))
+    dp.add_handler(
+        CommandHandler(('stat', 'stats', 'statistic', 'statistics'), admin.send_statistic))
 
     dp.add_handler(CommandHandler(('log', 'logs'), admin.send_activity_logs, pass_args=True))
     dp.add_handler(CommandHandler(('debug', 'analysis', 'ana', 'analyze'),
-                                  lambda bot, update, args: admin.send_activity_logs(bot, update, args, Statistic.ANALYSIS),
+                                  lambda bot, update, args: admin.send_activity_logs(bot, update,
+                                                                                     args,
+                                                                                     Statistic.ANALYSIS),
                                   pass_args=True))
-    dp.add_handler(CommandHandler('info', lambda bot, update, args: admin.send_activity_logs(bot, update, args, Statistic.INFO),
+    dp.add_handler(CommandHandler('info',
+                                  lambda bot, update, args: admin.send_activity_logs(bot, update,
+                                                                                     args,
+                                                                                     Statistic.INFO),
                                   pass_args=True))
     dp.add_handler(
         CommandHandler(('detail', 'detailed'),
-                       lambda bot, update, args: admin.send_activity_logs(bot, update, args, Statistic.DETAILED), pass_args=True))
-    dp.add_handler(
-        CommandHandler(('warn', 'warning'), lambda bot, update, args: admin.send_activity_logs(bot, update, args, Statistic.WARN),
+                       lambda bot, update, args: admin.send_activity_logs(bot, update, args,
+                                                                          Statistic.DETAILED),
                        pass_args=True))
     dp.add_handler(
-        CommandHandler('important', lambda bot, update, args: admin.send_activity_logs(bot, update, args, Statistic.IMPORTANT),
+        CommandHandler(('warn', 'warning'),
+                       lambda bot, update, args: admin.send_activity_logs(bot, update, args,
+                                                                          Statistic.WARN),
+                       pass_args=True))
+    dp.add_handler(
+        CommandHandler('important',
+                       lambda bot, update, args: admin.send_activity_logs(bot, update, args,
+                                                                          Statistic.IMPORTANT),
                        pass_args=True))
 
-    dp.add_handler(MessageHandler(Filters.text, lambda bot, update: botlistchat.text_message_logger(bot, update, log)),
+    dp.add_handler(MessageHandler(Filters.text,
+                                  lambda bot, update: botlistchat.text_message_logger(bot, update,
+                                                                                      log)),
                    group=99)
+
+    for hashtag in HINTS.keys():
+        dp.add_handler(RegexHandler(hashtag, botlistchat.hint_handler))
+    dp.add_handler(CommandHandler(('hint', 'hints'), botlistchat.show_available_hints))
 
     dp.add_handler(ChosenInlineResultHandler(inlinequeries.chosen_result, pass_chat_data=True))
     dp.add_handler(InlineQueryHandler(inlinequeries.inlinequery_handler, pass_chat_data=True))

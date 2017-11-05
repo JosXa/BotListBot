@@ -1,22 +1,57 @@
 import logging
 import time
 
+import captions
+import const
+import settings
+import util
+from const import CallbackActions
+from dialog import messages
+from model import track_activity
 from telegram import InlineKeyboardButton
 from telegram import InlineKeyboardMarkup
 from telegram import Message
 from telegram.ext.dispatcher import run_async
 
-import captions
-import const
-import settings
-import util
-from components import basic
-from const import CallbackActions
-from model import Bot
-from model import track_activity
-
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
+
+HINTS = {
+    '#inline': {
+        'message': "Consider using me in inline-mode 😇\n`@BotListBot {query}`",
+        'default': "Your search terms",
+        'buttons': [{
+            'text': '🔎 Try it out',
+            'switch_inline_query': '{query}'
+        }],
+        'help': 'Give a query that will be used for a `switch_to_inline`-button'
+    },
+    '#rules': {
+        'message': messages.BOTLISTCHAT_RULES,
+        'help': 'Send the rules of @BotListChat'
+    },
+    '#manybot': {
+        'message': "We (the @BotList moderators) set a *high standard for bots on the* @BotList. "
+                   "Bots built with bot builders like @Manybot or @Chatfuelbot certainly have "
+                   "their place, but usually *lack the quality* we impose for inclusion to the "
+                   "list. We prefer when bot makers actually take their time and effort to "
+                   "program bots without using a sandbox kindergarten tool as the ones mentioned "
+                   "above. Don't get us wrong, there are great tools out there built with these "
+                   "bot builders, and if you feel like the BotList is lacking some feature that "
+                   "this bot brings, feel free to submit it. But as a rule of thumb, Manybots are "
+                   "*generally too spammy, not very useful and not worth the effort*. Thank you 🙏🏻",
+        'help': 'Send our Manybot policy'
+    },
+    '#private': {
+        'message': "Please don't spam the group with searches or commands, and go to a private "
+                   "chat with me instead. Thanks a lot, the other members will appreciate it 😊",
+        'buttons': [{
+            'text': captions.SWITCH_PRIVATE,
+            'url': "https://t.me/{}".format(settings.SELF_BOT_NAME)
+        }],
+        'help': 'Tell a member to stop spamming and switch to a private chat'
+    },
+}
 
 
 def append_delete_button(update, chat_data, reply_markup):
@@ -63,7 +98,8 @@ def delete_conversation(bot, update, chat_data):
 
     if uid != context['user_id']:
         if uid not in settings.MODERATORS:
-            bot.answerCallbackQuery(update.callback_query.id, text="✋️ You didn't prompt this message.")
+            bot.answerCallbackQuery(update.callback_query.id,
+                                    text="✋️ You didn't prompt this message.")
             return
 
     bot.delete_message(cid, mid)
@@ -91,6 +127,48 @@ def _delete_multiple_delayed(bot, chat_id, immediately=None, delayed=None):
 
     for mid in delayed:
         bot.delete_message(chat_id, mid)
+
+
+@run_async
+def show_available_hints(bot, update):
+    message = "In @BotListChat, you can use the following hashtags to guide new members:\n\n"
+    message += '\n'.join(
+        '🗣 {tag} ➖ {help}'.format(
+            tag=k, help=v['help']
+        ) for k, v in HINTS.items()
+    )
+    message += "\n\nMake sure to reply to another message, so I know who to refer to."
+    update.effective_message.reply_text(message, parse_mode='markdown',
+                                        disable_web_page_preview=True)
+
+
+@run_async
+def hint_handler(bot, update):
+    if update.message.chat_id not in [settings.BOTLISTCHAT_ID, settings.BOTLIST_NOTIFICATIONS_ID]:
+        return
+    text = update.message.text
+    reply_to = update.message.reply_to_message
+    for k, v in HINTS.items():
+        if k not in text:
+            continue
+
+        text = text.replace(k, '')
+        query = text.strip()
+
+        reply_markup = None
+        if v.get('buttons'):
+            # Replace 'query' placeholder and expand kwargs
+            buttons = [InlineKeyboardButton(
+                **{k: v.format(query=query) for k, v in b.items()}
+            ) for b in v.get('buttons')]
+            reply_markup = InlineKeyboardMarkup(util.build_menu(buttons, 1))
+
+        msg = v['message'].format(query=query if query else v['default'] if v.get('default') else '')
+
+        bot.formatter.send_message(settings.BOTLISTCHAT_ID, msg, reply_markup=reply_markup,
+                                   reply_to_message_id=reply_to.message_id if reply_to else None)
+        update.effective_message.delete()
+        break
 
 
 @run_async
