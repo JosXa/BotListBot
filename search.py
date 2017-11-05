@@ -14,7 +14,7 @@ def search_bots(query):
     split = query.split(' ')
 
     # easter egg
-    if query == 'awesome bot':
+    if query in ('awesome bot', 'great bot', 'superb bot', 'best bot', 'best bot ever'):
         return [Bot.by_username('@botlistbot')]
 
     # exact results
