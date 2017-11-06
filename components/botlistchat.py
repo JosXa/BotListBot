@@ -166,7 +166,8 @@ def get_hint_message_and_markup(text):
 
 @run_async
 def hint_handler(bot, update):
-    if update.message.chat_id not in [settings.BOTLISTCHAT_ID, settings.BOTLIST_NOTIFICATIONS_ID,
+    chat_id = update.message.chat_id
+    if chat_id not in [settings.BOTLISTCHAT_ID, settings.BOTLIST_NOTIFICATIONS_ID,
                                       settings.BLSF_ID]:
         return
     text = update.message.text
@@ -175,7 +176,7 @@ def hint_handler(bot, update):
     msg, reply_markup, _ = get_hint_message_and_markup(text)
 
     if msg is not None:
-        bot.formatter.send_message(settings.BOTLISTCHAT_ID, msg, reply_markup=reply_markup,
+        bot.formatter.send_message(chat_id, msg, reply_markup=reply_markup,
                                    reply_to_message_id=reply_to.message_id if reply_to else None)
         update.effective_message.delete()
 
