@@ -166,7 +166,8 @@ def get_hint_message_and_markup(text):
 
 @run_async
 def hint_handler(bot, update):
-    if update.message.chat_id not in [settings.BOTLISTCHAT_ID, settings.BOTLIST_NOTIFICATIONS_ID]:
+    if update.message.chat_id not in [settings.BOTLISTCHAT_ID, settings.BOTLIST_NOTIFICATIONS_ID,
+                                      settings.BLSF_ID]:
         return
     text = update.message.text
     reply_to = update.message.reply_to_message
