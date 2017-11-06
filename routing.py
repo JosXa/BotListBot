@@ -464,7 +464,7 @@ def register(dp):
                    group=99)
 
     for hashtag in HINTS.keys():
-        dp.add_handler(RegexHandler(hashtag, botlistchat.hint_handler))
+        dp.add_handler(RegexHandler(r'{}.*'.format(hashtag), botlistchat.hint_handler), group=1)
     dp.add_handler(CommandHandler(('hint', 'hints'), botlistchat.show_available_hints))
 
     dp.add_handler(ChosenInlineResultHandler(inlinequeries.chosen_result, pass_chat_data=True))
