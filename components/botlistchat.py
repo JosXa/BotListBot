@@ -2,7 +2,6 @@ import logging
 import time
 
 import captions
-import const
 import settings
 import util
 from const import CallbackActions
@@ -43,8 +42,9 @@ HINTS = {
         'help': 'Send our Manybot policy'
     },
     '#private': {
-        'message': "Please don't spam the group with searches or commands, and go to a private "
+        'message': "Please don't spam the group with {query}, and go to a private "
                    "chat with me instead. Thanks a lot, the other members will appreciate it 😊",
+        'default': 'searches or commands',
         'buttons': [{
             'text': captions.SWITCH_PRIVATE,
             'url': "https://t.me/{}".format(settings.SELF_BOT_NAME)
@@ -142,12 +142,7 @@ def show_available_hints(bot, update):
                                         disable_web_page_preview=True)
 
 
-@run_async
-def hint_handler(bot, update):
-    if update.message.chat_id not in [settings.BOTLISTCHAT_ID, settings.BOTLIST_NOTIFICATIONS_ID]:
-        return
-    text = update.message.text
-    reply_to = update.message.reply_to_message
+def get_hint_message_and_markup(text):
     for k, v in HINTS.items():
         if k not in text:
             continue
@@ -163,12 +158,25 @@ def hint_handler(bot, update):
             ) for b in v.get('buttons')]
             reply_markup = InlineKeyboardMarkup(util.build_menu(buttons, 1))
 
-        msg = v['message'].format(query=query if query else v['default'] if v.get('default') else '')
+        msg = v['message'].format(
+            query=query if query else v['default'] if v.get('default') else '')
+        return msg, reply_markup, k
+    return None, None, None
 
+
+@run_async
+def hint_handler(bot, update):
+    if update.message.chat_id not in [settings.BOTLISTCHAT_ID, settings.BOTLIST_NOTIFICATIONS_ID]:
+        return
+    text = update.message.text
+    reply_to = update.message.reply_to_message
+
+    msg, reply_markup, _ = get_hint_message_and_markup(text)
+
+    if msg is not None:
         bot.formatter.send_message(settings.BOTLISTCHAT_ID, msg, reply_markup=reply_markup,
                                    reply_to_message_id=reply_to.message_id if reply_to else None)
         update.effective_message.delete()
-        break
 
 
 @run_async

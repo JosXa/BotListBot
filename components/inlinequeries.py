@@ -1,30 +1,28 @@
-from pprint import pprint
 from uuid import uuid4
 
 import emoji
+
+import captions
+import const
+import mdformat
+import search
+import util
+from components import favorites, botlistchat
+from dialog import messages
+from model import Bot, Category
+from model import Favorite
+from model import Statistic
+from model import User
 from telegram import InlineKeyboardButton
 from telegram import InlineKeyboardMarkup
 from telegram import InlineQueryResultArticle
 from telegram import InputTextMessageContent
 from telegram import ParseMode
 
-import captions
-import const
-import mdformat
-import search
-import settings
-import util
-from components import favorites
-from dialog import messages
-from model import Bot, Category
-from model import Favorite
-from model import Statistic
-from model import User
-
 # CONSTANTS
 MAX_BOTS = 30
 SEARCH_QUERY_MIN_LENGTH = 2
-CONTRIBUTING_QUERIES = [const.DeepLinkingActions.CONTRIBUTING, 'ctrbt']
+CONTRIBUTING_QUERIES = [const.DeepLinkingActions.CONTRIBUTING, 'ctrbt', 'contrib']
 EXAMPLES_QUERIES = ['example', const.DeepLinkingActions.EXAMPLES]
 
 
@@ -32,7 +30,8 @@ def query_too_short_article():
     txt = '[I am a stupid, crazy fool.](https://www.youtube.com/watch?v=DLzxrzFCyOs)'
     return InlineQueryResultArticle(
         id=uuid4(),
-        title=util.action_hint('Your search term must be at least {} characters long.'.format(SEARCH_QUERY_MIN_LENGTH)),
+        title=util.action_hint('Your search term must be at least {} characters long.'.format(
+            SEARCH_QUERY_MIN_LENGTH)),
         input_message_content=InputTextMessageContent(message_text=txt,
                                                       parse_mode="Markdown",
                                                       disable_web_page_preview=True)
@@ -40,7 +39,6 @@ def query_too_short_article():
 
 
 def new_bots_article():
-    # append new bots list to result
     from components.explore import _new_bots_text
     msg_text = messages.PROMOTION_MESSAGE + '\n\n' + _new_bots_text()
     return InlineQueryResultArticle(
@@ -60,7 +58,8 @@ def category_article(cat):
     return InlineQueryResultArticle(
         id=uuid4(),
         title=emoji.emojize(cat.emojis, use_aliases=True) + cat.name,
-        input_message_content=InputTextMessageContent(message_text=txt, parse_mode=ParseMode.MARKDOWN),
+        input_message_content=InputTextMessageContent(message_text=txt,
+                                                      parse_mode=ParseMode.MARKDOWN),
         description=cat.extra,
         # thumb_url='https://pichoster.net/images/2017/03/13/cfa5e29e29e772373242bc177a9e5479.jpg'
     )
@@ -69,8 +68,9 @@ def category_article(cat):
 def bot_article(b):
     txt = '{} ➡️ {}'.format(messages.rand_call_to_action(), b.detail_text)
     txt += '\n\n' + messages.PROMOTION_MESSAGE
-    buttons = [[InlineKeyboardButton(captions.ADD_TO_FAVORITES, callback_data=util.callback_for_action(
-        const.CallbackActions.ADD_TO_FAVORITES, {'id': b.id, 'discreet': True}))]]
+    buttons = [
+        [InlineKeyboardButton(captions.ADD_TO_FAVORITES, callback_data=util.callback_for_action(
+            const.CallbackActions.ADD_TO_FAVORITES, {'id': b.id, 'discreet': True}))]]
     reply_markup = InlineKeyboardMarkup(buttons)
     return InlineQueryResultArticle(
         id=uuid4(),
@@ -84,7 +84,6 @@ def bot_article(b):
 
 
 def all_bot_results_article(lst, too_many_results):
-    # bots_with_description = [b for b in bot_list if b.description is not None]
     txt = messages.PROMOTION_MESSAGE + '\n\n'
     txt += "{} one of these {} bots:\n\n".format(messages.rand_call_to_action(), len(lst))
     txt += '\n'.join([str(b) for b in lst])
@@ -93,7 +92,8 @@ def all_bot_results_article(lst, too_many_results):
         title='{} {} ʙᴏᴛ ʀᴇsᴜʟᴛs'.format(
             mdformat.smallcaps("Send"),
             len(lst)),
-        input_message_content=InputTextMessageContent(message_text=txt, parse_mode=ParseMode.MARKDOWN)
+        input_message_content=InputTextMessageContent(message_text=txt,
+                                                      parse_mode=ParseMode.MARKDOWN)
         # description=b.description if b.description else b.name if b.name else None,
         # thumb_url='http://www.colorcombos.com/images/colors/FF0000.png'
     )
@@ -110,11 +110,24 @@ def favorites_article(user):
     )
 
 
+def hint_article(msg, reply_markup, key):
+    return InlineQueryResultArticle(
+        id=uuid4(),
+        title=key.replace('#', '').capitalize() + ' hint',
+        input_message_content=InputTextMessageContent(
+            message_text=msg,
+            parse_mode="Markdown",
+            disable_web_page_preview=True
+        ),
+        reply_markup=reply_markup
+    )
+
+
 def inlinequery_handler(bot, update, chat_data):
     query = update.inline_query.query.lower()
 
     # TODO: remove or enhance eventually, this is potentially very spammy
-    Statistic.of(update, 'inlinequery', '"{}"'.format(query), Statistic.DETAILED)
+    # Statistic.of(update, 'inlinequery', '"{}"'.format(query), Statistic.DETAILED)
 
     user = User.from_update(update)
     results_list = list()
@@ -163,19 +176,27 @@ def inlinequery_handler(bot, update, chat_data):
         bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=600)
         return
 
-    if query == const.DeepLinkingActions.RULES:
+    if query in (const.DeepLinkingActions.RULES, '#rules'):
         results_list.append(InlineQueryResultArticle(
             id=uuid4(),
             title='@BotListChat Rules',
             input_message_content=InputTextMessageContent(message_text=messages.BOTLISTCHAT_RULES,
-                                                          parse_mode="Markdown"),
+                                                          parse_mode="Markdown",
+                                                          disable_web_page_preview=True),
         ))
         bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=600)
         return
 
     if query == const.DeepLinkingActions.FAVORITES and user.has_favorites:
         results_list.append(favorites_article(user))
-        bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=0, is_personal=True)
+        bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=0,
+                              is_personal=True)
+        return
+
+    msg, reply_markup, key = botlistchat.get_hint_message_and_markup(query)
+    if msg is not None:
+        results_list.append(hint_article(msg, reply_markup, key))
+        bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=600)
         return
 
     invalid_search_term = query_too_short and not cat_results
@@ -194,9 +215,11 @@ def inlinequery_handler(bot, update, chat_data):
         if len(bot_results) > 0:
             bot.answerInlineQuery(update.inline_query.id, results=results_list,
                                   switch_pm_text="See all results" if too_many_results else "Search in private chat",
-                                  switch_pm_parameter=util.encode_base64(query), cache_time=0, is_personal=True)
+                                  switch_pm_parameter=util.encode_base64(query), cache_time=0,
+                                  is_personal=True)
         else:
-            bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=0, is_personal=True)
+            bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=0,
+                                  is_personal=True)
     else:
         if user.has_favorites:
             results_list.append(favorites_article(user))
@@ -206,11 +229,13 @@ def inlinequery_handler(bot, update, chat_data):
             results_list.append(category_article(c))
 
         if invalid_search_term or not input_given:
-            bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=0, is_personal=True)
+            bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=0,
+                                  is_personal=True)
         else:
             bot.answerInlineQuery(update.inline_query.id, results=results_list,
                                   switch_pm_text="No results. Contribute a bot?",
-                                  switch_pm_parameter='contributing', cache_time=0, is_personal=True)
+                                  switch_pm_parameter='contributing', cache_time=0,
+                                  is_personal=True)
 
 
 def chosen_result(bot, update, chat_data):
