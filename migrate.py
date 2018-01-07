@@ -1,7 +1,7 @@
 from playhouse.migrate import SqliteMigrator, BooleanField, migrate, IntegerField
 
 import appglobals
-from model import Bot, User
+from model import Bot, User, Suggestion
 
 migrator = SqliteMigrator(appglobals.db)
 
@@ -21,11 +21,13 @@ migrator = SqliteMigrator(appglobals.db)
 # except:
 #     pass
 
+Suggestion.delete().where(Suggestion.user == User.botlist_user_instance()).execute()
+
 
 migrate(
     # migrator.rename_column("bot", "manybot", "botbuilder"),
     # migrator.add_column("bot", "botbuilder", BooleanField(default=False))
-    migrator.add_column("bot", "chat_id", IntegerField(null=True))
+    # migrator.add_column("bot", "chat_id", IntegerField(null=True))
     # migrator.rename_column("document", "user", "user_id"),
 )
 
