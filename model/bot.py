@@ -28,8 +28,10 @@ class Bot(BaseModel):
     extra = CharField(null=True)
     offline = BooleanField(default=False)
     spam = BooleanField(default=False)
+
     userbot = BooleanField(default=False)
     botbuilder = BooleanField(default=False)
+    chat_id = IntegerField(null=True)
 
     approved = BooleanField(default=True)
     submitted_by = ForeignKeyField(User, null=True, related_name='submitted_by')

@@ -7,10 +7,11 @@ import shutil
 import threading
 import time
 import traceback
+from pprint import pprint
 from threading import Thread
 
 from peewee import JOIN, fn
-from telethon.errors import UsernameNotOccupiedError, FloodWaitError
+
 import settings
 from helpers import make_sticker
 from model import Bot as BotModel, Ping, Suggestion
@@ -20,6 +21,7 @@ from telegram import ForceReply
 from telegram.ext import Filters, run_async
 from telegram.ext import MessageHandler
 from telethon import TelegramClient, utils
+from telethon.errors import UsernameNotOccupiedError, FloodWaitError
 from telethon.tl.functions.messages import DeleteHistoryRequest
 from telethon.tl.types import User
 
@@ -58,8 +60,8 @@ def authorization_handler(bot, update, checker):
 class BotChecker(object):
     def __init__(self, session_name, api_id, api_hash, phone_number, updater=None):
         self.phone_number = phone_number
-        self.client = TelegramClient(session_name, api_id, api_hash, update_workers=1,
-                                     spawn_read_thread=True)
+        self.client = TelegramClient(session_name, api_id, api_hash, update_workers=4,
+                                     spawn_read_thread=True, timeout=datetime.timedelta(seconds=15))
         self.client.connect()
         self._pinged_bots = []
         self._responses = {}
@@ -92,49 +94,38 @@ class BotChecker(object):
 
     def _initialize(self):
         self.pending_authorization = False
-        self._run_update_handler()
+        self.client.add_update_handler(self._update_handler)
 
-    def _run_update_handler(self):
-        self.update_thread = threading.Thread(target=self._update_handler, daemon=True)
-        self.update_thread.start()
+    def _update_handler(self, update):
+        if update is None:
+            log.error("Received `None` update.")
+            return
 
-    def _update_handler(self):
-        def inner(update):
+        try:
+            uid = update.message.from_id
+        except AttributeError:
             try:
-                uid = update.message.from_id
+                uid = update.user_id
+            except AttributeError:
+                return
+
+        # try:
+        #     entity = self.client.get_entity(uid)
+        #     log.debug("Received response from @{}".format(entity.username))
+        # except:
+
+        if uid in self._pinged_bots:
+            log.debug("Received update from pinged bot {}: {}".format(uid, type(update)))
+            message_text = None
+            try:
+                message_text = update.message.message
             except AttributeError:
                 try:
-                    uid = update.user_id
+                    message_text = update.message
                 except AttributeError:
-                    return
+                    pass
 
-            # try:
-            #     entity = self.client.get_entity(uid)
-            #     log.debug("Received response from @{}".format(entity.username))
-            # except:
-            log.debug("Received message from {}".format(uid))
-
-            if uid in self._pinged_bots:
-                message_text = None
-                if hasattr(update, 'message'):
-                    if hasattr(update.message, 'message'):
-                        message_text = update.message.message
-
-                self._responses[uid] = message_text
-
-        while True:
-            try:
-                ud = self.client.updates.poll()
-                if ud:
-                    inner(ud)
-                else:
-                    log.error("Received an empty update. Assuming that the bot responded.")
-                    for b in self._pinged_bots:
-                        self._responses[b] = True
-            except Exception as e:
-                log.info("Exception in update thread. Continuing...")
-                log.exception(e)
-            time.sleep(0.2)
+            self._responses[uid] = message_text
 
     def _init_thread(self, target, *args, **kwargs):
         thr = Thread(target=target, args=args, kwargs=kwargs)
@@ -164,8 +155,15 @@ class BotChecker(object):
         entity = self.client.get_entity(username)
         if not hasattr(entity, 'bot'):
             raise NotABotError("This user is not a bot.")
-        time.sleep(1)
+        time.sleep(7)  # ResolveUsernameRequests are expensive
         return entity
+
+    def get_bot_entity_by_id(self, chat_id) -> User:
+        entity = self.client.get_entity(chat_id)
+        if not hasattr(entity, 'bot'):
+            raise NotABotError("This user is not a bot.")
+        return entity
+
 
     def _response_received(self, bot_user_id):
         return bot_user_id in [k for k in self._responses.keys()]
@@ -226,17 +224,28 @@ class BotChecker(object):
 
 
 def check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
-    try:
-        entity = bot_checker.get_bot_entity(to_check.username)
-    except UsernameNotOccupiedError:
-        bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID,
-                         "{} deleted because the username does not exist (anymore).".format(
-                             to_check.username))
-        to_check.delete_instance()
-        return
-    time.sleep(2.5)
+    entity = None
+
+    if to_check.chat_id:
+        try:
+            entity = bot_checker.get_bot_entity_by_id(to_check.chat_id)
+        except Exception as e:
+            log.error("Lookup of {bot.username} through its chat_id failed. Trying to retrieve it "
+                      "via ResolveUsernameRequest...")
+
+    if entity is None:
+        try:
+            entity = bot_checker.get_bot_entity(to_check.username)
+        except UsernameNotOccupiedError:
+            bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID,
+                             "{} deleted because the entity does not exist (anymore).".format(
+                                 to_check.username))
+            to_check.delete_instance()
+            return
+        time.sleep(2.5)
 
     # Check basic properties
+    to_check.chat_id = int(entity.id)
     to_check.official = bool(entity.verified)
     to_check.inlinequeries = bool(entity.bot_inline_placeholder)
     to_check.username = '@' + str(entity.username)
@@ -351,9 +360,11 @@ def job_callback(bot, job):
 if __name__ == '__main__':
     api_id = 34057
     api_hash = 'a89154bb0cde970cae0848dc7f7a6108'
-    phone = '+79639953313'
+    phone = '+491728656978'
     # session_file = settings.USERBOT_SESSION  # botchecker
-    checker = BotChecker('/home/joscha/accounts/79691987276', api_id, api_hash, phone)
+    checker = BotChecker('/home/joscha/accounts/josxa', api_id, api_hash, phone)
 
-    ent = checker.get_bot_entity('@feed_reader_bot')
-    print(checker.ping_bot(ent))
+    for b in [("@botlistbot", 265482650), ("@gittoolsbot", 403706547), ("@imdb", 141186424)]:
+        entity = checker.get_bot_entity_by_id(b[1])
+        print(checker.ping_bot(entity))
+
