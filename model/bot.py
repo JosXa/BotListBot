@@ -117,7 +117,8 @@ class Bot(BaseModel):
         results = Bot.select().where(
             ~(Bot.description.is_null()),
             Bot.approved == True,
-            Bot.revision <= Revision.get_instance().nr
+            Bot.revision <= Revision.get_instance().nr,
+            Bot.offline == False
         )
         return list(results)
 
