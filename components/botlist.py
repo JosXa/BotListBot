@@ -3,12 +3,9 @@ import codecs
 import datetime
 import logging
 import re
+import traceback
 from time import sleep
 from typing import List
-
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.error import BadRequest, TelegramError
-from telegram.ext.dispatcher import run_async
 
 import helpers
 import mdformat
@@ -22,6 +19,9 @@ from model import Notifications
 from model import Statistic
 from model.channel import Channel
 from model.revision import Revision
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.error import BadRequest, TelegramError
+from telegram.ext.dispatcher import run_async
 from util import restricted
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
@@ -108,12 +108,15 @@ class BotList:
                 if reply_markup:
                     return self.bot.formatter.send_or_edit(self.channel.chat_id, text,
                                                            to_edit=message_id,
-                                                           timeout=120, disable_web_page_preview=True,
-                                                           disable_notification=True, reply_markup=reply_markup)
+                                                           timeout=120,
+                                                           disable_web_page_preview=True,
+                                                           disable_notification=True,
+                                                           reply_markup=reply_markup)
                 else:
                     return self.bot.formatter.send_or_edit(self.channel.chat_id, text,
                                                            to_edit=message_id,
-                                                           timeout=120, disable_web_page_preview=True,
+                                                           timeout=120,
+                                                           disable_web_page_preview=True,
                                                            disable_notification=True)
         except BadRequest as e:
             if 'chat not found' in e.message.lower():
@@ -131,7 +134,8 @@ class BotList:
     def update_intro(self):
         if self.resend:
             self.notify_admin("Sending intro GIF...")
-            self.bot.sendDocument(self.channel.chat_id, open("assets/gif/animation.gif", 'rb'), timeout=120)
+            self.bot.sendDocument(self.channel.chat_id, open("assets/gif/animation.gif", 'rb'),
+                                  timeout=120)
             sleep(1)
 
         intro_en = self._read_file(self.ENGLISH_INTRO_TEXT)
@@ -192,7 +196,8 @@ class BotList:
         self._save_channel()
 
     def update_categories(self, categories: List):
-        self.notify_admin("Updating BotList categories to Revision {}...".format(Revision.get_instance().nr))
+        self.notify_admin(
+            "Updating BotList categories to Revision {}...".format(Revision.get_instance().nr))
 
         for cat in categories:
             text = _format_category_bots(cat)
@@ -230,8 +235,10 @@ class BotList:
                     url=BotList.create_hyperlink(categories[i + 1].current_message_id)))
 
             reply_markup = InlineKeyboardMarkup([buttons])
-            self.bot.edit_message_reply_markup(self.channel.chat_id, categories[i].current_message_id,
-                                               reply_markup=reply_markup, timeout=60)
+            self.bot.edit_message_reply_markup(
+                self.channel.chat_id,
+                categories[i].current_message_id,
+                reply_markup=reply_markup, timeout=60)
 
     def send_footer(self):
         num_bots = Bot.select_approved().count()
@@ -277,19 +284,22 @@ class BotList:
             notification_count = 0
             for sub in subscribers:
                 try:
-                    util.send_md_message(self.bot, sub.chat_id, messages.BOTLIST_UPDATE_NOTIFICATION.format(
-                        n_bots=len(new_bots),
-                        new_bots=Bot.get_new_bots_markdown()))
+                    util.send_md_message(self.bot, sub.chat_id,
+                                         messages.BOTLIST_UPDATE_NOTIFICATION.format(
+                                             n_bots=len(new_bots),
+                                             new_bots=Bot.get_new_bots_markdown()))
                     notification_count += 1
                     sub.last_notification = datetime.date.today()
                     sub.save()
                 except TelegramError:
                     pass
-            self.sent['notifications'] = "Notifications sent to {} users.".format(notification_count)
+            self.sent['notifications'] = "Notifications sent to {} users.".format(
+                notification_count)
 
         changes_made = len(self.sent) > 1 or len(self.sent['category']) > 0
         if changes_made:
-            text = util.success('{}{}'.format('BotList updated successfully:\n\n', mdformat.results_list(self.sent)))
+            text = util.success('{}{}'.format('BotList updated successfully:\n\n',
+                                              mdformat.results_list(self.sent)))
         else:
             text = mdformat.none_action("No changes were necessary.")
 
