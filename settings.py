@@ -46,8 +46,7 @@ API_PORT = 6060
 USERBOT_SESSION = "/home/joscha/accounts/79671952892"
 RUN_BOTCHECKER = True
 
-ERROR_LOG_FILE = os.path.join(LOG_DIR, "error.log")
-DEBUG_LOG_FILE = os.path.join(LOG_DIR, "bot.log")
+DEBUG_LOG_FILE = "botlistbot.log"
 
 if not os.path.exists(BOT_THUMBNAIL_DIR):
     os.makedirs(BOT_THUMBNAIL_DIR)

@@ -1,19 +1,16 @@
-import traceback
-from pprint import pprint
-
+from mdformat import success, failure, action_hint
 from telegram import Message, constants
 from telegram import ParseMode
 from telegram import ReplyKeyboardRemove
 from telegram.error import BadRequest
-
-from mdformat import success, failure, action_hint
 
 
 class MarkdownFormatter:
     def __init__(self, bot):
         self.bot = bot
 
-    def _set_defaults(self, kwargs):
+    @staticmethod
+    def _set_defaults(kwargs):
         if 'disable_web_page_preview' not in kwargs:
             kwargs['disable_web_page_preview'] = True
         if 'parse_mode' not in kwargs:

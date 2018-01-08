@@ -32,11 +32,8 @@ from telegram.ext import Updater
 
 
 def setup_logger():
-    logger = logging.getLogger()
+    logger = logging.getLogger('botlistbot')
     logger.setLevel(logging.INFO)
-
-    if not os.path.exists(settings.LOG_DIR):
-        os.makedirs(settings.LOG_DIR)
 
     console_formatter = logging.Formatter("%(name)-12s: %(levelname)-8s %(message)s")
     file_formatter = logging.Formatter(
@@ -46,12 +43,6 @@ def setup_logger():
     handler = logging.StreamHandler()
     handler.setLevel(logging.INFO)
     handler.setFormatter(console_formatter)
-    logger.addHandler(handler)
-
-    # create error file handler and set level to error
-    handler = logging.FileHandler(settings.ERROR_LOG_FILE, "w", encoding=None, delay="true")
-    handler.setLevel(logging.ERROR)
-    handler.setFormatter(file_formatter)
     logger.addHandler(handler)
 
     # create debug file handler and set level to debug

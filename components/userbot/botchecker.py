@@ -7,7 +7,6 @@ import shutil
 import threading
 import time
 import traceback
-from pprint import pprint
 from threading import Thread
 
 from peewee import JOIN, fn
@@ -155,7 +154,7 @@ class BotChecker(object):
         entity = self.client.get_entity(username)
         if not hasattr(entity, 'bot'):
             raise NotABotError("This user is not a bot.")
-        time.sleep(7)  # ResolveUsernameRequests are expensive
+        time.sleep(15)  # ResolveUsernameRequests are expensive
         return entity
 
     def get_bot_entity_by_id(self, chat_id) -> User:
@@ -163,7 +162,6 @@ class BotChecker(object):
         if not hasattr(entity, 'bot'):
             raise NotABotError("This user is not a bot.")
         return entity
-
 
     def _response_received(self, bot_user_id):
         return bot_user_id in [k for k in self._responses.keys()]
@@ -182,12 +180,19 @@ class BotChecker(object):
         self.client.send_message(input_entity, '/start')
 
         start = datetime.datetime.now()
+        help_attempted = False
         while not self._response_received(bot_user_id):
+            if datetime.datetime.now() - start > datetime.timedelta(seconds=5) and \
+                    not help_attempted:
+                # Try sending /help if /start didn't work
+                self.client.send_message(input_entity, '/help')
+                help_attempted = True
             if datetime.datetime.now() - start > datetime.timedelta(seconds=timeout):
+                # No response
                 self._pinged_bots.remove(bot_user_id)
                 log.debug('@{} did not respond after {} seconds.'.format(entity.username, timeout))
                 return False
-            time.sleep(0.2)
+            time.sleep(0.3)
 
         response_text = self._responses[bot_user_id]
         self._delete_response(bot_user_id)
@@ -256,24 +261,22 @@ def check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
     bot_offline = not bot_checker.ping_bot(entity, timeout=12)
 
     if to_check.offline != bot_offline:
-        # to_check.offline = bot_offline
+        to_check.offline = bot_offline
 
         # We get a lot of false negatives, therefore the bot may set bots online, but only makes
         # a suggestion to set them offline.
-        # if bot_offline:
-        Suggestion.add_or_update(
-            UserModel.botlist_user_instance(),
-            'offline',
-            to_check,
-            bot_offline
-        ).save()
-        # else:
-        #     to_check.offline = False
-        #     to_check.save()
-        #     bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, '{} went {}.'.format(
-        #         to_check.str_no_md,
-        #         'online'
-        #     ))
+        # Suggestion.add_or_update(
+        #     UserModel.botlist_user_instance(),
+        #     'offline',
+        #     to_check,
+        #     bot_offline
+        # ).save()
+
+        to_check.save()
+        bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, '{} went {}.'.format(
+            to_check.str_no_md,
+            'online'
+        ))
 
     # Add entry to pings database
     now = datetime.datetime.now()
@@ -367,4 +370,3 @@ if __name__ == '__main__':
     for b in [("@botlistbot", 265482650), ("@gittoolsbot", 403706547), ("@imdb", 141186424)]:
         entity = checker.get_bot_entity_by_id(b[1])
         print(checker.ping_bot(entity))
-
