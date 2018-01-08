@@ -258,7 +258,7 @@ def check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
         to_check.botbuilder = True
 
     # Check online state
-    bot_offline = not bot_checker.ping_bot(entity, timeout=12)
+    bot_offline = not bot_checker.ping_bot(entity, timeout=13)
 
     if to_check.offline != bot_offline:
         to_check.offline = bot_offline
@@ -281,7 +281,8 @@ def check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
     # Add entry to pings database
     now = datetime.datetime.now()
     ping, created = Ping.get_or_create(bot=to_check, defaults={'last_ping': now})
-    ping.last_response = ping.last_response if to_check.offline else now
+    if not to_check.offline:
+        ping.last_response = now
     ping.save()
 
     # Download profile picture

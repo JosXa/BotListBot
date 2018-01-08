@@ -6,7 +6,7 @@ import re
 from typing import Dict
 
 import emoji
-from peewee import JOIN
+from peewee import JOIN, fn
 
 import captions
 import helpers
@@ -792,16 +792,21 @@ def send_activity_logs(bot, update, args=None, level=Statistic.INFO):
         bot.formatter.send_message(uid, text)
 
 
-@track_activity('request', 'activity logs', Statistic.ANALYSIS)
 @restricted
 def send_statistic(bot, update):
-    pass
-    # recent_statistic = Statistic.select(fn.count(Statistic.entity).alias('count'), Statistic.entity).group_by(Statistic.action)
-    # recent_statistic = Statistic.select().where(Statistic.action == 'menu')
-    # update.message.reply_text('\n'.join(
-    #     '{}: {}'.format(x.entity, x.count)
-    #     for x in recent_statistic))
-    # print(recent_statistic)
+    interesting_actions = [
+        'explore', 'menu', 'command', 'request',
+        'made changes to their suggestion:', 'issued deletion of conversation in BotListChat',
+    ]
+    stats = Statistic.select(Statistic, fn.COUNT(Statistic.entity).alias('count')).where(
+        Statistic.action << interesting_actions).group_by(
+        Statistic.action, Statistic.entity)
+    maxlen = max(len(str(x.count)) for x in stats)
+    text = '\n'.join("`{}▪️` {} {}".format(str(s.count).ljust(maxlen), s.action.title(), s.entity)
+                     for
+                     s in
+                     stats)
+    bot.formatter.send_message(update.effective_chat.id, text, parse_mode='markdown')
 
 
 @track_activity('menu', 'short approve list', Statistic.ANALYSIS)
