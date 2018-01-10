@@ -363,7 +363,12 @@ def register(dp):
 
     dp.add_handler(CommandHandler('reject', admin.reject_bot_submission))
     dp.add_handler(CommandHandler('rej', admin.reject_bot_submission))
-
+    dp.add_handler(CommandHandler('rejectsilent',
+                                  lambda bot, update: admin.reject_bot_submission(
+                                      bot, update, notify_submittant=False)))
+    dp.add_handler(CommandHandler('rejsil',
+                                  lambda bot, update: admin.reject_bot_submission(
+                                      bot, update, notify_submittant=False)))
 
     # admin menu
     dp.add_handler(RegexHandler(captions.APPROVE_BOTS + '.*', admin.approve_bots))
