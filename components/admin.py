@@ -561,31 +561,33 @@ def send_offline(bot, update):
 def reject_bot_submission(bot, update, to_reject=None, verbose=True, notify_submittant=True):
     uid = util.uid_from_update(update)
     user = User.from_update(update)
+    log.error("hi")
 
     if to_reject is None:
         if not update.message.reply_to_message:
-            update.message.reply_text(util.failure("You must reply to a message of mine."))
+            bot.send_message(update.effective_user.id,
+                             util.failure("You must reply to a message of mine."))
             return
+
         text = update.message.reply_to_message.text
 
-        try:
-            username = re.match(settings.REGEX_BOT_IN_TEXT, text).groups()[0]
-        except AttributeError:
-            log.info("No username in the message that was replied to.")
-            # no bot username, ignore update
+        username = helpers.find_bots_in_text(text, first=True)
+        if not username:
+            bot.send_message(update.effective_user.id,
+                             util.failure("No username in the message that you replied to."))
             return
 
         try:
             to_reject = Bot.by_username(username)
         except Bot.DoesNotExist:
-            log.info("Rejection failed: could not find {}".format(username))
+            bot.send_message(update.effective_user.id,
+                             util.failure("Rejection failed: {} is not present in the " \
+                                          "database.".format(username)))
             return
 
         if to_reject.approved is True:
             msg = "{} has already been accepted, so it cannot be rejected anymore.".format(username)
-            log.warning("Race condition detected: " + msg)
-            bot.sendMessage(uid, util.failure(
-                msg))
+            bot.sendMessage(uid, util.failure(msg))
             return
 
     Statistic.of(update, 'reject', to_reject.username)

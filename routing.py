@@ -355,11 +355,15 @@ def register(dp):
     dp.add_handler(
         CommandHandler(('s', 'search'), search_handler, pass_args=True, pass_chat_data=True))
 
-    dp.add_handler(MessageHandler(Filters.reply, reply_router, pass_chat_data=True), group=0)
+    dp.add_handler(MessageHandler(Filters.reply, reply_router, pass_chat_data=True), group=10)
     dp.add_handler(MessageHandler(Filters.forwarded, forward_router, pass_chat_data=True))
 
     dp.add_handler(CommandHandler("admin", admin.menu))
     dp.add_handler(CommandHandler("a", admin.menu))
+
+    dp.add_handler(CommandHandler('reject', admin.reject_bot_submission))
+    dp.add_handler(CommandHandler('rej', admin.reject_bot_submission))
+
 
     # admin menu
     dp.add_handler(RegexHandler(captions.APPROVE_BOTS + '.*', admin.approve_bots))
@@ -384,8 +388,6 @@ def register(dp):
     dp.add_handler(RegexHandler(captions.HELP, help.help))
 
     dp.add_handler(RegexHandler("^/edit\d+$", admin.edit_bot, pass_chat_data=True), group=1)
-    dp.add_handler(CommandHandler('reject', admin.reject_bot_submission))
-    dp.add_handler(CommandHandler('rej', admin.reject_bot_submission))
 
     dp.add_handler(RegexHandler("^/approve\d+$", admin.edit_bot, pass_chat_data=True), group=1)
     dp.add_handler(CommandHandler('approve', admin.short_approve_list))

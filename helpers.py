@@ -1,16 +1,17 @@
 import logging
 import re
+from pprint import pprint
+from typing import List
 
 import maya
 from PIL import Image
-
-from telegram import ParseMode, InlineKeyboardMarkup, InlineKeyboardButton
 
 import captions
 import settings
 import util
 from dialog import messages
 from settings import SELF_CHANNEL_USERNAME
+from telegram import ParseMode, InlineKeyboardMarkup, InlineKeyboardButton
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -20,6 +21,16 @@ def slang_datetime(dt) -> str:
     maya_date = maya.MayaDT(dt.timestamp())
     return maya_date.slang_time()
 
+
+def find_bots_in_text(text: str, first=False):
+    matches = re.findall(settings.REGEX_BOT_ONLY, text)
+    if not matches:
+        return None
+
+    try:
+        return matches[0] if first else matches
+    except:
+        return None
 
 
 def validate_username(username: str):
@@ -63,7 +74,8 @@ def format_keyword(kw):
     return kw
 
 
-def reroute_private_chat(bot, update, quote, action, message, redirect_message=None, reply_markup=None):
+def reroute_private_chat(bot, update, quote, action, message, redirect_message=None,
+                         reply_markup=None):
     cid = update.effective_chat.id
     mid = util.mid_from_update(update)
     if redirect_message is None:
@@ -87,7 +99,8 @@ def reroute_private_chat(bot, update, quote, action, message, redirect_message=N
         if mid:
             bot.formatter.send_or_edit(cid, message, mid, reply_markup=reply_markup)
         else:
-            update.message.reply_text(message, quote=quote, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
+            update.message.reply_text(message, quote=quote, parse_mode=ParseMode.MARKDOWN,
+                                      reply_markup=reply_markup)
 
 
 def make_sticker(filename, out_file, max_height=512, transparent=True):

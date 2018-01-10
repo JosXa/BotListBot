@@ -165,7 +165,7 @@ def new_bot_submission(bot, update, chat_data, args=None):
     # `#new` is already checked by handler
     try:
         username = re.match(settings.REGEX_BOT_IN_TEXT, text).groups()[0]
-        if username == '@' + settings.SELF_BOT_NAME:
+        if username.lower() == '@' + settings.SELF_BOT_NAME.lower():
             log.info("Ignoring {}".format(text))
             return
     except AttributeError:
