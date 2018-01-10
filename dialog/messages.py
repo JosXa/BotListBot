@@ -49,6 +49,12 @@ EXAMPLES = """*Examples for contributing to the BotList:*
 • "Aaaargh, @spambot's #spam is too crazy!"
 • /spam @spambot
 """
+REJECTION_WITH_REASON = """Sorry, but your bot submission {} was rejected.
+
+Reason: {reason}
+
+Please adhere to the quality standards we impose for inclusion to the @BotList.
+For further information, please ask in the @BotListChat."""
 REJECTION_PRIVATE_MESSAGE = """Sorry, but your bot submission {} was rejected.
 
 It does not suffice the standards we impose for inclusion in the @BotList for one of the following reasons:

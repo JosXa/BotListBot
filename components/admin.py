@@ -558,10 +558,10 @@ def send_offline(bot, update):
 
 
 @restricted
-def reject_bot_submission(bot, update, to_reject=None, verbose=True, notify_submittant=True):
+def reject_bot_submission(bot, update, args=None, to_reject=None, verbose=True,
+                          notify_submittant=True, reason=None):
     uid = util.uid_from_update(update)
     user = User.from_update(update)
-    log.error("hi")
 
     if to_reject is None:
         if not update.message.reply_to_message:
@@ -570,6 +570,7 @@ def reject_bot_submission(bot, update, to_reject=None, verbose=True, notify_subm
             return
 
         text = update.message.reply_to_message.text
+        reason = reason if reason else (" ".join(args) if args else None)
 
         username = helpers.find_bots_in_text(text, first=True)
         if not username:
@@ -593,11 +594,19 @@ def reject_bot_submission(bot, update, to_reject=None, verbose=True, notify_subm
     Statistic.of(update, 'reject', to_reject.username)
     log_msg = "{} rejected by {}.".format(to_reject.username, user)
     notification_successful = None
-    if notify_submittant:
+    if notify_submittant or reason:
         try:
-            bot.sendMessage(to_reject.submitted_by.chat_id,
-                            util.failure(
-                                messages.REJECTION_PRIVATE_MESSAGE.format(to_reject.username)))
+            if reason:
+                bot.send_message(
+                    to_reject.submitted_by.chat_id,
+                    util.failure(
+                        messages.REJECTION_WITH_REASON.format(to_reject.username, reason=reason)
+                    )
+                )
+            else:
+                bot.sendMessage(to_reject.submitted_by.chat_id,
+                                util.failure(
+                                    messages.REJECTION_PRIVATE_MESSAGE.format(to_reject.username)))
             log_msg += "\nUser {} was notified.".format(str(to_reject.submitted_by))
             notification_successful = True
         except TelegramError:

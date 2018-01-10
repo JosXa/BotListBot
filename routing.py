@@ -114,7 +114,7 @@ def callback_router(bot, update, chat_data, user_data, job_queue):
             elif action == CallbackActions.REJECT_BOT:
                 to_reject = Bot.get(id=obj['id'])
                 notification = obj.get('ntfc', True)
-                admin.reject_bot_submission(bot, update, to_reject, verbose=False,
+                admin.reject_bot_submission(bot, update, None, to_reject, verbose=False,
                                             notify_submittant=notification)
                 admin.approve_bots(bot, update, obj['page'])
             elif action == CallbackActions.BOT_ACCEPTED:
@@ -361,14 +361,12 @@ def register(dp):
     dp.add_handler(CommandHandler("admin", admin.menu))
     dp.add_handler(CommandHandler("a", admin.menu))
 
-    dp.add_handler(CommandHandler('reject', admin.reject_bot_submission))
-    dp.add_handler(CommandHandler('rej', admin.reject_bot_submission))
-    dp.add_handler(CommandHandler('rejectsilent',
+    dp.add_handler(CommandHandler(
+        ('rej', 'reject'),
+        admin.reject_bot_submission, pass_args=True))
+    dp.add_handler(CommandHandler(('rejsil', 'rejectsil', 'rejsilent', 'rejectsilent'),
                                   lambda bot, update: admin.reject_bot_submission(
-                                      bot, update, notify_submittant=False)))
-    dp.add_handler(CommandHandler('rejsil',
-                                  lambda bot, update: admin.reject_bot_submission(
-                                      bot, update, notify_submittant=False)))
+                                      bot, update, None, notify_submittant=False)))
 
     # admin menu
     dp.add_handler(RegexHandler(captions.APPROVE_BOTS + '.*', admin.approve_bots))
