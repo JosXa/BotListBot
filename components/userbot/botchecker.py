@@ -154,7 +154,7 @@ class BotChecker(object):
         entity = self.client.get_entity(username)
         if not hasattr(entity, 'bot'):
             raise NotABotError("This user is not a bot.")
-        time.sleep(15)  # ResolveUsernameRequests are expensive
+        time.sleep(45)  # ResolveUsernameRequests are expensive
         return entity
 
     def get_bot_entity_by_id(self, chat_id) -> User:
