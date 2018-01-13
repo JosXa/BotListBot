@@ -275,7 +275,7 @@ def check_bot(bot: TelegramBot, bot_checker: BotChecker, to_check: BotModel):
         to_check.save()
         bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, '{} went {}.'.format(
             to_check.str_no_md,
-            'online'
+            'offline' if to_check.offline else 'online'
         ))
 
     # Add entry to pings database
