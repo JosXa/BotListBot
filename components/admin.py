@@ -572,6 +572,11 @@ def reject_bot_submission(bot, update, args=None, to_reject=None, verbose=True,
         text = update.message.reply_to_message.text
         reason = reason if reason else (" ".join(args) if args else None)
 
+        try:
+            update.message.delete()
+        except:
+            pass
+
         username = helpers.find_bots_in_text(text, first=True)
         if not username:
             bot.send_message(update.effective_user.id,
