@@ -44,7 +44,7 @@ API_URL = "localhost" if DEV else "josxa.jumpingcrab.com"
 API_PORT = 6060
 
 USERBOT_SESSION = "/home/joscha/accounts/my2nd"
-RUN_BOTCHECKER = True
+RUN_BOTCHECKER = False
 
 DEBUG_LOG_FILE = "botlistbot.log"
 
