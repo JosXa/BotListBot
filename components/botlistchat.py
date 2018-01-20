@@ -51,6 +51,11 @@ HINTS = {
         }],
         'help': 'Tell a member to stop spamming and switch to a private chat'
     },
+    '#userbot': {
+        'message': "Refer to [this article](http://telegra.ph/How-a-"
+                   "Userbot-superacharges-your-Telegram-Bot-07-09) to learn more about *Userbots*.",
+        'help': "@JosXa's article about Userbots"
+    }
 }
 
 
