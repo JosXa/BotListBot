@@ -254,9 +254,9 @@ class Suggestion(BaseModel):
         elif self.action == 'spam':
             text += "mark {} as spammy".format(uname)
         elif self.action == 'add_keyword':
-            text += "add keyword __{}__ to {}".format(str(value), uname)
+            text += "add keyword #{} to {}".format(str(value), uname)
         elif self.action == 'remove_keyword':
-            text += "remove keyword __{}__ from {}".format(str(value), uname)
+            text += "remove keyword #{} from {}".format(str(value), uname)
         return text
 
     def __str__(self):
