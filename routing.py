@@ -25,7 +25,7 @@ from misc import manage_subscription
 from model import Keyword
 from model import Statistic
 from model import User, Category, Bot, Favorite, Country, Suggestion
-from telegram.ext import CallbackQueryHandler, Dispatcher
+from telegram.ext import CallbackQueryHandler, Dispatcher, DispatcherHandlerStop
 from telegram.ext import ChosenInlineResultHandler
 from telegram.ext import CommandHandler
 from telegram.ext import ConversationHandler
@@ -285,13 +285,14 @@ def reply_router(bot, update, chat_data):
     bot_properties = ['description', 'extra', 'name', 'username']
     try:
         partition = text.partition(messages.BOTPROPERTY_STARTSWITH)
-    except AttributeError as e:
-        return  # raise DispatcherHandlerStop # TODO
+    except AttributeError:
+        return
     if partition[1] != '':
         bot_property = next(p for p in bot_properties if partition[2].startswith(p))
         # Reply for setting a bot property
         botproperties.set_text_property(bot, update, chat_data, bot_property)
-        return  # raise DispatcherHandlerStop # TODO
+        print('raising...')
+        raise DispatcherHandlerStop
     elif text == messages.BAN_MESSAGE:
         query = update.message.text
         admin.ban_handler(bot, update, query, True)
@@ -335,7 +336,6 @@ def register(dp: Dispatcher):
         allow_reentry=False
     )
 
-
     broadcasting_handler = ConversationHandler(
         entry_points=[
             InlineCallbackHandler('broadcast', broadcasts.broadcast, pass_user_data=True),
@@ -359,7 +359,7 @@ def register(dp: Dispatcher):
     dp.add_handler(
         CommandHandler(('s', 'search'), search_handler, pass_args=True, pass_chat_data=True))
 
-    dp.add_handler(MessageHandler(Filters.reply, reply_router, pass_chat_data=True), group=10)
+    dp.add_handler(MessageHandler(Filters.reply, reply_router, pass_chat_data=True), group=-1)
     dp.add_handler(MessageHandler(Filters.forwarded, forward_router, pass_chat_data=True))
 
     dp.add_handler(CommandHandler("admin", admin.menu))

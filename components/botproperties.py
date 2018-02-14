@@ -23,7 +23,6 @@ def _is_clear_query(query):
     return query.lower() == CLEAR_QUERY
 
 
-@restricted
 def set_country_menu(bot, update, to_edit):
     uid = util.uid_from_update(update)
     countries = Country.select().order_by(Country.name).execute()
@@ -59,7 +58,7 @@ def set_country(bot, update, to_edit, country):
         value = None
     else:
         raise AttributeError("Error setting country to {}.".format(country))
-    sugg = Suggestion.add_or_update(user, 'country', to_edit, value)
+    Suggestion.add_or_update(user, 'country', to_edit, value)
 
 
 def set_text_property(bot, update, chat_data, property_name, to_edit=None):
@@ -118,7 +117,6 @@ def set_text_property(bot, update, chat_data, property_name, to_edit=None):
             bot.formatter.send_failure(uid, "An unexpected error occured.")
 
 
-@restricted
 def toggle_value(bot, update, property_name, to_edit, value):
     user = User.from_update(update)
 
@@ -127,14 +125,12 @@ def toggle_value(bot, update, property_name, to_edit, value):
     Suggestion.add_or_update(user, property_name, to_edit, bool(value))
 
 
-@restricted
 def set_keywords_init(bot, update, chat_data, context):
     to_edit = context.get('to_edit')
     chat_data['set_keywords_msg'] = util.mid_from_update(update)
     return set_keywords(bot, update, chat_data, to_edit)
 
 
-@restricted
 @track_activity('menu', 'set keywords', Statistic.DETAILED)
 def set_keywords(bot, update, chat_data, to_edit):
     chat_id = util.uid_from_update(update)
@@ -196,7 +192,6 @@ def set_keywords(bot, update, chat_data, to_edit):
     return BotStates.SENDING_KEYWORDS
 
 
-@restricted
 def add_keyword(bot, update, chat_data):
     user = User.from_telegram_object(update.effective_user)
     if check_suggestion_limit(bot, update, user):
@@ -252,17 +247,16 @@ def delete_bot(bot, update, to_edit):
     Statistic.of(update, 'delete', username, Statistic.IMPORTANT)
 
 
-@restricted
 def change_category(bot, update, to_edit, category):
     uid = update.effective_user.id
     user = User.get(User.chat_id == uid)
-    if uid in settings.MODERATORS and not uid == 918962:
+    if uid in settings.MODERATORS or uid == 918962:
+        to_edit.category = category
+        to_edit.save()
+    else:
         if check_suggestion_limit(bot, update, user):
             return
         Suggestion.add_or_update(user, 'category', to_edit, category.id)
-    else:
-        to_edit.category = category
-        to_edit.save()
 
 
 def check_suggestion_limit(bot, update, user):

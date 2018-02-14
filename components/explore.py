@@ -209,12 +209,12 @@ def send_bot_details(bot, update, chat_data, item=None):
         first_row.insert(0, btn)
         first_row.append(InlineKeyboardButton(captions.SHARE, switch_inline_query=item.username))
 
-        if cid in settings.MODERATORS:
-            first_row.append(InlineKeyboardButton(
-                "🛃 Edit", callback_data=util.callback_for_action(
-                    CallbackActions.EDIT_BOT,
-                    {'id': item.id}
-                )))
+        # if cid in settings.MODERATORS:
+        first_row.append(InlineKeyboardButton(
+            "📝 Edit", callback_data=util.callback_for_action(
+                CallbackActions.EDIT_BOT,
+                {'id': item.id}
+            )))
     else:
         txt = '{} is currently pending to be accepted for the @BotList.'.format(item)
         if cid in settings.MODERATORS:

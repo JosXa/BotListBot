@@ -7,6 +7,9 @@ from typing import Dict
 
 import emoji
 from peewee import JOIN, fn
+from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, \
+    TelegramError
+from telegram.ext import ConversationHandler, Job
 
 import captions
 import helpers
@@ -17,16 +20,7 @@ from const import *
 from const import BotStates, CallbackActions
 from custemoji import Emoji
 from dialog import messages
-from model import Bot, Ping, Revision
-from model import Category
-from model import Statistic
-from model import Suggestion
-from model import User
-from model import track_activity
-from telegram import ForceReply
-from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, \
-    InlineKeyboardMarkup, TelegramError
-from telegram.ext import ConversationHandler, Job
+from model import Bot, Category, Ping, Revision, Statistic, Suggestion, User, track_activity
 from util import restricted
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
@@ -110,9 +104,15 @@ def format_pending(text):
 def _edit_bot_buttons(to_edit: Bot, pending_suggestions: Dict, is_moderator):
     bid = {'id': to_edit.id}
 
+    def is_pending(action):
+        if isinstance(action, str):
+            return action in pending_suggestions
+        else:
+            return any(a in pending_suggestions for a in action)
+
     def pending_or_caption(action, caption):
         return format_pending(
-            str(pending_suggestions[action])) if action in pending_suggestions.keys() else str(
+            str(pending_suggestions[action])) if is_pending(action) else str(
             caption)
 
     buttons = [
@@ -145,10 +145,11 @@ def _edit_bot_buttons(to_edit: Bot, pending_suggestions: Dict, is_moderator):
                                "Change extra text" if to_edit.extra else "Add an extra text"),
             callback_data=util.callback_for_action(CallbackActions.EDIT_BOT_EXTRA, bid)
         ),
-        InlineKeyboardButton("Set keywords",
-                             callback_data=util.callback_for_action(
-                                 CallbackActions.EDIT_BOT_KEYWORDS, bid
-                             )),
+        InlineKeyboardButton(
+            format_pending("Set keywords") if is_pending(['add_keyword', 'remove_keyword']) else 'Set keywords',
+            callback_data=util.callback_for_action(
+                CallbackActions.EDIT_BOT_KEYWORDS, bid
+            )),
     ]
 
     toggleable_properties = [
@@ -172,10 +173,11 @@ def _edit_bot_buttons(to_edit: Bot, pending_suggestions: Dict, is_moderator):
     for toggle in toggleable_properties:
         buttons.append(toggle_button(*toggle))
 
-    buttons.append(
-        InlineKeyboardButton("Delete",
-                             callback_data=util.callback_for_action(
-                                 CallbackActions.CONFIRM_DELETE_BOT, bid)))
+    if is_moderator:
+        buttons.append(
+            InlineKeyboardButton("Delete",
+                                 callback_data=util.callback_for_action(
+                                     CallbackActions.CONFIRM_DELETE_BOT, bid)))
 
     header = [InlineKeyboardButton(captions.BACK_TO_CATEGORY,
                                    callback_data=util.callback_for_action(
@@ -199,7 +201,6 @@ def _edit_bot_buttons(to_edit: Bot, pending_suggestions: Dict, is_moderator):
 
 
 @track_activity('menu', 'bot editing', Statistic.ANALYSIS)
-@restricted
 def edit_bot(bot, update, chat_data, to_edit=None):
     uid = util.uid_from_update(update)
     message_id = util.mid_from_update(update)
@@ -213,6 +214,8 @@ def edit_bot(bot, update, chat_data, to_edit=None):
                 b_id = re.match(r'^/edit(\d+)$', command).groups()[0]
             if 'approve' in command:
                 b_id = re.match(r'^/approve(\d+)$', command).groups()[0]
+            else:
+                raise ValueError("No 'edit' or 'approve' in command.")
 
             try:
                 to_edit = Bot.get(id=b_id)
@@ -237,7 +240,7 @@ def edit_bot(bot, update, chat_data, to_edit=None):
         to_edit.date_added, to_edit.revision, to_edit.submitted_by, to_edit.approved_by)
     bot.formatter.send_or_edit(
         uid,
-        "🛃 Edit {}{}{}".format(to_edit.detail_text, meta_text, pending_text),
+        "🛃 Edit {}{}{}".format(to_edit.detail_text, meta_text if user.id in settings.MODERATORS else '', pending_text),
         to_edit=message_id, reply_markup=reply_markup)
 
 
@@ -472,7 +475,6 @@ def share_with_moderator(bot, update, bot_in_question, moderator):
 
 
 @track_activity('menu', 'edit bot category', Statistic.DETAILED)
-@restricted
 def edit_bot_category(bot, update, for_bot, callback_action=None):
     if callback_action is None:
         callback_action = CallbackActions.EDIT_BOT_CAT_SELECTED
@@ -533,7 +535,6 @@ def accept_bot_submission(bot, update, of_bot: Bot, category):
 
 
 @track_activity('request', 'list of offline bots')
-@restricted
 def send_offline(bot, update):
     chat_id = util.uid_from_update(update)
     offline = Bot.select(Bot, Ping).join(Ping, JOIN.LEFT_OUTER).where(

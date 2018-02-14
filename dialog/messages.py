@@ -85,7 +85,7 @@ KEYWORD_BEST_PRACTICES = """The following rules for keywords apply:
 ▫Try to tag every supported action (#search, #upload, #download, ...)
 ▫Try to tag every supported format (#mp3, #webm, #mp4, ...)
 ▫Keep it specific (only tag #share if the bot has a dedicated 'Share' button)
-▫Tag bots made with _bot creators_ (e.g. #manybot)
+▫Tag bots made with _bot creators_ (e.g. #manybot, #chatfuelbot)
 ▫Use #related if the bot is not standalone, but needs another application to work properly, e.g. an Android App
 ▫Always think in the perspective of a user in need of a bot. What query might he be putting in the search field?
 """
