@@ -96,6 +96,7 @@ class CallbackActions:
     EDIT_BOT_OFFICIAL, \
     APPROVE_REJECT_BOTS, \
     DELETE_CONVERSATION, \
+    DELETE_KEYWORD_SUGGESTION, \
     *rest = big_range
 
 

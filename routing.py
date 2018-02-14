@@ -25,7 +25,7 @@ from misc import manage_subscription
 from model import Keyword
 from model import Statistic
 from model import User, Category, Bot, Favorite, Country, Suggestion
-from telegram.ext import CallbackQueryHandler
+from telegram.ext import CallbackQueryHandler, Dispatcher
 from telegram.ext import ChosenInlineResultHandler
 from telegram.ext import CommandHandler
 from telegram.ext import ConversationHandler
@@ -300,7 +300,7 @@ def reply_router(bot, update, chat_data):
         admin.ban_handler(bot, update, query, False)
 
 
-def register(dp):
+def register(dp: Dispatcher):
     keywords_handler = ConversationHandler(
         entry_points=[
             InlineCallbackHandler(CallbackActions.EDIT_BOT_KEYWORDS,
@@ -317,6 +317,13 @@ def register(dp):
                                           to_edit=Bot.get(id=data['id']),
                                           keyword=Keyword.get(id=data['kwid'])
                                       ),
+                                      pass_chat_data=True),
+                InlineCallbackHandler(CallbackActions.DELETE_KEYWORD_SUGGESTION,
+                                      botproperties.delete_keyword_suggestion,
+                                      serialize=lambda data: dict(
+                                          to_edit=Bot.get(id=data['id']),
+                                          suggestion=Suggestion.get(id=data['suggid'])
+                                      ),
                                       pass_chat_data=True)
             ],
         },
@@ -328,7 +335,6 @@ def register(dp):
         allow_reentry=False
     )
 
-    dp.add_handler(keywords_handler)
 
     broadcasting_handler = ConversationHandler(
         entry_points=[
@@ -348,8 +354,6 @@ def register(dp):
     )
     dp.add_handler(broadcasting_handler)
 
-    dp.add_handler(CallbackQueryHandler(callback_router, pass_chat_data=True, pass_user_data=True,
-                                        pass_job_queue=True))
     dp.add_handler(
         CommandHandler(('cat', 'category', 'categories'), select_category, pass_chat_data=True))
     dp.add_handler(
@@ -472,6 +476,9 @@ def register(dp):
         dp.add_handler(RegexHandler(r'{}.*'.format(hashtag), botlistchat.hint_handler), group=1)
     dp.add_handler(CommandHandler(('hint', 'hints'), botlistchat.show_available_hints))
 
+    dp.add_handler(keywords_handler)
+    dp.add_handler(CallbackQueryHandler(callback_router, pass_chat_data=True, pass_user_data=True,
+                                        pass_job_queue=True))
     dp.add_handler(ChosenInlineResultHandler(inlinequeries.chosen_result, pass_chat_data=True))
     dp.add_handler(InlineQueryHandler(inlinequeries.inlinequery_handler, pass_chat_data=True))
     dp.add_handler(MessageHandler(Filters.all, all_handler, pass_chat_data=True), group=98)

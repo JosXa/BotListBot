@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 import datetime
+
 from peewee import *
 
-import const
 import settings
 import util
-from model import Bot
-from model import User
+from model import Bot, Keyword, User
 from model.basemodel import BaseModel
 
 
@@ -33,7 +32,9 @@ class Suggestion(BaseModel):
         'official',
         'extra',
         'offline',
-        'spam'
+        'spam',
+        'add_keyword',
+        'remove_keyword'
     ]
     TEXTUAL_ACTIONS = ['description', 'extra']
     BOOLEAN_ACTIONS = ['inlinequeries', 'official', 'offline', 'spam']
@@ -73,18 +74,25 @@ class Suggestion(BaseModel):
     def add_or_update(user, action, subject, value):
         from model import Statistic
         # value may be None
-        already_exists = Suggestion.get_pending(action, subject, user)
+        already_exists = Suggestion.get_pending(action, subject, user, value)
         if already_exists:
             # Does the new suggestion reset the value?
-            if value == getattr(already_exists.subject, action):
-
+            if action == 'remove_keyword':
+                try:
+                    kw = Keyword.get(entity=subject, name=value)
+                    kw.delete_instance()
+                except Keyword.DoesNotExist:
+                    pass
+            elif action == 'add_keyword':
+                return  # TODO: is this right?
+            elif value == getattr(already_exists.subject, action):
                 already_exists.delete_instance()
                 return None
 
             already_exists.value = value
             already_exists.save()
 
-            Statistic.of(user, 'made changes to their suggestion: ', already_exists._md_plaintext())
+            Statistic.of(user, 'made changes to their suggestion: ', str(already_exists))
 
             return already_exists
         else:
@@ -108,9 +116,12 @@ class Suggestion(BaseModel):
         return Suggestion.select().where(Suggestion.executed == False, Suggestion.user == user)
 
     @staticmethod
-    def get_pending(action, bot, user):
+    def get_pending(action, bot, user, value=None):
         try:
-            return Suggestion.get(action=action, subject=bot, user=user, executed=False)
+            if value:
+                return Suggestion.get(action=action, subject=bot, user=user, _value=value, executed=False)
+            else:
+                return Suggestion.get(action=action, subject=bot, user=user, executed=False)
         except Suggestion.DoesNotExist:
             return None
 
@@ -122,12 +133,18 @@ class Suggestion(BaseModel):
         ).count() >= settings.SUGGESTION_LIMIT
 
     @staticmethod
-    def pending_for_bot(bot, user):
-        pending = Suggestion.select().where(
-            Suggestion.executed == False,
-            Suggestion.user == user,
-            Suggestion.subject == bot
-        )
+    def pending_for_bot(bot, user=None):
+        if user is not None:
+            pending = Suggestion.select().where(
+                Suggestion.executed == False,
+                Suggestion.user == user,
+                Suggestion.subject == bot
+            )
+        else:
+            pending = Suggestion.select().where(
+                Suggestion.executed == False,
+                Suggestion.subject == bot
+            )
         return {s.action: s.value for s in pending}
 
     def apply(self):
@@ -172,6 +189,15 @@ class Suggestion(BaseModel):
             self.subject.offline = bool(self.value)
         elif self.action == 'spam':
             self.subject.spam = bool(self.value)
+        elif self.action == 'add_keyword':
+            kw_obj = Keyword(name=self.value, entity=self.subject)
+            kw_obj.save()
+        elif self.action == 'remove_keyword':
+            try:
+                kw_obj = Keyword.get(name=self.value, entity=self.subject)
+                kw_obj.delete_instance()
+            except Keyword.DoesNotExist:
+                raise AttributeError("Keyword to delete does not exist anymore.")
 
         self.subject.save()
 
@@ -227,6 +253,10 @@ class Suggestion(BaseModel):
             text += "set {} {}".format('💤' if bool(value) else 'online', uname)
         elif self.action == 'spam':
             text += "mark {} as spammy".format(uname)
+        elif self.action == 'add_keyword':
+            text += "add keyword __{}__ to {}".format(str(value), uname)
+        elif self.action == 'remove_keyword':
+            text += "remove keyword __{}__ from {}".format(str(value), uname)
         return text
 
     def __str__(self):

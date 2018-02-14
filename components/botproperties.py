@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
+from pprint import pprint
 
-import datetime
+from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 
 import captions
-import const
 import helpers
 import mdformat
 import settings
@@ -12,17 +12,8 @@ from components import admin
 from const import BotStates, CallbackActions
 from custemoji import Emoji
 from dialog import messages
-from model import Country
-from model import Keyword
-from model import Statistic
-from model import Suggestion
-from model import User
-from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram import ParseMode
-from telegram.ext import ConversationHandler
-
-from model import track_activity
+from lib import InlineCallbackButton
+from model import Country, Keyword, Statistic, Suggestion, User, track_activity
 from util import restricted
 
 CLEAR_QUERY = "x"
@@ -42,7 +33,7 @@ def set_country_menu(bot, update, to_edit):
             '{} {}'.format(c.emojized, c.name),
             callback_data=util.callback_for_action(
                 CallbackActions.SET_COUNTRY, {'cid': c.id, 'bid': to_edit.id})) for c in countries
-         ], 3)
+        ], 3)
     buttons.insert(0, [
         InlineKeyboardButton(captions.BACK,
                              callback_data=util.callback_for_action(CallbackActions.EDIT_BOT,
@@ -53,8 +44,8 @@ def set_country_menu(bot, update, to_edit):
     ])
     return bot.formatter.send_or_edit(uid, util.action_hint(
         "Please select a country/language for {}".format(to_edit)),
-                                        to_edit=util.mid_from_update(update),
-                                        reply_markup=InlineKeyboardMarkup(buttons))
+                                      to_edit=util.mid_from_update(update),
+                                      reply_markup=InlineKeyboardMarkup(buttons))
 
 
 def set_country(bot, update, to_edit, country):
@@ -99,7 +90,7 @@ def set_text_property(bot, update, chat_data, property_name, to_edit=None):
 
         def too_long(n):
             bot.formatter.send_failure(uid, "Your {} text is too long, it must be shorter "
-                                                "than {} characters. Please try again.".format(property_name, n))
+                                            "than {} characters. Please try again.".format(property_name, n))
             util.wait(bot, update)
             return admin.edit_bot(bot, update, chat_data, to_edit)
 
@@ -151,28 +142,63 @@ def set_keywords(bot, update, chat_data, to_edit):
     chat_data['edit_bot'] = to_edit
     set_keywords_msgid = chat_data.get('set_keywords_msg')
 
-    kw_remove_buttons = [InlineKeyboardButton('{} ✖️'.format(x),
-                                              callback_data=util.callback_for_action(CallbackActions.REMOVE_KEYWORD,
-                                                                                     {'id': to_edit.id, 'kwid': x.id}))
-                         for x in keywords]
+    pending = Suggestion.select().where(
+        Suggestion.executed == False,
+        Suggestion.subject == to_edit,
+        Suggestion.action << ['add_keyword', 'remove_keyword']
+    )
+    pending_removal = [y for y in pending if y.action == 'remove_keyword']
+
+    # Filter keywords by name to not include removal suggestions
+    # We don't need to do this for add_keyword suggestions, because duplicates are not allowed.
+    keywords = [k for k in keywords if k.name not in [s.value for s in pending_removal]]
+
+    kw_remove_buttons = [InlineCallbackButton(
+        '{} ✖️'.format(x),
+        callback_action=CallbackActions.REMOVE_KEYWORD,
+        params={'id': to_edit.id, 'kwid': x.id})
+        for x in keywords]
+    kw_remove_buttons.extend([InlineKeyboardButton(
+        '#{} 👓✖️'.format(x.value),
+        callback_data=util.callback_for_action(
+            CallbackActions.DELETE_KEYWORD_SUGGESTION,
+            {'id': to_edit.id, 'suggid': x.id}))
+        for x
+        in [y for y in pending if y.action == 'add_keyword']
+    ])
+    kw_remove_buttons.extend([InlineKeyboardButton(
+        '#{} 👓❌'.format(x.value),
+        callback_data=util.callback_for_action(
+            CallbackActions.DELETE_KEYWORD_SUGGESTION,
+            {'id': to_edit.id, 'suggid': x.id}))
+        for x
+        in pending_removal
+    ])
     buttons = util.build_menu(kw_remove_buttons, 2, header_buttons=[
         InlineKeyboardButton(captions.DONE,
                              callback_data=util.callback_for_action(CallbackActions.ABORT_SETTING_KEYWORDS,
                                                                     {'id': to_edit.id}))
     ])
     reply_markup = InlineKeyboardMarkup(buttons)
-    msg = util.send_or_edit_md_message(bot,
-                                       chat_id,
-                                       util.action_hint('Send me the keywords for {} one by one...\n\n{}'.format(
-                                           util.escape_markdown(to_edit.username), messages.KEYWORD_BEST_PRACTICES)),
-                                       to_edit=set_keywords_msgid,
-                                       reply_markup=reply_markup)
-    chat_data['set_keywords_msg'] = msg.message_id
+    msg = util.send_or_edit_md_message(
+        bot,
+        chat_id,
+        util.action_hint('Send me the keywords for {} one by one...\n\n{}'.format(
+            util.escape_markdown(to_edit.username), messages.KEYWORD_BEST_PRACTICES)),
+        to_edit=set_keywords_msgid,
+        reply_markup=reply_markup)
+
+    if msg:
+        # message might not have been edited if the user adds an already-existing keyword
+        # TODO: should the user be notified about this?
+        chat_data['set_keywords_msg'] = msg.message_id
+
     return BotStates.SENDING_KEYWORDS
 
 
 @restricted
 def add_keyword(bot, update, chat_data):
+    user = User.from_telegram_object(update.effective_user)
     kw = update.message.text
     bot_to_edit = chat_data.get('edit_bot')
     kw = helpers.format_keyword(kw)
@@ -188,10 +214,15 @@ def add_keyword(bot, update, chat_data):
         return
     except Keyword.DoesNotExist:
         pass
-    kw_obj = Keyword(name=kw, entity=bot_to_edit)
-    kw_obj.save()
+    Suggestion.add_or_update(user=user, action='add_keyword', subject=bot_to_edit, value=kw)
     set_keywords(bot, update, chat_data, bot_to_edit)
     Statistic.of(update, 'added keyword to'.format(kw), bot_to_edit.username)
+
+
+def delete_keyword_suggestion(bot, update, chat_data, context):
+    suggestion = context.get('suggestion')
+    suggestion.delete_instance()
+    set_keywords(bot, update, chat_data, context.get('to_edit'))
 
 
 @restricted
@@ -207,7 +238,7 @@ def delete_bot_confirm(bot, update, to_edit):
     ]]
     )
     bot.formatter.send_or_edit(chat_id, "Are you sure?", to_edit=util.mid_from_update(update),
-                                 reply_markup=reply_markup)
+                               reply_markup=reply_markup)
 
 
 @restricted
@@ -236,8 +267,8 @@ def check_suggestion_limit(bot, update, user):
     cid = update.effective_chat.id
     if Suggestion.over_limit(user):
         bot.formatter.send_failure(cid,
-                                  "You have reached the limit of {} suggestions. Please wait for "
-                                  "the Moderators to approve of some of them.".format(settings.SUGGESTION_LIMIT))
+                                   "You have reached the limit of {} suggestions. Please wait for "
+                                   "the Moderators to approve of some of them.".format(settings.SUGGESTION_LIMIT))
         Statistic.of(update, 'hit the suggestion limit')
         return True
     return False
@@ -277,17 +308,21 @@ def change_suggestion(bot, update, suggestion, page_handover):
 
 
 def remove_keyword(bot, update, chat_data, context):
+    user = User.from_telegram_object(update.effective_user)
     to_edit = context.get('to_edit')
     kw = context.get('keyword')
-    kw.delete_instance()
+    Suggestion.add_or_update(user=user, action='remove_keyword', subject=to_edit, value=kw.name)
     return set_keywords(bot, update, chat_data, to_edit)
 
 
 @restricted
-def accept_suggestion(bot, update, suggestion):
+def accept_suggestion(bot, update, suggestion: Suggestion):
     suggestion.apply()
     if suggestion.action == 'offline':
         bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, '{} went {}.'.format(
             suggestion.subject.str_no_md,
             'offline' if suggestion.subject.offline else 'online'
         ))
+    else:
+        suggestion_text = str(suggestion)
+        bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, suggestion_text[0].upper() + suggestion_text[1:])
