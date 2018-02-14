@@ -199,6 +199,8 @@ def set_keywords(bot, update, chat_data, to_edit):
 @restricted
 def add_keyword(bot, update, chat_data):
     user = User.from_telegram_object(update.effective_user)
+    if check_suggestion_limit(bot, update, user):
+        return
     kw = update.message.text
     bot_to_edit = chat_data.get('edit_bot')
     kw = helpers.format_keyword(kw)
@@ -309,6 +311,8 @@ def change_suggestion(bot, update, suggestion, page_handover):
 
 def remove_keyword(bot, update, chat_data, context):
     user = User.from_telegram_object(update.effective_user)
+    if check_suggestion_limit(bot, update, user):
+        return
     to_edit = context.get('to_edit')
     kw = context.get('keyword')
     Suggestion.add_or_update(user=user, action='remove_keyword', subject=to_edit, value=kw.name)
