@@ -14,7 +14,7 @@ BOT_THUMBNAIL_DIR = config('BOT_THUMBNAIL_DIR',
                            default=os.path.expanduser(
                                '/home/joscha/data/botlistbot/bot-profile-pictures'))
 MODERATORS = [
-    # 62056065,  # JosXa
+    62056065,  # JosXa
     918962,  # T3CHNO
     7679610,
     278941742,
