@@ -334,6 +334,7 @@ def register(dp: Dispatcher):
         ],
         per_user=True,
         allow_reentry=False
+
     )
 
     broadcasting_handler = ConversationHandler(
