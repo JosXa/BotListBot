@@ -16,7 +16,7 @@ def access_token(bot, update):
     user = User.from_telegram_object(update.effective_user)
     rd_token = binascii.hexlify(os.urandom(32)).decode('utf-8')
     try:
-        db_token = APIAccess.get(user=user)
+        db_token = APIAccess.get(user=user).token
     except:
         db_token = "You have no token."
     text = f"Random token: {rd_token}\n" \
