@@ -6,12 +6,22 @@ from telegram import ParseMode
 from telegram.ext import ConversationHandler
 
 import util
-from model import Statistic
+from model import Statistic, APIAccess
 from model import User, Bot, Notifications
+from util import restricted
 
 
+@restricted(strict=True)
 def access_token(bot, update):
-    update.message.reply_text(binascii.hexlify(os.urandom(32)).decode('utf-8'))
+    user = User.from_telegram_object(update.effective_user)
+    rd_token = binascii.hexlify(os.urandom(32)).decode('utf-8')
+    try:
+        db_token = APIAccess.get(user=user)
+    except:
+        db_token = "You have no token."
+    text = f"Random token: {rd_token}\n" \
+           f"Database token (use this for api calls):\n{db_token}"
+    update.message.reply_text(text)
     return ConversationHandler.END
 
 
