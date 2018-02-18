@@ -19,8 +19,8 @@ def access_token(bot, update):
         db_token = APIAccess.get(user=user).token
     except:
         db_token = "You have no token."
-    text = f"Random token: {rd_token}\n" \
-           f"Database token (use this for api calls):\n{db_token}"
+    text = "Random token: {}\n" \
+           "Database token (use this for api calls):\n{}".format(rd_token, db_token)
     update.message.reply_text(text)
     return ConversationHandler.END
 
