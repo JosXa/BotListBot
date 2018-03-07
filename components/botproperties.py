@@ -332,8 +332,7 @@ def accept_suggestion(bot, update, suggestion: Suggestion):
                      parse_mode='markdown', disable_web_page_preview=True)
 
     if user != suggestion.user.chat_id:
-        submittant_notification = f'*Thank you* {util.escape_markdown(suggestion.user.first_name)}, ' \
-                                  f'your suggestion has been accepted:' \
-                                  f'\n\n{suggestion}'
+        submittant_notification = '*Thank you* {}, your suggestion has been accepted:' \
+                                  '\n\n{}'.format(util.escape_markdown(suggestion.user.first_name), str(suggestion))
         bot.send_message(suggestion.user.chat_id, submittant_notification,
                          parse_mode='markdown', disable_web_page_preview=True)
