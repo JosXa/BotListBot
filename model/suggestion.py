@@ -260,5 +260,5 @@ class Suggestion(BaseModel):
         return text
 
     def __str__(self):
-        text = str(self.user) + ": " + self._md_plaintext()
-        return text.encode('utf-8').decode('utf-8')
+        text = self.user.markdown_short + ": " + self._md_plaintext().encode('utf-8').decode('utf-8')
+        return text

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from pprint import pprint
 
 from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 
@@ -250,7 +249,9 @@ def delete_bot(bot, update, to_edit):
 def change_category(bot, update, to_edit, category):
     uid = update.effective_user.id
     user = User.get(User.chat_id == uid)
-    if uid in settings.MODERATORS or uid == 918962:
+
+    if uid == 918962:
+        # Special for t3chno
         to_edit.category = category
         to_edit.save()
     else:
@@ -315,12 +316,24 @@ def remove_keyword(bot, update, chat_data, context):
 
 @restricted
 def accept_suggestion(bot, update, suggestion: Suggestion):
+    user = User.from_telegram_object(update.effective_user)
     suggestion.apply()
+
     if suggestion.action == 'offline':
-        bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, '{} went {}.'.format(
+        suggestion_text = '{} went {}.'.format(
             suggestion.subject.str_no_md,
-            'offline' if suggestion.subject.offline else 'online'
-        ))
+            'offline' if suggestion.subject.offline else 'online')
     else:
         suggestion_text = str(suggestion)
-        bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, suggestion_text[0].upper() + suggestion_text[1:])
+
+    suggestion_text = suggestion_text[0].upper() + suggestion_text[1:]
+    suggestion_text += '\nApproved by ' + user.markdown_short
+    bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, suggestion_text,
+                     parse_mode='markdown', disable_web_page_preview=True)
+
+    if user != suggestion.user.chat_id:
+        submittant_notification = f'*Thank you* {util.escape_markdown(suggestion.user.first_name)}, ' \
+                                  f'your suggestion has been accepted:' \
+                                  f'\n\n{suggestion}'
+        bot.send_message(suggestion.user.chat_id, submittant_notification,
+                         parse_mode='markdown', disable_web_page_preview=True)
