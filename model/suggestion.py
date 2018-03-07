@@ -64,7 +64,7 @@ class Suggestion(BaseModel):
                 return None
             return Country.get(id=self._value)
         else:
-            return str(self._value) if self._value else None
+            return util.escape_markdown(str(self._value)) if self._value else None
 
     @value.setter
     def value(self, value):
