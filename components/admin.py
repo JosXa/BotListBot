@@ -221,7 +221,7 @@ def edit_bot(bot, update, chat_data, to_edit=None):
                 to_edit = Bot.get(id=b_id)
             except Bot.DoesNotExist:
                 update.message.reply_text(util.failure('No bot exists with this id.'))
-                return533896153:AAHCroYDQHatEhTavqeg_X7AXF7gdTwRojY
+                return
         else:
             bot.formatter.send_failure(uid, "An unexpected error occured.")
             return
