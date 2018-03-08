@@ -212,7 +212,7 @@ def edit_bot(bot, update, chat_data, to_edit=None):
 
             if 'edit' in command:
                 b_id = re.match(r'^/edit(\d+)$', command).groups()[0]
-            if 'approve' in command:
+            elif 'approve' in command:
                 b_id = re.match(r'^/approve(\d+)$', command).groups()[0]
             else:
                 raise ValueError("No 'edit' or 'approve' in command.")
@@ -221,7 +221,7 @@ def edit_bot(bot, update, chat_data, to_edit=None):
                 to_edit = Bot.get(id=b_id)
             except Bot.DoesNotExist:
                 update.message.reply_text(util.failure('No bot exists with this id.'))
-                return
+                return533896153:AAHCroYDQHatEhTavqeg_X7AXF7gdTwRojY
         else:
             bot.formatter.send_failure(uid, "An unexpected error occured.")
             return
