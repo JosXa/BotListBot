@@ -646,13 +646,16 @@ def ban_handler(bot, update, args, ban_state: bool):
         try:
             user = User.by_username(query)
         except User.DoesNotExist:
-            update.message.reply_text("This user does not exist.")
-            return
+            try:
+                user = User.get(chat_id=query)
+            except User.DoesNotExist:
+                update.message.reply_text("This user does not exist.")
+                return
 
         ban_user(bot, update, user, ban_state)
     else:
         # no search term
-        update.message.reply_text(messages.UNBAN_MESSAGE if ban_state else messages.BAN_MESSAGE,
+        update.message.reply_text(messages.BAN_MESSAGE if ban_state else messages.UNBAN_MESSAGE,
                                   reply_markup=ForceReply(selective=True))
     return ConversationHandler.END
 
