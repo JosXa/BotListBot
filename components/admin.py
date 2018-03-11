@@ -16,6 +16,7 @@ import helpers
 import mdformat
 import settings
 import util
+from appglobals import db
 from const import *
 from const import BotStates, CallbackActions
 from custemoji import Emoji
@@ -672,14 +673,22 @@ def ban_user(bot, update, user: User, ban_state: bool):
         return
     user.banned = ban_state
     if ban_state is True:
-        users_bots = Bot.select().where(
-            (Bot.approved == False) &
-            (Bot.submitted_by == user)
-        )
-        for b in users_bots:
-            b.delete_instance()
+        with db.atomic():
+            users_bots = Bot.select().where(
+                (Bot.approved == False) &
+                (Bot.submitted_by == user)
+            )
+            for b in users_bots:
+                b.delete_instance()
+
+            users_suggestions = Suggestion.select().where(
+                (Suggestion.executed == False) &
+                (Suggestion.user == user)
+            )
+            for s in users_suggestions:
+                s.delete_instance()
         update.message.reply_text(
-            mdformat.success("User {} banned and all bot submissions removed.".format(user)),
+            mdformat.success("User {} banned, all bot submissions and suggestions removed.".format(user)),
             parse_mode='markdown')
         Statistic.of(update, 'ban', user.markdown_short)
     else:
