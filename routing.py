@@ -4,6 +4,7 @@ import re
 import traceback
 from pprint import pprint
 
+from telegram import Message
 from telegram.ext import ChosenInlineResultHandler, CommandHandler, \
     ConversationHandler, \
     Dispatcher, DispatcherHandlerStop, Filters, InlineQueryHandler, MessageHandler, RegexHandler, \
@@ -472,4 +473,3 @@ def register(dp: Dispatcher):
     add(ChosenInlineResultHandler(inlinequeries.chosen_result, pass_chat_data=True))
     add(InlineQueryHandler(inlinequeries.inlinequery_handler, pass_chat_data=True))
     add(MessageHandler(Filters.all, all_handler, pass_chat_data=True), group=98)
-    pprint(dp.handlers)

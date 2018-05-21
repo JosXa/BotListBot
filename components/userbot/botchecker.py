@@ -17,7 +17,7 @@ from telegram import Bot as TelegramBot
 import helpers
 import settings
 from helpers import make_sticker
-from model import Bot as BotModel, Keyword
+from model import Bot as BotModel, Keyword, Suggestion, User
 from model.keywordmodel import KeywordSuggestion
 from pyrogram.api.errors import FloodWait, QueryTooShort, UsernameInvalid, UsernameNotOccupied
 from pyrogram.api.functions.contacts import Search
@@ -122,7 +122,7 @@ class BotChecker(InteractionClientAsync):
     async def get_ping_response(self, peer, timeout=30, try_inline=True):
         response = await self.ping_bot(
             peer,
-            override_messages=["/start", "/help"],
+            override_messages=settings.PING_MESSAGES,
             max_wait_response=timeout,
             raise_=False
         )
@@ -260,10 +260,16 @@ async def check_bot(bot, bot_checker: BotChecker, to_check: BotModel, result_que
                 to_add.append(name)
 
         if len(to_add) > 0:
-            # Suggestion.add_or_update(settings)
-            KeywordSuggestion.insert_many(
-                [dict(name=x, entity=to_check) for x in to_add]
-            ).execute()
+            for k in to_add:
+                Suggestion.add_or_update(
+                    user=User.botlist_user_instance(),
+                    action="add_keyword",
+                    subject=to_check,
+                    value=k
+                )
+            # KeywordSuggestion.insert_many(
+            #     [dict(name=x, entity=to_check) for x in to_add]
+            # ).execute()
             msg = 'New keyword suggestion{}: {} for {}.'.format(
                 's' if len(to_add) > 1 else '',
                 ', '.join(['#' + k for k in to_add]),
