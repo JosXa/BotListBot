@@ -2,43 +2,37 @@ import json
 import logging
 import re
 import traceback
+from pprint import pprint
+
+from telegram.ext import ChosenInlineResultHandler, CommandHandler, \
+    ConversationHandler, \
+    Dispatcher, DispatcherHandlerStop, Filters, InlineQueryHandler, MessageHandler, RegexHandler, \
+    CallbackQueryHandler
 
 import captions
 import components.botproperties
 import settings
 import util
-from components import botlistchat, help, favorites, admin, basic, botproperties, botlist, \
-    broadcasts, explore
-from components import contributions
-from components import eastereggs
-from components import inlinequeries
+from components import admin, basic, botlist, botlistchat, botproperties, broadcasts, \
+    contributions, eastereggs, \
+    explore, favorites, help, inlinequeries
 from components.basic import all_handler
 from components.botlistchat import HINTS
-from components.explore import show_new_bots, send_bot_details, select_category, send_category
-from components.misc import access_token, set_notifications
-from components.misc import t3chnostats
+from components.explore import select_category, send_bot_details, send_category, show_new_bots
+from components.misc import access_token, set_notifications, t3chnostats
 from components.search import search_handler, search_query
-from const import CallbackActions, BotStates
+from const import BotStates, CallbackActions
 from dialog import messages
 from lib import InlineCallbackHandler
 from misc import manage_subscription
-from model import Keyword
-from model import Statistic
-from model import User, Category, Bot, Favorite, Country, Suggestion
-from telegram.ext import CallbackQueryHandler, Dispatcher, DispatcherHandlerStop
-from telegram.ext import ChosenInlineResultHandler
-from telegram.ext import CommandHandler
-from telegram.ext import ConversationHandler
-from telegram.ext import Filters
-from telegram.ext import InlineQueryHandler
-from telegram.ext import MessageHandler
-from telegram.ext import RegexHandler
+from model import Bot, Category, Country, Favorite, Keyword, Statistic, Suggestion, User
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
 def callback_router(bot, update, chat_data, user_data, job_queue):
+    print('HI!')
     obj = json.loads(str(update.callback_query.data))
     user = User.from_update(update)
 
@@ -156,6 +150,7 @@ def callback_router(bot, update, chat_data, user_data, job_queue):
                 botproperties.set_text_property(bot, update, chat_data, 'description', to_edit)
             elif action == CallbackActions.EDIT_BOT_EXTRA:
                 to_edit = Bot.get(id=obj['id'])
+                # SAME IS DONE HERE, but manually
                 botproperties.set_text_property(bot, update, chat_data, 'extra', to_edit)
             elif action == CallbackActions.EDIT_BOT_NAME:
                 to_edit = Bot.get(id=obj['id'])
@@ -272,7 +267,7 @@ def forward_router(bot, update, chat_data):
 
 
 def reply_router(bot, update, chat_data):
-    text = update.message.reply_to_message.text
+    text = update.effective_message.reply_to_message.text
 
     if text == messages.ADD_FAVORITE:
         query = update.message.text
@@ -302,6 +297,12 @@ def reply_router(bot, update, chat_data):
 
 
 def register(dp: Dispatcher):
+    def add(*args, **kwargs):
+        dp.add_handler(*args, **kwargs)
+
+    add(CallbackQueryHandler(callback_router, pass_chat_data=True, pass_user_data=True,
+                             pass_job_queue=True))
+
     keywords_handler = ConversationHandler(
         entry_points=[
             InlineCallbackHandler(CallbackActions.EDIT_BOT_KEYWORDS,
@@ -353,133 +354,122 @@ def register(dp: Dispatcher):
         per_chat=False,
         allow_reentry=True
     )
-    dp.add_handler(broadcasting_handler)
+    add(broadcasting_handler)
 
-    dp.add_handler(
-        CommandHandler(('cat', 'category', 'categories'), select_category, pass_chat_data=True))
-    dp.add_handler(
-        CommandHandler(('s', 'search'), search_handler, pass_args=True, pass_chat_data=True))
+    add(CommandHandler(('cat', 'category', 'categories'), select_category, pass_chat_data=True))
+    add(CommandHandler(('s', 'search'), search_handler, pass_args=True, pass_chat_data=True))
 
-    dp.add_handler(MessageHandler(Filters.reply, reply_router, pass_chat_data=True), group=-1)
-    dp.add_handler(MessageHandler(Filters.forwarded, forward_router, pass_chat_data=True))
+    add(MessageHandler(Filters.reply, reply_router, pass_chat_data=True), group=-1)
+    add(MessageHandler(Filters.forwarded, forward_router, pass_chat_data=True))
 
-    dp.add_handler(CommandHandler("admin", admin.menu))
-    dp.add_handler(CommandHandler("a", admin.menu))
+    add(CommandHandler("admin", admin.menu))
+    add(CommandHandler("a", admin.menu))
 
-    dp.add_handler(CommandHandler(
+    add(CommandHandler(
         ('rej', 'reject'),
         admin.reject_bot_submission, pass_args=True))
-    dp.add_handler(CommandHandler(('rejsil', 'rejectsil', 'rejsilent', 'rejectsilent'),
-                                  lambda bot, update: admin.reject_bot_submission(
-                                      bot, update, None, notify_submittant=False)))
+    add(CommandHandler(('rejsil', 'rejectsil', 'rejsilent', 'rejectsilent'),
+                       lambda bot, update: admin.reject_bot_submission(
+                           bot, update, None, notify_submittant=False)))
 
     # admin menu
-    dp.add_handler(RegexHandler(captions.APPROVE_BOTS + '.*', admin.approve_bots))
-    dp.add_handler(RegexHandler(captions.APPROVE_SUGGESTIONS + '.*', admin.approve_suggestions))
-    dp.add_handler(RegexHandler(captions.PENDING_UPDATE + '.*', admin.pending_update))
-    dp.add_handler(
-        RegexHandler(captions.SEND_BOTLIST, admin.prepare_transmission, pass_chat_data=True))
-    dp.add_handler(RegexHandler(captions.FIND_OFFLINE, admin.send_offline))
-    dp.add_handler(RegexHandler(captions.SEND_CONFIG_FILES, admin.send_runtime_files))
-    dp.add_handler(RegexHandler(captions.SEND_ACTIVITY_LOGS, admin.send_activity_logs))
+    add(RegexHandler(captions.APPROVE_BOTS + '.*', admin.approve_bots))
+    add(RegexHandler(captions.APPROVE_SUGGESTIONS + '.*', admin.approve_suggestions))
+    add(RegexHandler(captions.PENDING_UPDATE + '.*', admin.pending_update))
+    add(RegexHandler(captions.SEND_BOTLIST, admin.prepare_transmission, pass_chat_data=True))
+    add(RegexHandler(captions.FIND_OFFLINE, admin.send_offline))
+    add(RegexHandler(captions.SEND_CONFIG_FILES, admin.send_runtime_files))
+    add(RegexHandler(captions.SEND_ACTIVITY_LOGS, admin.send_activity_logs))
 
     # main menu
-    dp.add_handler(RegexHandler(captions.ADMIN_MENU, admin.menu))
-    dp.add_handler(RegexHandler(captions.REFRESH, admin.menu))
-    dp.add_handler(RegexHandler(captions.CATEGORIES, select_category, pass_chat_data=True))
-    dp.add_handler(RegexHandler(captions.EXPLORE, explore.explore, pass_chat_data=True))
-    dp.add_handler(RegexHandler(captions.FAVORITES, favorites.send_favorites_list))
-    dp.add_handler(RegexHandler(captions.NEW_BOTS, show_new_bots, pass_chat_data=True))
-    dp.add_handler(RegexHandler(captions.SEARCH, search_handler, pass_chat_data=True))
-    dp.add_handler(RegexHandler(captions.CONTRIBUTING, help.contributing))
-    dp.add_handler(RegexHandler(captions.EXAMPLES, help.examples))
-    dp.add_handler(RegexHandler(captions.HELP, help.help))
+    add(RegexHandler(captions.ADMIN_MENU, admin.menu))
+    add(RegexHandler(captions.REFRESH, admin.menu))
+    add(RegexHandler(captions.CATEGORIES, select_category, pass_chat_data=True))
+    add(RegexHandler(captions.EXPLORE, explore.explore, pass_chat_data=True))
+    add(RegexHandler(captions.FAVORITES, favorites.send_favorites_list))
+    add(RegexHandler(captions.NEW_BOTS, show_new_bots, pass_chat_data=True))
+    add(RegexHandler(captions.SEARCH, search_handler, pass_chat_data=True))
+    add(RegexHandler(captions.CONTRIBUTING, help.contributing))
+    add(RegexHandler(captions.EXAMPLES, help.examples))
+    add(RegexHandler(captions.HELP, help.help))
 
-    dp.add_handler(RegexHandler("^/edit\d+$", admin.edit_bot, pass_chat_data=True), group=1)
+    add(RegexHandler("^/edit\d+$", admin.edit_bot, pass_chat_data=True), group=1)
 
-    dp.add_handler(RegexHandler("^/approve\d+$", admin.edit_bot, pass_chat_data=True), group=1)
-    dp.add_handler(CommandHandler('approve', admin.short_approve_list))
+    add(RegexHandler("^/approve\d+$", admin.edit_bot, pass_chat_data=True), group=1)
+    add(CommandHandler('approve', admin.short_approve_list))
 
-    dp.add_handler(CommandHandler(('manybot', 'manybots'), admin.manybots))
+    add(CommandHandler(('manybot', 'manybots'), admin.manybots))
 
-    dp.add_handler(CommandHandler('new', contributions.new_bot_submission, pass_args=True,
-                                  pass_chat_data=True))
-    dp.add_handler(RegexHandler('.*#new.*', contributions.new_bot_submission, pass_chat_data=True),
-                   group=1)
-    dp.add_handler(CommandHandler('offline', contributions.notify_bot_offline, pass_args=True))
-    dp.add_handler(RegexHandler('.*#offline.*', contributions.notify_bot_offline), group=1)
-    dp.add_handler(CommandHandler('spam', contributions.notify_bot_spam, pass_args=True))
-    dp.add_handler(RegexHandler('.*#spam.*', contributions.notify_bot_spam), group=1)
-    dp.add_handler(
-        RegexHandler('^{}$'.format(settings.REGEX_BOT_ONLY), send_bot_details, pass_chat_data=True))
+    add(CommandHandler('new', contributions.new_bot_submission, pass_args=True,
+                       pass_chat_data=True))
+    add(RegexHandler('.*#new.*', contributions.new_bot_submission, pass_chat_data=True),
+        group=1)
+    add(CommandHandler('offline', contributions.notify_bot_offline, pass_args=True))
+    add(RegexHandler('.*#offline.*', contributions.notify_bot_offline), group=1)
+    add(CommandHandler('spam', contributions.notify_bot_spam, pass_args=True))
+    add(RegexHandler('.*#spam.*', contributions.notify_bot_spam), group=1)
+    add(RegexHandler('^{}$'.format(settings.REGEX_BOT_ONLY), send_bot_details,
+                     pass_chat_data=True))
 
-    dp.add_handler(CommandHandler('help', help.help))
-    dp.add_handler(CommandHandler(("contribute", "contributing"), help.contributing))
-    dp.add_handler(CommandHandler("examples", help.examples))
-    dp.add_handler(CommandHandler("rules", help.rules))
+    add(CommandHandler('help', help.help))
+    add(CommandHandler(("contribute", "contributing"), help.contributing))
+    add(CommandHandler("examples", help.examples))
+    add(CommandHandler("rules", help.rules))
 
-    dp.add_handler(
-        CommandHandler(("addfav", "addfavorite"), favorites.add_favorite_handler, pass_args=True))
-    dp.add_handler(CommandHandler(("f", "fav", "favorites"), favorites.send_favorites_list))
+    add(CommandHandler(("addfav", "addfavorite"), favorites.add_favorite_handler, pass_args=True))
+    add(CommandHandler(("f", "fav", "favorites"), favorites.send_favorites_list))
 
-    dp.add_handler(CommandHandler(("e", "explore"), explore.explore, pass_chat_data=True))
-    dp.add_handler(CommandHandler("official", explore.show_official))
+    add(CommandHandler(("e", "explore"), explore.explore, pass_chat_data=True))
+    add(CommandHandler("official", explore.show_official))
 
-    dp.add_handler(CommandHandler('ban', lambda bot, update, args: admin.ban_handler(
+    add(CommandHandler('ban', lambda bot, update, args: admin.ban_handler(
         bot, update, args, True), pass_args=True))
-    dp.add_handler(CommandHandler('unban', lambda bot, update, args: admin.ban_handler(
+    add(CommandHandler('unban', lambda bot, update, args: admin.ban_handler(
         bot, update, args, False), pass_args=True))
-    dp.add_handler(CommandHandler('t3chno', t3chnostats))
-    dp.add_handler(CommandHandler('random', eastereggs.send_random_bot))
-    dp.add_handler(CommandHandler('easteregg', eastereggs.send_next, pass_args=True))
+    add(CommandHandler('t3chno', t3chnostats))
+    add(CommandHandler('random', eastereggs.send_random_bot))
+    add(CommandHandler('easteregg', eastereggs.send_next, pass_args=True))
 
-    dp.add_handler(CommandHandler("subscribe", manage_subscription))
-    dp.add_handler(CommandHandler("newbots", show_new_bots, pass_chat_data=True))
+    add(CommandHandler("subscribe", manage_subscription))
+    add(CommandHandler("newbots", show_new_bots, pass_chat_data=True))
 
-    dp.add_handler(CommandHandler("accesstoken", access_token))
+    add(CommandHandler("accesstoken", access_token))
 
-    dp.add_handler(
-        CommandHandler(('stat', 'stats', 'statistic', 'statistics'), admin.send_statistic))
+    add(CommandHandler(('stat', 'stats', 'statistic', 'statistics'), admin.send_statistic))
 
-    dp.add_handler(CommandHandler(('log', 'logs'), admin.send_activity_logs, pass_args=True))
-    dp.add_handler(CommandHandler(('debug', 'analysis', 'ana', 'analyze'),
-                                  lambda bot, update, args: admin.send_activity_logs(bot, update,
-                                                                                     args,
-                                                                                     Statistic.ANALYSIS),
-                                  pass_args=True))
-    dp.add_handler(CommandHandler('info',
-                                  lambda bot, update, args: admin.send_activity_logs(bot, update,
-                                                                                     args,
-                                                                                     Statistic.INFO),
-                                  pass_args=True))
-    dp.add_handler(
-        CommandHandler(('detail', 'detailed'),
+    add(CommandHandler(('log', 'logs'), admin.send_activity_logs, pass_args=True))
+    add(CommandHandler(
+        ('debug', 'analysis', 'ana', 'analyze'),
+        lambda bot, update, args: admin.send_activity_logs(bot, update, args, Statistic.ANALYSIS),
+        pass_args=True))
+    add(CommandHandler(
+        'info',
+        lambda bot, update, args: admin.send_activity_logs(bot, update, args, Statistic.INFO),
+        pass_args=True))
+    add(CommandHandler(('detail', 'detailed'),
                        lambda bot, update, args: admin.send_activity_logs(bot, update, args,
                                                                           Statistic.DETAILED),
                        pass_args=True))
-    dp.add_handler(
-        CommandHandler(('warn', 'warning'),
-                       lambda bot, update, args: admin.send_activity_logs(bot, update, args,
-                                                                          Statistic.WARN),
-                       pass_args=True))
-    dp.add_handler(
-        CommandHandler('important',
-                       lambda bot, update, args: admin.send_activity_logs(bot, update, args,
-                                                                          Statistic.IMPORTANT),
-                       pass_args=True))
+    add(CommandHandler(
+        ('warn', 'warning'),
+        lambda bot, update, args: admin.send_activity_logs(bot, update, args, Statistic.WARN),
+        pass_args=True))
+    add(CommandHandler(
+        'important',
+        lambda bot, update, args: admin.send_activity_logs(bot, update, args, Statistic.IMPORTANT),
+        pass_args=True))
 
-    dp.add_handler(MessageHandler(Filters.text,
-                                  lambda bot, update: botlistchat.text_message_logger(bot, update,
-                                                                                      log)),
-                   group=99)
+    add(MessageHandler(
+        Filters.text,
+        lambda bot, update: botlistchat.text_message_logger(bot, update, log)
+    ), group=99)
 
     for hashtag in HINTS.keys():
-        dp.add_handler(RegexHandler(r'{}.*'.format(hashtag), botlistchat.hint_handler), group=1)
-    dp.add_handler(CommandHandler(('hint', 'hints'), botlistchat.show_available_hints))
+        add(RegexHandler(r'{}.*'.format(hashtag), botlistchat.hint_handler), group=1)
+    add(CommandHandler(('hint', 'hints'), botlistchat.show_available_hints))
 
-    dp.add_handler(keywords_handler)
-    dp.add_handler(CallbackQueryHandler(callback_router, pass_chat_data=True, pass_user_data=True,
-                                        pass_job_queue=True))
-    dp.add_handler(ChosenInlineResultHandler(inlinequeries.chosen_result, pass_chat_data=True))
-    dp.add_handler(InlineQueryHandler(inlinequeries.inlinequery_handler, pass_chat_data=True))
-    dp.add_handler(MessageHandler(Filters.all, all_handler, pass_chat_data=True), group=98)
+    add(keywords_handler)
+    add(ChosenInlineResultHandler(inlinequeries.chosen_result, pass_chat_data=True))
+    add(InlineQueryHandler(inlinequeries.inlinequery_handler, pass_chat_data=True))
+    add(MessageHandler(Filters.all, all_handler, pass_chat_data=True), group=98)
+    pprint(dp.handlers)

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
+from telegram.error import BadRequest
 
 import captions
 import helpers
@@ -225,7 +226,7 @@ def delete_keyword_suggestion(bot, update, chat_data, context):
 def delete_bot_confirm(bot, update, to_edit):
     chat_id = util.uid_from_update(update)
     reply_markup = InlineKeyboardMarkup([[
-        InlineKeyboardButton("Yes, delete it!", callback_data=util.callback_for_action(
+        InlineKeyboardButton("Yes, disable it!", callback_data=util.callback_for_action(
             CallbackActions.DELETE_BOT, {'id': to_edit.id}
         )),
         InlineKeyboardButton(captions.BACK, callback_data=util.callback_for_action(
@@ -239,11 +240,10 @@ def delete_bot_confirm(bot, update, to_edit):
 
 @restricted
 def delete_bot(bot, update, to_edit):
-    chat_id = util.uid_from_update(update)
     username = to_edit.username
-    to_edit.delete_instance()
-    bot.formatter.send_or_edit(chat_id, "Bot has been deleted.", to_edit=util.mid_from_update(update))
-    Statistic.of(update, 'delete', username, Statistic.IMPORTANT)
+    to_edit.disable()
+    bot.formatter.send_or_edit(update.effective_user.id, "Bot has been deleted.", to_edit=util.mid_from_update(update))
+    Statistic.of(update, 'disable', username, Statistic.IMPORTANT)
 
 
 def change_category(bot, update, to_edit, category):
@@ -297,6 +297,9 @@ def change_suggestion(bot, update, suggestion, page_handover):
         )),
         InlineKeyboardButton(captions.CHANGE_SUGGESTION, callback_data=util.callback_for_action(
             callback_action, {'id': suggestion.id, 'page': page_handover}
+        )),
+        InlineKeyboardButton(Emoji.CROSS_MARK, callback_data=util.callback_for_action(
+            CallbackActions.REJECT_SUGGESTION, {'id': suggestion.id, 'page': page_handover}
         ))
     ]]
 
@@ -334,5 +337,11 @@ def accept_suggestion(bot, update, suggestion: Suggestion):
     if user != suggestion.user.chat_id:
         submittant_notification = '*Thank you* {}, your suggestion has been accepted:' \
                                   '\n\n{}'.format(util.escape_markdown(suggestion.user.first_name), str(suggestion))
-        bot.send_message(suggestion.user.chat_id, submittant_notification,
-                         parse_mode='markdown', disable_web_page_preview=True)
+        try:
+            bot.send_message(suggestion.user.chat_id, submittant_notification,
+                             parse_mode='markdown', disable_web_page_preview=True)
+        except BadRequest:
+            update.effective_message.reply_text("Could not contact {}.".format(suggestion.user.markdown_short),
+                                                parse_mode='markdown', disable_web_page_preview=True)
+
+

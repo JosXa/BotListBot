@@ -1,5 +1,2 @@
-
-
-
-def register(dp):
-    pass
+def context_handler(context):
+    print(context.update)

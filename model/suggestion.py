@@ -197,7 +197,7 @@ class Suggestion(BaseModel):
                 kw_obj = Keyword.get(name=self.value, entity=self.subject)
                 kw_obj.delete_instance()
             except Keyword.DoesNotExist:
-                raise AttributeError("Keyword to delete does not exist anymore.")
+                raise AttributeError("Keyword to disable does not exist anymore.")
 
         self.subject.save()
 

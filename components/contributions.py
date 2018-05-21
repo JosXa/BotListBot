@@ -82,65 +82,69 @@ def notify_bot_spam(bot, update, args=None):
 def notify_bot_offline(bot, update, args=None):
     tg_user = update.message.from_user
     user = User.from_telegram_object(tg_user)
-    if util.stop_banned(update, user):
-        return
-    reply_to = util.original_reply_id(update)
 
-    if args:
-        text = ' '.join(args)
-    else:
-        text = update.message.text
-        command_no_args = len(re.findall(r'^/offline\s*$', text)) > 0 or text.lower().strip() == '/offline@botlistbot'
-        if command_no_args:
-            update.message.reply_text(
-                util.action_hint("Please use this command with an argument. For example:\n/offline @mybot"),
-                reply_to_message_id=reply_to)
-            return
+    update.message.reply_text("Thanks, but the BotList now automatically detects when a bot goes offline 😇😍")
+    return
 
-    # `#offline` is already checked by handler
-    try:
-        username = re.match(settings.REGEX_BOT_IN_TEXT, text).groups()[0]
-        if username == '@' + settings.SELF_BOT_NAME:
-            log.info("Ignoring {}".format(text))
-            return
-    except AttributeError:
-        if args:
-            update.message.reply_text(util.failure("Sorry, but you didn't send me a bot `@username`."), quote=True,
-                                      parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
-        else:
-            log.info("Ignoring {}".format(text))
-            # no bot username, ignore update
-            pass
-        return
-
-    def already_reported():
-        update.message.reply_text(mdformat.none_action("Someone already reported this, thanks anyway 😊"),
-                                  reply_to_message_id=reply_to)
-
-    try:
-        offline_bot = Bot.get(fn.lower(Bot.username) ** username.lower(), Bot.approved == True)
-        if offline_bot.offline:
-            return already_reported()
-        if offline_bot.official:
-            update.message.reply_text(mdformat.none_action("Official bots usually don't go offline for a long time. "
-                                                           "Just wait a couple hours and it will be back up ;)"),
-                                      reply_to_message_id=reply_to)
-            return
-
-        try:
-            Suggestion.get(action="offline", subject=offline_bot, executed=False)
-            return already_reported()
-        except Suggestion.DoesNotExist:
-            suggestion = Suggestion(user=user, action="offline", value=True, date=datetime.date.today(),
-                                    subject=offline_bot)
-            suggestion.save()
-
-        update.message.reply_text(util.success("Thank you! We will review your suggestion and set the bot offline."),
-                                  reply_to_message_id=reply_to)
-    except Bot.DoesNotExist:
-        update.message.reply_text(
-            util.action_hint("The bot you sent me is not in the @BotList."), reply_to_message_id=reply_to)
-    return ConversationHandler.END
+    # if util.stop_banned(update, user):
+    #     return
+    # reply_to = util.original_reply_id(update)
+    #
+    # if args:
+    #     text = ' '.join(args)
+    # else:
+    #     text = update.message.text
+    #     command_no_args = len(re.findall(r'^/offline\s*$', text)) > 0 or text.lower().strip() == '/offline@botlistbot'
+    #     if command_no_args:
+    #         update.message.reply_text(
+    #             util.action_hint("Please use this command with an argument. For example:\n/offline @mybot"),
+    #             reply_to_message_id=reply_to)
+    #         return
+    #
+    # # `#offline` is already checked by handler
+    # try:
+    #     username = re.match(settings.REGEX_BOT_IN_TEXT, text).groups()[0]
+    #     if username == '@' + settings.SELF_BOT_NAME:
+    #         log.info("Ignoring {}".format(text))
+    #         return
+    # except AttributeError:
+    #     if args:
+    #         update.message.reply_text(util.failure("Sorry, but you didn't send me a bot `@username`."), quote=True,
+    #                                   parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
+    #     else:
+    #         log.info("Ignoring {}".format(text))
+    #         # no bot username, ignore update
+    #         pass
+    #     return
+    #
+    # def already_reported():
+    #     update.message.reply_text(mdformat.none_action("Someone already reported this, thanks anyway 😊"),
+    #                               reply_to_message_id=reply_to)
+    #
+    # try:
+    #     offline_bot = Bot.get(fn.lower(Bot.username) ** username.lower(), Bot.approved == True)
+    #     if offline_bot.offline:
+    #         return already_reported()
+    #     if offline_bot.official:
+    #         update.message.reply_text(mdformat.none_action("Official bots usually don't go offline for a long time. "
+    #                                                        "Just wait a couple hours and it will be back up ;)"),
+    #                                   reply_to_message_id=reply_to)
+    #         return
+    #
+    #     try:
+    #         Suggestion.get(action="offline", subject=offline_bot, executed=False)
+    #         return already_reported()
+    #     except Suggestion.DoesNotExist:
+    #         suggestion = Suggestion(user=user, action="offline", value=True, date=datetime.date.today(),
+    #                                 subject=offline_bot)
+    #         suggestion.save()
+    #
+    #     update.message.reply_text(util.success("Thank you! We will review your suggestion and set the bot offline."),
+    #                               reply_to_message_id=reply_to)
+    # except Bot.DoesNotExist:
+    #     update.message.reply_text(
+    #         util.action_hint("The bot you sent me is not in the @BotList."), reply_to_message_id=reply_to)
+    # return ConversationHandler.END
 
 
 @track_groups

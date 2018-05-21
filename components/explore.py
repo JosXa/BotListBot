@@ -1,10 +1,9 @@
-import os
+import logging
 import random
 import re
 
 import emoji
-from telegram import InlineKeyboardButton
-from telegram import InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ConversationHandler
 
 import captions
@@ -16,13 +15,11 @@ from components import botlistchat
 from const import CallbackActions, CallbackStates
 from dialog import messages
 from lib import InlineCallbackButton
-from model import Bot, Category, User, Keyword, Favorite
-from model import Statistic
-from model import track_activity
+from model import Bot, Category, Favorite, Keyword, Statistic, User, track_activity
 from util import track_groups
-import logging
 
 log = logging.getLogger()
+
 
 def show_official(bot, update):
     text = '*Official Telegram Bots:*\n\n'
@@ -225,8 +222,10 @@ def send_bot_details(bot, update, chat_data, item=None):
                 )))
 
     if is_group:
+        # TODO
         reply_markup = InlineKeyboardMarkup([])
-    else:
+    elif item.approved:
+        # Add favorite button
         buttons = [first_row]
         favorite_found = Favorite.search_by_bot(user, item)
         if favorite_found:
@@ -244,6 +243,9 @@ def send_bot_details(bot, update, chat_data, item=None):
                                          {'id': item.id, 'details': True}))
             ])
         reply_markup = InlineKeyboardMarkup(buttons)
+    else:
+        reply_markup = None
+
     reply_markup, callback = botlistchat.append_delete_button(update, chat_data, reply_markup)
 
     # Should we ever decide to show thumbnails *shrug*

@@ -47,7 +47,7 @@ class Statistic(BaseModel):
         'apply': 'applied changes to',
         'remove': 'removed',
         'send': 'sent',
-        'delete': 'deleted',
+        'disable': 'deleted',
         'suggestion': 'made a suggestion to',
         'easteregg': 'tried out the easteregg',
         'explore': 'explored',

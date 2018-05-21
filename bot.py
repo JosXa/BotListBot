@@ -1,76 +1,75 @@
 # -*- coding: utf-8 -*-
-import logging
-import os
-import sys
+import asyncio
 import threading
-from signal import signal, SIGINT, SIGTERM, SIGABRT
-
 import time
-from gevent.threading import Thread
+
+from logzero import logger as log
+from telegram import Bot as TelegramBot
+from telegram.ext import Updater
+from telegram.utils.request import Request
 
 import appglobals
 import routing
 import settings
+import util
 from api import botlistapi
-from components import _playground
-from components import admin
-from components import basic
+from components import admin, basic
 from components.userbot import botchecker
 from components.userbot.botchecker import BotChecker
 from lib.markdownformatter import MarkdownFormatter
-from telegram.ext import Updater
 
 
-### TODO ###
+# def setup_logger():
+#     logger = logging.getLogger('botlistbot')
+#     logger.setLevel(logging.INFO)
 #
-# - 💻🚦Developer and Monitoring Tools
+#     console_formatter = logging.Formatter("%(name)-12s: %(levelname)-8s %(message)s")
+#     file_formatter = logging.Formatter(
+#         "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
 #
+#     # create console handler and set level to info
+#     handler = logging.StreamHandler()
+#     handler.setLevel(logging.INFO)
+#     handler.setFormatter(console_formatter)
+#     logger.addHandler(handler)
 #
-#
-#
-###
+#     # create debug file handler and set level to debug
+#     handler = logging.FileHandler(settings.DEBUG_LOG_FILE, "w", encoding=None, delay="true")
+#     handler.setLevel(logging.DEBUG)
+#     handler.setFormatter(file_formatter)
+#     logger.addHandler(handler)
 
 
-def setup_logger():
-    logger = logging.getLogger('botlistbot')
-    logger.setLevel(logging.INFO)
-
-    console_formatter = logging.Formatter("%(name)-12s: %(levelname)-8s %(message)s")
-    file_formatter = logging.Formatter(
-        "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
-
-    # create console handler and set level to info
-    handler = logging.StreamHandler()
-    handler.setLevel(logging.INFO)
-    handler.setFormatter(console_formatter)
-    logger.addHandler(handler)
-
-    # create debug file handler and set level to debug
-    handler = logging.FileHandler(settings.DEBUG_LOG_FILE, "w", encoding=None, delay="true")
-    handler.setLevel(logging.DEBUG)
-    handler.setFormatter(file_formatter)
-    logger.addHandler(handler)
-
-
-setup_logger()
-log = logging.getLogger(__name__)
-
-botchecker_context = None
-
-
-def signal_handler():
-    log.info("Signaling stop to all jobs")
-    botchecker_context.get('stop').set()
+class BotListBot(TelegramBot):
+    def send_notification(self, message):
+        self.send_message(
+            settings.BOTLIST_NOTIFICATIONS_ID,
+            util.escape_markdown(message),
+            parse_mode='markdown',
+            timeout=20
+        )
+        log.info(message)
 
 
 def main():
     # Start API
-    thread = Thread(target=botlistapi.start_server)
+    thread = threading.Thread(target=botlistapi.start_server)
     thread.start()
 
-    bot_token = str(sys.argv[1])
+    loop = asyncio.new_event_loop()
+    botchecker_context = {}
 
-    updater = Updater(bot_token, workers=settings.WORKER_COUNT)
+    bot_token = str(settings.BOT_TOKEN)
+
+    botlistbot = BotListBot(bot_token, request=Request(
+        read_timeout=8,
+        connect_timeout=7,
+        con_pool_size=settings.WORKER_COUNT + 4
+    ))
+    updater = Updater(
+        bot=botlistbot,
+        workers=settings.WORKER_COUNT,
+    )
     updater.bot.formatter = MarkdownFormatter(updater.bot)
 
     # Get the dispatcher to register handlers
@@ -85,35 +84,41 @@ def main():
 
     routing.register(dp)
     basic.register(dp)
-    _playground.register(dp)
 
     # Start Userbot
     if settings.RUN_BOTCHECKER:
-        api_id = 34057
-        api_hash = 'a89154bb0cde970cae0848dc7f7a6108'
-        phone = '+79639953313'
-        session_file = settings.USERBOT_SESSION  # botchecker
-        bot_checker = BotChecker(session_file, api_id, api_hash, phone, updater)
+        def start_botchecker():
+            bot_checker = BotChecker(
+                session_name=settings.USERBOT_SESSION,
+                api_id=settings.API_ID,
+                api_hash=settings.API_HASH,
+                phone_number=settings.USERBOT_PHONE
+            )
+            bot_checker.start()
 
-        global botchecker_context
-        botchecker_context = {'checker': bot_checker, 'stop': threading.Event()}
-        updater.job_queue.run_repeating(
-            botchecker.job_callback, context=botchecker_context,
-            first=1.5,
-            interval=3600 * 2)
+            botchecker_context.update(
+                {'checker': bot_checker, 'stop': threading.Event(), 'loop': loop})
+            updater.job_queue.run_repeating(
+                botchecker.ping_bots_job,
+                context=botchecker_context,
+                first=1.5,
+                interval=settings.BOTCHECKER_INTERVAL
+            )
+
+        threading.Thread(target=start_botchecker, name="BotChecker").start()
 
     updater.job_queue.run_repeating(admin.last_update_job, interval=3600 * 24)
     updater.start_polling()
 
     log.info('Listening...')
-    updater.bot.send_message(settings.ADMINS[0], "Ready to rock")
+    updater.bot.send_message(settings.ADMINS[0], "Ready to rock", timeout=10)
 
     # Idling
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        signal_handler()
+        # botchecker_context.get('stop').set()
         updater.stop()
         log.info('Disconnecting...')
         appglobals.disconnect()

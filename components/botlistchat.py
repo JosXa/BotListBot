@@ -183,7 +183,7 @@ def hint_handler(bot, update):
     if msg is not None:
         bot.formatter.send_message(chat_id, msg, reply_markup=reply_markup,
                                    reply_to_message_id=reply_to.message_id if reply_to else None)
-        update.effective_message.delete()
+        update.effective_message.disable()
 
 
 @run_async

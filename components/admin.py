@@ -5,13 +5,14 @@ import os
 import re
 from typing import Dict
 
-import emoji
-from peewee import JOIN, fn
-from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, \
+from peewee import fn
+from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, \
+    ReplyKeyboardMarkup, \
     TelegramError
 from telegram.ext import ConversationHandler, Job
 
 import captions
+import emoji
 import helpers
 import mdformat
 import settings
@@ -21,7 +22,7 @@ from const import *
 from const import BotStates, CallbackActions
 from custemoji import Emoji
 from dialog import messages
-from model import Bot, Category, Ping, Revision, Statistic, Suggestion, User, track_activity
+from model import Bot, Category, Revision, Statistic, Suggestion, User, track_activity
 from util import restricted
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
@@ -43,7 +44,7 @@ def menu(bot, update):
 
 
 def _admin_buttons(send_botlist_button=False, logs_button=False):
-    n_unapproved = len(Bot.select().where(Bot.approved == False))
+    n_unapproved = len(Bot.select().where(Bot.approved == False, Bot.disabled == False))
     n_suggestions = len(Suggestion.select_all())
     n_pending = len(Bot.select_pending_update())
 
@@ -147,7 +148,8 @@ def _edit_bot_buttons(to_edit: Bot, pending_suggestions: Dict, is_moderator):
             callback_data=util.callback_for_action(CallbackActions.EDIT_BOT_EXTRA, bid)
         ),
         InlineKeyboardButton(
-            format_pending("Set keywords") if is_pending(['add_keyword', 'remove_keyword']) else 'Set keywords',
+            format_pending("Set keywords") if is_pending(
+                ['add_keyword', 'remove_keyword']) else 'Set keywords',
             callback_data=util.callback_for_action(
                 CallbackActions.EDIT_BOT_KEYWORDS, bid
             )),
@@ -156,7 +158,7 @@ def _edit_bot_buttons(to_edit: Bot, pending_suggestions: Dict, is_moderator):
     toggleable_properties = [
         ('inlinequeries', '🔎', CallbackActions.EDIT_BOT_INLINEQUERIES),
         ('official', '🔹', CallbackActions.EDIT_BOT_OFFICIAL),
-        ('offline', '💤', CallbackActions.EDIT_BOT_OFFLINE),
+        # ('offline', '💤', CallbackActions.EDIT_BOT_OFFLINE),
         ('spam', '🚮', CallbackActions.EDIT_BOT_SPAM),
     ]
 
@@ -241,7 +243,8 @@ def edit_bot(bot, update, chat_data, to_edit=None):
         to_edit.date_added, to_edit.revision, to_edit.submitted_by, to_edit.approved_by)
     bot.formatter.send_or_edit(
         uid,
-        "🛃 Edit {}{}{}".format(to_edit.detail_text, meta_text if user.id in settings.MODERATORS else '', pending_text),
+        "🛃 Edit {}{}{}".format(to_edit.detail_text,
+                                meta_text if user.id in settings.MODERATORS else '', pending_text),
         to_edit=message_id, reply_markup=reply_markup)
 
 
@@ -351,7 +354,8 @@ def approve_bots(bot, update, page=0, override_list=None):
     if override_list:
         unapproved = override_list
     else:
-        unapproved = Bot.select().where(Bot.approved == False).order_by(Bot.date_added)
+        unapproved = Bot.select().where(Bot.approved == False, Bot.disabled == False).order_by(
+            Bot.date_added)
 
     if page < 0:
         page = 0
@@ -538,13 +542,14 @@ def accept_bot_submission(bot, update, of_bot: Bot, category):
 @track_activity('request', 'list of offline bots')
 def send_offline(bot, update):
     chat_id = util.uid_from_update(update)
-    offline = Bot.select(Bot, Ping).join(Ping, JOIN.LEFT_OUTER).where(
-        Bot.offline == True).order_by(Ping.last_response.asc())
+    offline = Bot.select().where(
+        Bot.offline == True, Bot.disabled == False
+    ).order_by(Bot.last_response.asc())
 
     def offline_since(b):
-        if not b.ping.last_response:
+        if not b.last_response:
             return 'a long time'
-        slanged_time = helpers.slang_datetime(b.ping.last_response)
+        slanged_time = helpers.slang_datetime(b.last_response)
         return slanged_time.replace(' ago', '')
 
     if len(offline) > 0:
@@ -575,7 +580,7 @@ def reject_bot_submission(bot, update, args=None, to_reject=None, verbose=True,
         reason = reason if reason else (" ".join(args) if args else None)
 
         try:
-            update.message.delete()
+            update.message.disable()
         except:
             pass
 
@@ -594,7 +599,8 @@ def reject_bot_submission(bot, update, args=None, to_reject=None, verbose=True,
             return
 
         if to_reject.approved is True:
-            msg = "{} has already been accepted, so it cannot be rejected anymore.".format(username)
+            msg = "{} has already been accepted, so it cannot be rejected anymore.".format(
+                username)
             bot.sendMessage(uid, util.failure(msg))
             return
 
@@ -674,11 +680,12 @@ def ban_user(bot, update, user: User, ban_state: bool):
     user.banned = ban_state
     if ban_state is True:
         with db.atomic():
-            users_bots = Bot.select().where(
+            user_submissions = Bot.select().where(
                 (Bot.approved == False) &
                 (Bot.submitted_by == user)
+                # TODO: does this need to include `Bot.deleted == True`?
             )
-            for b in users_bots:
+            for b in user_submissions:
                 b.delete_instance()
 
             users_suggestions = Suggestion.select().where(
@@ -688,7 +695,8 @@ def ban_user(bot, update, user: User, ban_state: bool):
             for s in users_suggestions:
                 s.delete_instance()
         update.message.reply_text(
-            mdformat.success("User {} banned, all bot submissions and suggestions removed.".format(user)),
+            mdformat.success(
+                "User {} banned, all bot submissions and suggestions removed.".format(user)),
             parse_mode='markdown')
         Statistic.of(update, 'ban', user.markdown_short)
     else:
@@ -862,7 +870,8 @@ def short_approve_list(bot, update):
 @restricted
 def manybots(bot, update):
     uid = update.effective_chat.id
-    bots = Bot.select().where(Bot.approved == True & Bot.botbuilder == True)
+    bots = Bot.select().where(
+        Bot.approved == True & Bot.botbuilder == True & Bot.disabled == False)
 
     txt = 'Manybots in the BotList:\n\n'
 

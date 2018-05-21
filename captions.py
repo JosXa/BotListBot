@@ -43,5 +43,5 @@ PIN = "📍 Pin"
 
 def random_done_delete():
     CHOICES = ["I'm done", "Okay, done with this", "Okay, clear this mess", "I got what I wanted",
-               "Don't need this anymore", "Keep this group spam-free", "Cool", "Alright, delete this junk"]
+               "Don't need this anymore", "Keep this group spam-free", "Cool", "Alright, disable this junk"]
     return '🗑 {}'.format(random.choice(CHOICES))

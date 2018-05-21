@@ -70,3 +70,4 @@ files/ical
 .directory
 
 *.session
+/.env
