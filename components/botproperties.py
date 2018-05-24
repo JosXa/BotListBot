@@ -15,6 +15,7 @@ from dialog import messages
 from lib import InlineCallbackButton
 from model import Country, Keyword, Statistic, Suggestion, User, track_activity
 from util import restricted
+from logzero import logger as log
 
 CLEAR_QUERY = "x"
 
@@ -39,7 +40,10 @@ def set_country_menu(bot, update, to_edit):
                                                                     {'id': to_edit.id})),
         InlineKeyboardButton("None",
                              callback_data=util.callback_for_action(CallbackActions.SET_COUNTRY,
-                                                                    {'cid': 'None', 'bid': to_edit.id})),
+                                                                    {
+                                                                        'cid': 'None',
+                                                                        'bid': to_edit.id
+                                                                    })),
     ])
     return bot.formatter.send_or_edit(uid, util.action_hint(
         "Please select a country/language for {}".format(to_edit)),
@@ -69,7 +73,8 @@ def set_text_property(bot, update, chat_data, property_name, to_edit=None):
 
     if to_edit:
         text = (
-            util.escape_markdown(getattr(to_edit, property_name)) + "\n\n" if getattr(to_edit, property_name) else '')
+            util.escape_markdown(getattr(to_edit, property_name)) + "\n\n" if getattr(to_edit,
+                                                                                      property_name) else '')
         text += mdformat.action_hint(
             messages.SET_BOTPROPERTY.format(
                 property_name,
@@ -89,7 +94,8 @@ def set_text_property(bot, update, chat_data, property_name, to_edit=None):
 
         def too_long(n):
             bot.formatter.send_failure(uid, "Your {} text is too long, it must be shorter "
-                                            "than {} characters. Please try again.".format(property_name, n))
+                                            "than {} characters. Please try again.".format(
+                property_name, n))
             util.wait(bot, update)
             return admin.edit_bot(bot, update, chat_data, to_edit)
 
@@ -101,7 +107,8 @@ def set_text_property(bot, update, chat_data, property_name, to_edit=None):
             if value:
                 to_edit = chat_data.get('edit_bot', None)
             else:
-                bot.formatter.send_failure(uid, "The username you entered is not valid. Please try again...")
+                bot.formatter.send_failure(uid,
+                                           "The username you entered is not valid. Please try again...")
                 return admin.edit_bot(bot, update, chat_data, to_edit)
 
         if not value:
@@ -172,8 +179,9 @@ def set_keywords(bot, update, chat_data, to_edit):
     ])
     buttons = util.build_menu(kw_remove_buttons, 2, header_buttons=[
         InlineKeyboardButton(captions.DONE,
-                             callback_data=util.callback_for_action(CallbackActions.ABORT_SETTING_KEYWORDS,
-                                                                    {'id': to_edit.id}))
+                             callback_data=util.callback_for_action(
+                                 CallbackActions.ABORT_SETTING_KEYWORDS,
+                                 {'id': to_edit.id}))
     ])
     reply_markup = InlineKeyboardMarkup(buttons)
     msg = util.send_or_edit_md_message(
@@ -199,18 +207,24 @@ def add_keyword(bot, update, chat_data):
     kw = update.message.text
     bot_to_edit = chat_data.get('edit_bot')
     kw = helpers.format_keyword(kw)
+
+    # Sanity checks
+    if kw in settings.FORBIDDEN_KEYWORDS:
+        update.message.reply_text('The keyword {} is forbidden.'.format(kw))
+        return
     if len(kw) <= 1:
         update.message.reply_text('Keywords must be longer than 1 character.')
         return
     if len(kw) >= 20:
         update.message.reply_text('Keywords must not be longer than 20 characters.')
 
-    # ignore duplicates
+    # Ignore duplicates
     try:
         Keyword.get((Keyword.name == kw) & (Keyword.entity == bot_to_edit))
         return
     except Keyword.DoesNotExist:
         pass
+
     Suggestion.add_or_update(user=user, action='add_keyword', subject=bot_to_edit, value=kw)
     set_keywords(bot, update, chat_data, bot_to_edit)
     Statistic.of(update, 'added keyword to'.format(kw), bot_to_edit.username)
@@ -242,7 +256,8 @@ def delete_bot_confirm(bot, update, to_edit):
 def delete_bot(bot, update, to_edit):
     username = to_edit.username
     to_edit.disable()
-    bot.formatter.send_or_edit(update.effective_user.id, "Bot has been deleted.", to_edit=util.mid_from_update(update))
+    bot.formatter.send_or_edit(update.effective_user.id, "Bot has been deleted.",
+                               to_edit=util.mid_from_update(update))
     Statistic.of(update, 'disable', username, Statistic.IMPORTANT)
 
 
@@ -265,7 +280,8 @@ def check_suggestion_limit(bot, update, user):
     if Suggestion.over_limit(user):
         bot.formatter.send_failure(cid,
                                    "You have reached the limit of {} suggestions. Please wait for "
-                                   "the Moderators to approve of some of them.".format(settings.SUGGESTION_LIMIT))
+                                   "the Moderators to approve of some of them.".format(
+                                       settings.SUGGESTION_LIMIT))
         Statistic.of(update, 'hit the suggestion limit')
         return True
     return False
@@ -289,12 +305,15 @@ def change_suggestion(bot, update, suggestion, page_handover):
 
     buttons = [[
         InlineKeyboardButton(captions.BACK,
-                             callback_data=util.callback_for_action(CallbackActions.SWITCH_SUGGESTIONS_PAGE,
-                                                                    {'page': page_handover}))
+                             callback_data=util.callback_for_action(
+                                 CallbackActions.SWITCH_SUGGESTIONS_PAGE,
+                                 {'page': page_handover}))
     ], [
-        InlineKeyboardButton("{} Accept".format(Emoji.WHITE_HEAVY_CHECK_MARK), callback_data=util.callback_for_action(
-            CallbackActions.ACCEPT_SUGGESTION, {'id': suggestion.id, 'page': page_handover}
-        )),
+        InlineKeyboardButton("{} Accept".format(Emoji.WHITE_HEAVY_CHECK_MARK),
+                             callback_data=util.callback_for_action(
+                                 CallbackActions.ACCEPT_SUGGESTION,
+                                 {'id': suggestion.id, 'page': page_handover}
+                             )),
         InlineKeyboardButton(captions.CHANGE_SUGGESTION, callback_data=util.callback_for_action(
             callback_action, {'id': suggestion.id, 'page': page_handover}
         )),
@@ -304,7 +323,8 @@ def change_suggestion(bot, update, suggestion, page_handover):
     ]]
 
     reply_markup = InlineKeyboardMarkup(buttons)
-    bot.formatter.send_or_edit(cid, text, to_edit=mid, disable_web_page_preview=True, reply_markup=reply_markup)
+    bot.formatter.send_or_edit(cid, text, to_edit=mid, disable_web_page_preview=True,
+                               reply_markup=reply_markup)
 
 
 def remove_keyword(bot, update, chat_data, context):
@@ -336,12 +356,12 @@ def accept_suggestion(bot, update, suggestion: Suggestion):
 
     if user != suggestion.user.chat_id:
         submittant_notification = '*Thank you* {}, your suggestion has been accepted:' \
-                                  '\n\n{}'.format(util.escape_markdown(suggestion.user.first_name), str(suggestion))
+                                  '\n\n{}'.format(util.escape_markdown(suggestion.user.first_name),
+                                                  str(suggestion))
         try:
             bot.send_message(suggestion.user.chat_id, submittant_notification,
                              parse_mode='markdown', disable_web_page_preview=True)
         except BadRequest:
-            update.effective_message.reply_text("Could not contact {}.".format(suggestion.user.markdown_short),
-                                                parse_mode='markdown', disable_web_page_preview=True)
-
-
+            update.effective_message.reply_text(
+                "Could not contact {}.".format(suggestion.user.markdown_short),
+                parse_mode='markdown', disable_web_page_preview=True)

@@ -28,8 +28,7 @@ from lib import InlineCallbackHandler
 from misc import manage_subscription
 from model import Bot, Category, Country, Favorite, Keyword, Statistic, Suggestion, User
 
-logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
-log = logging.getLogger(__name__)
+from logzero import logger as log
 
 
 def callback_router(bot, update, chat_data, user_data, job_queue):

@@ -1,20 +1,17 @@
 import logging
 import re
-from pprint import pprint
-from typing import List
 
 import maya
 from PIL import Image
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 
 import captions
 import settings
 import util
 from dialog import messages
 from settings import SELF_CHANNEL_USERNAME
-from telegram import ParseMode, InlineKeyboardMarkup, InlineKeyboardButton
 
-logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
-log = logging.getLogger(__name__)
+from logzero import logger as log
 
 
 def slang_datetime(dt) -> str:
@@ -31,6 +28,15 @@ def find_bots_in_text(text: str, first=False):
         return matches[0] if first else matches
     except:
         return None
+
+
+def format_name(entity):
+    res = entity.first_name or ""
+    if entity.first_name and entity.last_name:
+        res += " " + entity.last_name
+    elif entity.last_name:
+        res = entity.last_name
+    return res
 
 
 def validate_username(username: str):

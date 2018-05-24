@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 import asyncio
-import datetime
 import filecmp
 import logging
 import os
@@ -9,25 +8,26 @@ import shutil
 import time
 import traceback
 from collections import Counter
+from datetime import datetime, timedelta
+from pprint import pprint
 
 import asyncpool
 from logzero import logger as log
-from telegram import Bot as TelegramBot
-
-import helpers
-import settings
-from helpers import make_sticker
-from model import Bot as BotModel, Keyword, Suggestion, User
-from model.keywordmodel import KeywordSuggestion
 from pyrogram.api.errors import FloodWait, QueryTooShort, UsernameInvalid, UsernameNotOccupied
 from pyrogram.api.functions.contacts import Search
 from pyrogram.api.functions.messages import DeleteHistory
 from pyrogram.api.functions.users import GetUsers
 from pyrogram.api.types import InputPeerUser
 from pyrogram.api.types.contacts import ResolvedPeer
+from telegram import Bot as TelegramBot
+
+import helpers
+import settings
+from helpers import make_sticker
+from model import Bot as BotModel, Keyword, Suggestion, User
 from tgintegration import InteractionClientAsync, Response
 
-log.setLevel(logging.INFO)
+logging.getLogger().setLevel(logging.WARNING)
 
 ZERO_CHAR1 = u"\u200C"  # ZERO-WIDTH-NON-JOINER
 ZERO_CHAR2 = u"\u200B"  # ZERO-WIDTH-SPACE
@@ -38,6 +38,30 @@ TMP_DIR = os.path.join(settings.BOT_THUMBNAIL_DIR, "tmp")
 shutil.rmtree(TMP_DIR)
 os.makedirs(TMP_DIR)
 
+
+# class Stats:
+#     def __init__(self, filepath):
+#         _counter_file = Path(filepath).expanduser()
+#         os.makedirs(_counter_file.parent, exist_ok=True)
+#         _counter_file.touch()
+#
+#         self.store = shelve.open(str(_counter_file), writeback=True)
+#
+#         self.store.setdefault("sent_messages", 0)
+#         self.store.setdefault("tracking_start", datetime.now())
+#
+#     def incr_count(self):
+#         sent_messages = self.store["sent_messages"]
+#         if sent_messages > 8000:
+#             raise StopBotchecker
+#         self.store["sent_messages"] = sent_messages + 1
+#
+#
+# class StopBotchecker(Exception):
+#     """ Raised when botchecker is over limit """
+#
+#
+# stats = Stats('~/.run/botlistbot/botchecker-stats.json')
 
 def zero_width_encoding(encoded_string):
     if not encoded_string:
@@ -113,11 +137,15 @@ class BotChecker(InteractionClientAsync):
         else:
             # Userbot
             to_check.userbot = True
-            to_check.name = user.first_name + ' ' + user.last_name
+            to_check.name = helpers.format_name(user)
 
         # In any case
         to_check.chat_id = int(user.id)
         to_check.username = '@' + str(user.username)
+
+    def send_message(self, *args, **kwargs):
+        # stats.incr_count()
+        super(BotChecker, self).send_message(*args, **kwargs)
 
     async def get_ping_response(self, peer, timeout=30, try_inline=True):
         response = await self.ping_bot(
@@ -161,13 +189,13 @@ class BotChecker(InteractionClientAsync):
             log.error("QueryTooShort: {}".format(bot.username))
 
         if self.username_flood_until:
-            if self.username_flood_until < datetime.datetime.now():
+            if self.username_flood_until < datetime.now():
                 self.username_flood_until = None
         else:
             try:
                 return self.resolve_peer(bot.username)
             except FloodWait as e:
-                self.username_flood_until = datetime.datetime.now() + datetime.timedelta(
+                self.username_flood_until = datetime.now() + timedelta(
                     seconds=e.x)
                 log.warning("Flood wait for ResolveUsername: {}s (until {})".format(
                     e.x, self.username_flood_until))
@@ -228,6 +256,7 @@ async def check_bot(bot, bot_checker: BotChecker, to_check: BotModel, result_que
             try_inline=to_check.inlinequeries)
     except Exception as e:
         log.exception(e)
+        result_queue.put(e)
         return
 
     for _ in range(2):
@@ -236,7 +265,7 @@ async def check_bot(bot, bot_checker: BotChecker, to_check: BotModel, result_que
     was_offline = to_check.offline
     is_offline = not bool(response)
 
-    now = datetime.datetime.now()
+    now = datetime.now()
     to_check.last_ping = now
     if not is_offline:
         to_check.last_response = now
@@ -259,7 +288,9 @@ async def check_bot(bot, bot_checker: BotChecker, to_check: BotModel, result_que
             if re.search(r'\b{}\b'.format(name), full_text, re.IGNORECASE):
                 to_add.append(name)
 
-        if len(to_add) > 0:
+        to_add = [x for x in to_add if x not in settings.FORBIDDEN_KEYWORDS]
+
+        if to_add:
             for k in to_add:
                 Suggestion.add_or_update(
                     user=User.botlist_user_instance(),
@@ -321,7 +352,7 @@ async def run(loop, telegram_bot, bot_checker, bots) -> Counter:
             worker_co=check_bot,
             max_task_time=300,
             log_every_n=settings.BOTCHECKER_CONCURRENT_COUNT,
-            expected_total=len(bots)
+            expected_total=len(bots),
     ) as pool:
         for to_check in bots:
             await pool.push(telegram_bot, bot_checker, to_check, result_queue)

@@ -1,7 +1,7 @@
 import os
 
 import sys
-from decouple import config
+from decouple import config, Csv
 from datetime import timedelta
 
 DEV = config("DEV", default=False, cast=bool)
@@ -51,7 +51,7 @@ API_ID = 34057
 API_HASH = 'a89154bb0cde970cae0848dc7f7a6108'
 USERBOT_PHONE = "+79661570814"
 USERBOT_SESSION = "/home/joscha/accounts/pyrogram/79661570814"
-PING_MESSAGES = ["/start"]
+PING_MESSAGES = ["/start", "/help"]
 # TEST_USERBOT_PHONE = "+79684132863"
 # TEST_USERBOT_SESSION = "/home/joscha/accounts/pyrogram/79684132863"
 BOTCHECKER_CONCURRENT_COUNT = 10
@@ -61,9 +61,9 @@ NOTIFY_NEW_PROFILE_PICTURE = not DEV
 DOWNLOAD_PROFILE_PICTURES = not DEV
 DISABLE_BOT_INACTIVITY_DELTA = timedelta(days=15)
 
-OFFLINE_DETERMINERS = ["under maintenance"]
+OFFLINE_DETERMINERS = ["under maintenance", "bot turned off"]
 BOTBUILDER_DETERMINERS = ["use /off to pause your subscription", "use /stop to unsubscribe", "manybot", "chatfuelbot"]
-BLOCKED_KEYWORDS = ["must", "bot", "online", "offline", "type", "start", "remove"]  # TODO implement
+FORBIDDEN_KEYWORDS = config('FORBIDDEN_KEYWORDS', cast=Csv(), default=[])
 
 DEBUG_LOG_FILE = "botlistbot.log"
 

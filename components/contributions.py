@@ -16,8 +16,7 @@ from model import User, Bot, Suggestion, Country
 from model.revision import Revision
 from util import track_groups
 
-logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
-log = logging.getLogger(__name__)
+from logzero import logger as log
 
 
 def extract_bot_mentions(message: TelegramMessage):

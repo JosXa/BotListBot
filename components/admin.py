@@ -25,8 +25,7 @@ from dialog import messages
 from model import Bot, Category, Revision, Statistic, Suggestion, User, track_activity
 from util import restricted
 
-logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
-log = logging.getLogger(__name__)
+from logzero import logger as log
 
 
 @track_activity('menu', 'Administration', Statistic.ANALYSIS)

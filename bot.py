@@ -17,6 +17,7 @@ from components import admin, basic
 from components.userbot import botchecker
 from components.userbot.botchecker import BotChecker
 from lib.markdownformatter import MarkdownFormatter
+from components import botproperties
 
 
 # def setup_logger():
