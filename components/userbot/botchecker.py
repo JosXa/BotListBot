@@ -12,6 +12,7 @@ import time
 import traceback
 from datetime import datetime, timedelta
 from logzero import logger as log
+from pathlib import Path
 from pyrogram.api.errors import FloodWait, QueryTooShort, UnknownError, UsernameInvalid, \
     UsernameNotOccupied
 from pyrogram.api.functions.contacts import Search
@@ -341,6 +342,7 @@ async def check_bot(bot, bot_checker: BotChecker, to_check: BotModel, result_que
     # Download profile picture
     if settings.DOWNLOAD_PROFILE_PICTURES:
         photo_file = to_check.thumbnail_file
+        Path(photo_file).touch(exist_ok=True)
         sticker_file = os.path.join(settings.BOT_THUMBNAIL_DIR, '_sticker_tmp.webp')
 
         bot_checker.download_profile_photo(to_check, photo_file)
