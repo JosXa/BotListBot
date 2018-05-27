@@ -103,6 +103,7 @@ def main():
     if settings.RUN_BOTCHECKER:
         def start_botchecker():
             bot_checker = BotChecker(
+                event_loop=loop,
                 session_name=settings.USERBOT_SESSION,
                 api_id=settings.API_ID,
                 api_hash=settings.API_HASH,
@@ -111,7 +112,7 @@ def main():
             bot_checker.start()
 
             botchecker_context.update(
-                {'checker': bot_checker, 'stop': threading.Event(), 'loop': loop})
+                {'checker': bot_checker, 'stop': threading.Event()})
             updater.job_queue.run_repeating(
                 botchecker.ping_bots_job,
                 context=botchecker_context,

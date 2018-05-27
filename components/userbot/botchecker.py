@@ -81,11 +81,13 @@ def zero_width_encoding(encoded_string):
 
 
 class BotChecker(InteractionClientAsync):
-    def __init__(self, session_name, api_id, api_hash, phone_number):
+    def __init__(self, event_loop, session_name, api_id, api_hash, phone_number):
 
+        self.event_loop = event_loop
         self.username_flood_until = None
         self._message_intervals = {}
         self._last_ping = None
+        self.__photos_lock = asyncio.Lock(loop=self.event_loop)
 
         super(BotChecker, self).__init__(
             session_name,
@@ -223,26 +225,27 @@ class BotChecker(InteractionClientAsync):
         if photos:
             photo_size_object = photos[0][-1]
 
-            try:
-                self.download_media(
-                    photo_size_object,
-                    file_name=tmp_file,
-                    block=True
-                )
-            except FloodWait as e:
-                # TODO: as the error happens inside of the update worker, this won't work (yet)
-                # Leaving it in as the default behavior should be to raise the FloodWait
-                # when block=True
-                log.debug(f"FloodWait for downloading media ({e.x})")
-
-            if os.path.exists(tmp_file):
+            with self.__photos_lock:
                 try:
-                    similar = filecmp.cmp(tmp_file, photo_path, shallow=False)
-                except FileNotFoundError:
-                    similar = False
+                    self.download_media(
+                        photo_size_object,
+                        file_name=tmp_file,
+                        block=True
+                    )
+                except FloodWait as e:
+                    # TODO: as the error happens inside of the update worker, this won't work (yet)
+                    # Leaving it in as the default behavior should be to raise the FloodWait
+                    # when block=True
+                    log.debug(f"FloodWait for downloading media ({e.x})")
 
-                if not similar:
-                    shutil.copy(tmp_file, photo_path)
+                if os.path.exists(tmp_file):
+                    try:
+                        similar = filecmp.cmp(tmp_file, photo_path, shallow=False)
+                    except FileNotFoundError:
+                        similar = False
+
+                    if not similar:
+                        shutil.copy(tmp_file, photo_path)
 
 
 async def check_bot(bot, bot_checker: BotChecker, to_check: BotModel, result_queue: asyncio.Queue):
@@ -367,8 +370,9 @@ async def result_reader(queue) -> Counter:
     return stats
 
 
-async def run(loop, telegram_bot, bot_checker, bots) -> Counter:
+async def run(telegram_bot, bot_checker, bots) -> Counter:
     result_queue = asyncio.Queue()
+    loop = bot_checker.event_loop
     reader_future = asyncio.ensure_future(result_reader(result_queue), loop=loop)
 
     # TODO: check correct order of bots concerning pings etc.
@@ -392,7 +396,7 @@ async def run(loop, telegram_bot, bot_checker, bots) -> Counter:
 
 def ping_bots_job(bot, job):
     bot_checker = job.context.get('checker')
-    loop = job.context.get('loop')
+    loop = bot_checker.event_loop
 
     all_bots = BotModel.select(BotModel).where(
         (BotModel.approved == True)
@@ -404,7 +408,7 @@ def ping_bots_job(bot, job):
     )
 
     start = time.time()
-    result = loop.run_until_complete(run(loop, bot, bot_checker, all_bots))  # type: Counter
+    result = loop.run_until_complete(run(bot, bot_checker, all_bots))  # type: Counter
     end = time.time()
 
     if not result:
