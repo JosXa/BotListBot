@@ -5,7 +5,7 @@ import time
 
 from logzero import logger as log
 from telegram import Bot as TelegramBot
-from telegram.ext import Updater
+from telegram.ext import Dispatcher, Updater
 from telegram.utils.request import Request
 
 import appglobals
@@ -16,10 +16,8 @@ from api import botlistapi
 from components import admin, basic
 from components.userbot import botchecker
 from components.userbot.botchecker import BotChecker
+from lib.callbackmanager import CallbackManager
 from lib.markdownformatter import MarkdownFormatter
-from components import botproperties
-
-
 # def setup_logger():
 #     logger = logging.getLogger('botlistbot')
 #     logger.setLevel(logging.INFO)
@@ -39,17 +37,27 @@ from components import botproperties
 #     handler.setLevel(logging.DEBUG)
 #     handler.setFormatter(file_formatter)
 #     logger.addHandler(handler)
+from model import User
 
 
 class BotListBot(TelegramBot):
-    def send_notification(self, message):
+    def send_notification(self, message, **kwargs):
         self.send_message(
             settings.BOTLIST_NOTIFICATIONS_ID,
             util.escape_markdown(message),
             parse_mode='markdown',
-            timeout=20
+            timeout=20,
+            **kwargs
         )
         log.info(message)
+
+
+# class BotListDispatcher(Dispatcher):
+#     def process_update(self, update):
+#         user = User.from_update(update)
+#         update.callback_manager = CallbackManager(appglobals.redis, user)
+#         update.callback_data = {}
+#         return super(BotListDispatcher, self).process_update(update)
 
 
 def main():
@@ -71,7 +79,14 @@ def main():
         bot=botlistbot,
         workers=settings.WORKER_COUNT,
     )
-    updater.bot.formatter = MarkdownFormatter(updater.bot)
+    # updater.dispatcher = BotListDispatcher(
+    #     botlistbot,
+    #     updater.update_queue,
+    #     job_queue=updater.job_queue,
+    #     workers=settings.WORKER_COUNT,
+    #     exception_event=threading.Event())
+
+    botlistbot.formatter = MarkdownFormatter(updater.bot)
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
@@ -93,7 +108,7 @@ def main():
                 session_name=settings.USERBOT_SESSION,
                 api_id=settings.API_ID,
                 api_hash=settings.API_HASH,
-                phone_number=settings.USERBOT_PHONE
+                phone_number=settings.USERBOT_PHONE,
             )
             bot_checker.start()
 

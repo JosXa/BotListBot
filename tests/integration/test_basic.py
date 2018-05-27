@@ -14,11 +14,11 @@ def test_help(client: BotIntegrationClient):
     assert len(kb[0]) == 3
     assert len(kb[1]) == 1
 
-    contributing = res.press_inline_button(pattern=r'.*Contributing')
+    contributing = res.inline_keyboards[0].press_button_await(pattern=r'.*Contributing')
     assert "to contribute to the botlist" in contributing.full_text.lower()
 
-    help_ = res.press_inline_button(pattern=r'.*Help')
+    help_ = res.inline_keyboards[0].press_button_await(pattern=r'.*Help')
     assert "first steps" in help_.full_text.lower()
 
-    examples = res.press_inline_button(pattern=r'.*Examples')
+    examples = res.inline_keyboards[0].press_button_await(pattern=r'.*Examples')
     assert "Examples for contributing to the BotList:" in examples.full_text

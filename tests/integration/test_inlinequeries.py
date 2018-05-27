@@ -1,10 +1,10 @@
 import re
+import time
 
 import pytest
 
-import settings
 from model import Bot
-from tgintegration import BotIntegrationClient, AwaitableAction
+from tgintegration import BotIntegrationClient
 
 
 @pytest.fixture
@@ -38,3 +38,4 @@ def test_other(client: BotIntegrationClient):
         assert res.find_results(
             title_pattern=re.compile(r'.*{}.*'.format(t), re.IGNORECASE)
         ), "{} did not work".format(t)
+        time.sleep(1)

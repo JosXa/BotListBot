@@ -1,14 +1,11 @@
 import json
-import logging
 import re
 import traceback
-from pprint import pprint
 
-from telegram import Message
-from telegram.ext import ChosenInlineResultHandler, CommandHandler, \
-    ConversationHandler, \
-    Dispatcher, DispatcherHandlerStop, Filters, InlineQueryHandler, MessageHandler, RegexHandler, \
-    CallbackQueryHandler
+from logzero import logger as log
+from telegram.ext import CallbackQueryHandler, ChosenInlineResultHandler, CommandHandler, \
+    ConversationHandler, Dispatcher, DispatcherHandlerStop, Filters, InlineQueryHandler, \
+    MessageHandler, RegexHandler
 
 import captions
 import components.botproperties
@@ -28,11 +25,8 @@ from lib import InlineCallbackHandler
 from misc import manage_subscription
 from model import Bot, Category, Country, Favorite, Keyword, Statistic, Suggestion, User
 
-from logzero import logger as log
-
 
 def callback_router(bot, update, chat_data, user_data, job_queue):
-    print('HI!')
     obj = json.loads(str(update.callback_query.data))
     user = User.from_update(update)
 

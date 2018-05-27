@@ -9,22 +9,26 @@ import time
 import traceback
 from collections import Counter
 from datetime import datetime, timedelta
-from pprint import pprint
 
 import asyncpool
 from logzero import logger as log
-from pyrogram.api.errors import FloodWait, QueryTooShort, UsernameInvalid, UsernameNotOccupied
+from pyrogram.api.errors import FloodWait, QueryTooShort, UnknownError, UsernameInvalid, \
+    UsernameNotOccupied
 from pyrogram.api.functions.contacts import Search
 from pyrogram.api.functions.messages import DeleteHistory
 from pyrogram.api.functions.users import GetUsers
 from pyrogram.api.types import InputPeerUser
 from pyrogram.api.types.contacts import ResolvedPeer
-from telegram import Bot as TelegramBot
+from telegram import Bot as TelegramBot, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.error import BadRequest
 
+import captions
 import helpers
 import settings
+import util
+from const import CallbackActions
 from helpers import make_sticker
-from model import Bot as BotModel, Keyword, Suggestion, User
+from model import Bot as BotModel, Keyword
 from tgintegration import InteractionClientAsync, Response
 
 logging.getLogger().setLevel(logging.WARNING)
@@ -80,6 +84,7 @@ class BotChecker(InteractionClientAsync):
 
         self.username_flood_until = None
         self._message_intervals = {}
+        self._last_ping = None
 
         super(BotChecker, self).__init__(
             session_name,
@@ -143,9 +148,16 @@ class BotChecker(InteractionClientAsync):
         to_check.chat_id = int(user.id)
         to_check.username = '@' + str(user.username)
 
-    def send_message(self, *args, **kwargs):
-        # stats.incr_count()
-        super(BotChecker, self).send_message(*args, **kwargs)
+    # def send_message(self, *args, **kwargs):
+    #     timeout_between_sends = 0.5
+    #     if self._last_ping:
+    #         diff = timeout_between_sends - (time.time() - self._last_ping)
+    #         if diff > 0:
+    #             time.sleep(diff)
+    #
+    #     result = super(BotChecker, self).send_message(*args, **kwargs)
+    #     self._last_ping = time.time()
+    #     return result
 
     async def get_ping_response(self, peer, timeout=30, try_inline=True):
         response = await self.ping_bot(
@@ -238,10 +250,19 @@ async def check_bot(bot, bot_checker: BotChecker, to_check: BotModel, result_que
     try:
         peer = bot_checker.resolve_bot(to_check)
     except UsernameNotOccupied:
-        to_check.delete_instance()
-        bot.send_notification(
-            "{} deleted because the bot does not exist (anymore).".format(to_check.username))
-        return await result_queue.put('deleted')
+        markup = InlineKeyboardMarkup([[
+            InlineKeyboardButton(captions.EDIT_BOT, callback_data=util.callback_for_action(
+                CallbackActions.EDIT_BOT,
+                dict(id=to_check.id)
+            ))
+        ]])
+        text = "{} does not exist (anymore). Please resolve this " \
+               "issue manually!".format(to_check.username)
+        try:
+            bot.send_message(settings.BLSF_ID, text, reply_markup=markup)
+        except BadRequest:
+            bot.send_notification(text)
+        return await result_queue.put('not found')
 
     if not peer:
         return await result_queue.put('skipped')
@@ -254,9 +275,12 @@ async def check_bot(bot, bot_checker: BotChecker, to_check: BotModel, result_que
             to_check.chat_id,
             timeout=18,
             try_inline=to_check.inlinequeries)
+    except UnknownError as e:
+        result_queue.put(e.MESSAGE)
+        return
     except Exception as e:
         log.exception(e)
-        result_queue.put(e)
+        result_queue.put(str(e))
         return
 
     for _ in range(2):
@@ -292,16 +316,18 @@ async def check_bot(bot, bot_checker: BotChecker, to_check: BotModel, result_que
 
         if to_add:
             for k in to_add:
-                Suggestion.add_or_update(
-                    user=User.botlist_user_instance(),
-                    action="add_keyword",
-                    subject=to_check,
-                    value=k
-                )
+                Keyword.insert(name=k, entity=to_check).execute()
+                # s = Suggestion.add_or_update(
+                #     user=User.botlist_user_instance(),
+                #     action="add_keyword",
+                #     subject=to_check,
+                #     value=k
+                # )
+                # s.apply()
             # KeywordSuggestion.insert_many(
             #     [dict(name=x, entity=to_check) for x in to_add]
             # ).execute()
-            msg = 'New keyword suggestion{}: {} for {}.'.format(
+            msg = 'New keyword{}: {} for {}.'.format(
                 's' if len(to_add) > 1 else '',
                 ', '.join(['#' + k for k in to_add]),
                 to_check.str_no_md)
@@ -343,6 +369,8 @@ async def result_reader(queue) -> Counter:
 async def run(loop, telegram_bot, bot_checker, bots) -> Counter:
     result_queue = asyncio.Queue()
     reader_future = asyncio.ensure_future(result_reader(result_queue), loop=loop)
+
+    # TODO: check correct order of bots concerning pings etc.
 
     async with asyncpool.AsyncPool(
             loop,

@@ -12,7 +12,7 @@ def test_explore_button(client: BotIntegrationClient):
     while "explored all the bots" not in explore.full_text:
         if count == 0:
             break  # ok
-        explore = explore.press_inline_button(r'.*🔄')  # emoji
+        explore = explore.inline_keyboards[0].press_button_await(pattern=r'.*🔄')  # emoji
         count -= 1
 
 

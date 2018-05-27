@@ -18,4 +18,5 @@ maya==0.3.2
 markdown==2.6.9
 pyrogram
 asyncpool
-git+git://github.com/JosXa/tgintegration@async#egg=tgintegration
+tgintegration
+redis-collections
