@@ -1,7 +1,7 @@
 pytest
 logzero
 inflect
-python-dateutil==2.5.3
+python-dateutil
 python-telegram-bot
 pillow==4.2.1
 requests
