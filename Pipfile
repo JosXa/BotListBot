@@ -24,6 +24,7 @@ Flask-Security = "*"
 Flask-Admin = "==1.5.0"
 Markdown = "==2.6.9"
 Pyrogram = "*"
+tgcrypto = "*"
 
 [dev-packages]
 pytest = "*"
