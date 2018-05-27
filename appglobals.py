@@ -1,7 +1,7 @@
 import os
 
 from decouple import config
-from playhouse.sqlite_ext import SqliteExtDatabase
+from playhouse.sqliteq import SqliteQueueDatabase
 from redis import StrictRedis
 
 _db = None
@@ -12,7 +12,7 @@ def db():
     global _db
     if not _db:
         db_path = config('DATABASE_URI', default=os.path.expanduser('~/data/botlistbot.sqlite3'))
-        _db = SqliteExtDatabase(db_path)
+        _db = SqliteQueueDatabase(db_path)
     return _db
 
 
