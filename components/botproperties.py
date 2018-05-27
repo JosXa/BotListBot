@@ -255,10 +255,10 @@ def delete_bot_confirm(bot, update, to_edit):
 @restricted
 def delete_bot(bot, update, to_edit):
     username = to_edit.username
-    to_edit.disable()
+    to_edit.delete_instance()
     bot.formatter.send_or_edit(update.effective_user.id, "Bot has been deleted.",
                                to_edit=util.mid_from_update(update))
-    Statistic.of(update, 'disable', username, Statistic.IMPORTANT)
+    Statistic.of(update, 'delete', username, Statistic.IMPORTANT)
 
 
 def change_category(bot, update, to_edit, category):
