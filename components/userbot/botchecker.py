@@ -39,7 +39,8 @@ botbuilder_pattern = re.compile('|'.join(settings.BOTBUILDER_DETERMINERS), re.IG
 offline_pattern = re.compile('|'.join(settings.OFFLINE_DETERMINERS), re.IGNORECASE)
 
 TMP_DIR = os.path.join(settings.BOT_THUMBNAIL_DIR, "tmp")
-shutil.rmtree(TMP_DIR, ignore_errors=True)
+if os.path.exists(TMP_DIR):
+    shutil.rmtree(TMP_DIR)
 os.makedirs(TMP_DIR)
 
 
