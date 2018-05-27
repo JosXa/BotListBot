@@ -70,3 +70,5 @@ files/ical
 .directory
 
 *.session
+/.env
+/unknown_errors.txt

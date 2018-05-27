@@ -2,6 +2,7 @@ import os
 
 from decouple import config
 from playhouse.sqlite_ext import SqliteExtDatabase
+from redis import StrictRedis
 
 _db = None
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -23,4 +24,7 @@ def disconnect():
 
 # globals
 db = db()
+
+
+# redis = StrictRedis(host='localhost', port=6379, db=0)
 

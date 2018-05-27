@@ -1,0 +1,14 @@
+start:
+  text:
+    - "Do you need a bot?"
+    - "Are you looking for a bot?"
+  choices:
+    - choice: "No"
+      response: "What are you doing here then?!"
+    - choice: "Yes"
+      next: needs_bot
+
+needs_bot:
+  text:
+    - "Great, then you're just at the right place."
+

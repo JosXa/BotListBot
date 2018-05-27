@@ -1,5 +1,7 @@
-import logging
 import time
+
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message
+from telegram.ext.dispatcher import run_async
 
 import captions
 import settings
@@ -7,13 +9,6 @@ import util
 from const import CallbackActions
 from dialog import messages
 from model import track_activity
-from telegram import InlineKeyboardButton
-from telegram import InlineKeyboardMarkup
-from telegram import Message
-from telegram.ext.dispatcher import run_async
-
-logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
-log = logging.getLogger(__name__)
 
 HINTS = {
     '#inline': {
@@ -38,7 +33,8 @@ HINTS = {
                    "above. Don't get us wrong, there are great tools out there built with these "
                    "bot builders, and if you feel like the BotList is lacking some feature that "
                    "this bot brings, feel free to submit it. But as a rule of thumb, Manybots are "
-                   "*generally too spammy, not very useful and not worth the effort*. Thank you 🙏🏻",
+                   "*generally too spammy, not very useful and not worth the effort*. "
+                   "Thank you 🙏🏻",
         'help': 'Send our Manybot policy'
     },
     '#private': {
@@ -183,7 +179,7 @@ def hint_handler(bot, update):
     if msg is not None:
         bot.formatter.send_message(chat_id, msg, reply_markup=reply_markup,
                                    reply_to_message_id=reply_to.message_id if reply_to else None)
-        update.effective_message.delete()
+        update.effective_message.disable()
 
 
 @run_async

@@ -107,6 +107,7 @@ def restart(bot, update):
 
 
 def error(bot, update, error):
+    print(error)
     log.error(error)
 
 

@@ -23,7 +23,7 @@ def search_bots(query):
          fn.lower(Bot.name) << split |
          fn.lower(Bot.extra) ** query) &
         (Bot.revision <= Revision.get_instance().nr &
-         Bot.approved == True)
+         Bot.approved == True & Bot.disabled == False)
     )
     results = set(Bot.select().distinct().where(where_query))
 
@@ -31,7 +31,7 @@ def search_bots(query):
     keyword_results = Bot.select(Bot).join(Keyword).where(
         (fn.lower(Keyword.name) << split) &
         (Bot.revision <= Revision.get_instance().nr) &
-        (Bot.approved == True)
+        (Bot.approved == True & Bot.disabled == False)
     )
     results.update(keyword_results)
 
@@ -40,6 +40,7 @@ def search_bots(query):
     if usernames:
         try:
             bots = Bot.many_by_usernames(usernames)
+            print([b.username for b in bots])
             results.update(bots)
         except Bot.DoesNotExist:
             pass

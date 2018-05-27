@@ -51,5 +51,6 @@ def send_next(bot, update, args=None):
 
 def send_random_bot(bot, update):
     from components.explore import send_bot_details
-    random_bot = Bot.select().where((Bot.approved == True), (Bot.description.is_null(False))).order_by(fn.Random()).limit(1)[0]
+    random_bot = Bot.select().where((Bot.approved == True, Bot.disabled == False), (Bot.description.is_null(
+        False))).order_by(fn.Random()).limit(1)[0]
     send_bot_details(bot, update, random_bot)

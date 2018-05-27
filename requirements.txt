@@ -1,11 +1,13 @@
+pytest
+logzero
 inflect
 python-dateutil==2.5.3
-python-telegram-bot==7.0.1
+python-telegram-bot
 pillow==4.2.1
 requests
 unittest2==1.1.0
 emoji==0.3.9
-peewee==2.8.5
+peewee
 flask
 flask-autodoc
 flask-security
@@ -14,3 +16,7 @@ wtf-peewee==0.2.6
 python-decouple==3.1.0
 maya==0.3.2
 markdown==2.6.9
+pyrogram
+asyncpool
+tgintegration
+redis-collections

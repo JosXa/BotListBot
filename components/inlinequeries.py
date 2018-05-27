@@ -92,7 +92,7 @@ def all_bot_results_article(lst, too_many_results):
         title='{} {} ʙᴏᴛ ʀᴇsᴜʟᴛs'.format(
             mdformat.smallcaps("Send"),
             len(lst)),
-        input_message_content=InputTextMessageContent(message_text=txt,
+        input_message_content=InputTextMessageContent(message_text=txt[:4096],
                                                       parse_mode=ParseMode.MARKDOWN)
         # description=b.description if b.description else b.name if b.name else None,
         # thumb_url='http://www.colorcombos.com/images/colors/FF0000.png'

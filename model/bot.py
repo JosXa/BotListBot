@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 import os
+from datetime import timedelta
+from enum import IntEnum
 from typing import List
 
 from peewee import *
+from playhouse.hybrid import hybrid_property
 
 import helpers
 import settings
 import util
-from model.basemodel import BaseModel
+from model.basemodel import BaseModel, EnumField
 from model.category import Category
 from model.country import Country
 from model.revision import Revision
@@ -15,6 +18,11 @@ from model.user import User
 
 
 class Bot(BaseModel):
+    class DisabledReason(IntEnum):
+        # In prioritized order, cannot go from banned to offline
+        banned = 10
+        offline = 20
+
     id = PrimaryKeyField()
     revision = IntegerField()
     category = ForeignKeyField(Category, null=True)
@@ -26,8 +34,14 @@ class Bot(BaseModel):
     inlinequeries = BooleanField(default=False)
     official = BooleanField(default=False)
     extra = CharField(null=True)
-    offline = BooleanField(default=False)
     spam = BooleanField(default=False)
+    bot_info_version = CharField(null=True)
+    restriction_reason = CharField(null=True)
+
+    last_ping = DateTimeField(null=True)
+    last_response = DateTimeField(null=True)
+    disabled = BooleanField(default=False)
+    disabled_reason = EnumField(DisabledReason, null=True)
 
     userbot = BooleanField(default=False)
     botbuilder = BooleanField(default=False)
@@ -37,35 +51,79 @@ class Bot(BaseModel):
     submitted_by = ForeignKeyField(User, null=True, related_name='submitted_by')
     approved_by = ForeignKeyField(User, null=True, related_name='approved_by')
 
+    @hybrid_property
+    def offline(self) -> bool:
+        if not self.last_ping:
+            return False
+        return self.last_response != self.last_ping
+
+    @hybrid_property
+    def online(self) -> bool:
+        return not self.offline
+
+    @property
+    def offline_for(self) -> timedelta:
+        if not self.last_response:
+            return timedelta(days=365 * 2)
+        return self.last_ping - self.last_response if self.offline else None
+
     @staticmethod
     def select_approved():
-        return Bot.select().where(Bot.approved == True, Bot.revision <= Revision.get_instance().nr)
+        return Bot.select().where(
+            Bot.approved == True,
+            Bot.revision <= Revision.get_instance().nr,
+            Bot.disabled == False
+        )
 
     @staticmethod
     def select_unapproved():
-        return Bot.select().where(Bot.approved == False)
+        return Bot.select().where(Bot.approved == False, Bot.disabled == False)
 
     @staticmethod
     def select_pending_update():
-        return Bot.select().where(Bot.approved == True,
-                                  Bot.revision == Revision.get_instance().next)
+        return Bot.select().where(
+            Bot.approved == True,
+            Bot.revision == Revision.get_instance().next,
+            Bot.disabled == False
+        )
 
     @property
     def serialize(self):
         return {
-            'id': self.id,
-            'category_id': self.category.id,
+            'id'           : self.id,
+            'category_id'  : self.category.id,
             # 'name': self.name,
-            'username': self.username,
-            'description': self.description,
-            'date_added': self.date_added,
+            'username'     : self.username,
+            'description'  : self.description,
+            'date_added'   : self.date_added,
             'inlinequeries': self.inlinequeries,
-            'official': self.official,
-            'extra_text': self.extra,
-            'offline': self.offline,
-            'spam': self.spam,
-            'botlist_url': helpers.botlist_url_for_category(self.category),
+            'official'     : self.official,
+            'extra_text'   : self.extra,
+            'offline'      : self.offline,
+            'spam'         : self.spam,
+            'botlist_url'  : helpers.botlist_url_for_category(self.category),
         }
+
+    def disable(self, reason: DisabledReason):
+        if self.disabled:
+            if self.disabled_reason == reason:
+                return False  # if value unchanged
+            if reason.value > self.disabled_reason:
+                raise ValueError("Invalid reason, cannot go from {} to {}.".format(
+                    self.disabled_reason.name,
+                    reason.name
+                ))
+
+        self.disabled = True
+        self.disabled_reason = reason
+        return True  # if value changed
+
+    def enable(self):
+        if not self.disabled:
+            return False  # if value unchanged
+        self.disabled = False
+        self.disabled_reason = None
+        return True  # if value changed
 
     @property
     def is_new(self):
@@ -106,7 +164,10 @@ class Bot(BaseModel):
 
     @staticmethod
     def by_username(username: str):
-        result = Bot.select().where(fn.lower(Bot.username) == username.lower())
+        result = Bot.select().where(
+            fn.lower(Bot.username) == username.lower(),
+            Bot.disabled == False
+        )
         if len(result) > 0:
             return result[0]
         else:
@@ -116,9 +177,10 @@ class Bot(BaseModel):
     def explorable_bots():
         results = Bot.select().where(
             ~(Bot.description.is_null()),
-            Bot.approved == True,
-            Bot.revision <= Revision.get_instance().nr,
-            Bot.offline == False
+            (Bot.approved == True),
+            (Bot.revision <= Revision.get_instance().nr),
+            (Bot.offline == False),
+            (Bot.disabled == False)
         )
         return list(results)
 
@@ -126,31 +188,34 @@ class Bot(BaseModel):
     def many_by_usernames(names: List):
         results = Bot.select().where(
             (fn.lower(Bot.username) << [n.lower() for n in names]) &
-            (Bot.revision <= Revision.get_instance().nr &
-             Bot.approved == True)
+            (Bot.revision <= Revision.get_instance().nr) &
+            (Bot.approved == True) &
+            (Bot.disabled == False)
         )
-        if len(results) > 0:
+        if results:
             return results
-        else:
-            raise Bot.DoesNotExist()
+        raise Bot.DoesNotExist
 
     @staticmethod
     def of_category_without_new(category):
         return Bot.select().where(
-            Bot.category == category, Bot.approved == True,
-            Bot.revision <= Revision.get_instance().nr
+            (Bot.category == category),
+            (Bot.approved == True),
+            (Bot.revision <= Revision.get_instance().nr),
+            (Bot.disabled == False)
         ).order_by(fn.Lower(Bot.username))
 
     @staticmethod
     def select_official_bots():
-        return Bot.select().where(Bot.approved == True, Bot.official == True)
+        return Bot.select().where(Bot.approved == True, Bot.official == True,
+                                  Bot.disabled == False)
 
     @staticmethod
     def select_new_bots():
         return Bot.select().where(
             (Bot.revision >= Revision.get_instance().nr - settings.BOT_CONSIDERED_NEW + 1) &
             (Bot.revision < Revision.get_instance().next) &
-            Bot.approved == True
+            Bot.approved == True & Bot.disabled == False
         )
 
     @staticmethod

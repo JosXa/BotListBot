@@ -1,2 +1,4 @@
 from .inlinecallbackbutton import InlineCallbackButton
 from .inlinecallbackhandler import InlineCallbackHandler
+from .inlineactionhandler import InlineActionHandler
+
