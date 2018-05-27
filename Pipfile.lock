@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "09b2ad756c3248fbd3366414ce48289a7daa17e1998b59a8049f8bed6b918a35"
+            "sha256": "b7fb171db6e799ea7304b25647edc4609855c3f8fda5b303b0d54ae4ac0d57aa"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -422,6 +422,31 @@
                 "sha256:59fea336d0eed38c1f0bf3181ee1222d0ef45f3a9dd34ebe65e6bfffdd6a65a9"
             ],
             "version": "==1.3"
+        },
+        "tgcrypto": {
+            "hashes": [
+                "sha256:0336274ce29b9a2f6e1fcd0668520371bf5f02fdf642edfd3fbaadf1757933d2",
+                "sha256:066c5b05d2fb479a2178877c20da4ef19d09cd0612e9d4f1e770b2561917e98b",
+                "sha256:0d94e68e145eebd408d66fbe82d293cc442884943548783ed343ee86e19ca31d",
+                "sha256:1bc9dc34f01858b558a1fe3a98ad6b810c14a21f7c3cb5a0a8973eb486e526f6",
+                "sha256:32489ff2f317044ba49ce22d0b9973c4b619a8dfcb2e74bba5069d7fb6974cc1",
+                "sha256:41ba3bf978970ac5425a6a1789811df65581f5746f71242013b9b4eda4d3db06",
+                "sha256:47ecf9febade70a77b711e5a62d090e8018dc49562a7416f383c9b3f663dc9b9",
+                "sha256:4d64c447edc3d83c5541a2897a68ba8a0652b43c385271e26a4b37e5f5fac490",
+                "sha256:5618d8cdf2cfb280512bcb9982868ecc6957c4236737e75b95fede0ebd6f16ac",
+                "sha256:6afe7e59d73d279805bf20530d388ded1d01792fe53df05a5389ebf33855a680",
+                "sha256:7604496669aaded395e99e6c73b6939bacb6afdc18b8a652c6471b156cd64970",
+                "sha256:9e075b564034bcf05a04b44d25e319baae3a11b3ebc82cb8d086d2e9162aa737",
+                "sha256:9ff7900f28dcace9d20892976abba653b231901396e800cb1c3289d8abd3b193",
+                "sha256:b1febaf94a30a677b1f4f7171407ccf1c2c327ac99dff353a1d0355336b7b470",
+                "sha256:bd973b900c756d8daa64ba9e4b78f6cfebb00079a9030e047784dab3e7665d4b",
+                "sha256:c1078bd6e58a10633dedabb19f5a2a152007ae909fee719ef9c9140fdb8fbb51",
+                "sha256:db8d3ab4ad4b140e7894e049941babcced50e4dec202151a2d056ff1b8963877",
+                "sha256:e7429e2c1544be03ba26a52a9d06b62e7d73efe28be40034a9e0fa7627b7af84",
+                "sha256:fb64417dcd224166b1ff5081767b6fa28d7b6f029a5e7ff4771555d2674bb7cd"
+            ],
+            "index": "pypi",
+            "version": "==1.0.4"
         },
         "tgintegration": {
             "hashes": [
