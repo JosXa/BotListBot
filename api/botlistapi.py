@@ -6,7 +6,6 @@ import os
 from flask import Flask, request, jsonify, send_from_directory, send_file
 from flask import Markup
 from flask_autodoc.autodoc import Autodoc
-from gevent.wsgi import WSGIServer
 from peewee import fn
 
 import settings

@@ -2,22 +2,21 @@
 import asyncio
 import threading
 import time
-
 from logzero import logger as log
 from telegram import Bot as TelegramBot
-from telegram.ext import Dispatcher, Updater
+from telegram.ext import Updater
 from telegram.utils.request import Request
 
 import appglobals
 import routing
 import settings
 import util
-from api import botlistapi
 from components import admin, basic
 from components.userbot import botchecker
 from components.userbot.botchecker import BotChecker
-from lib.callbackmanager import CallbackManager
 from lib.markdownformatter import MarkdownFormatter
+
+
 # def setup_logger():
 #     logger = logging.getLogger('botlistbot')
 #     logger.setLevel(logging.INFO)
@@ -37,7 +36,6 @@ from lib.markdownformatter import MarkdownFormatter
 #     handler.setLevel(logging.DEBUG)
 #     handler.setFormatter(file_formatter)
 #     logger.addHandler(handler)
-from model import User
 
 
 class BotListBot(TelegramBot):
@@ -62,8 +60,8 @@ class BotListBot(TelegramBot):
 
 def main():
     # Start API
-    thread = threading.Thread(target=botlistapi.start_server)
-    thread.start()
+    # thread = threading.Thread(target=botlistapi.start_server)
+    # thread.start()
 
     loop = asyncio.new_event_loop()
     botchecker_context = {}

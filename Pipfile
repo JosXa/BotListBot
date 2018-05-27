@@ -4,7 +4,6 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-pytest = "*"
 logzero = "*"
 inflect = "*"
 python-dateutil = "*"
@@ -27,6 +26,7 @@ Markdown = "==2.6.9"
 Pyrogram = "*"
 
 [dev-packages]
+pytest = "*"
 
 [requires]
 python_version = "3.6"
