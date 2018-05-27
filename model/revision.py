@@ -15,7 +15,7 @@ class Revision(BaseModel):
         return self.nr + 1
 
     @staticmethod
-    def get_instance():
+    def get_instance() -> 'Revision':
         if not Revision._instance:
             selection = list(Revision.select())
             assert len(selection) == 1

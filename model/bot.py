@@ -125,7 +125,7 @@ class Bot(BaseModel):
         self.disabled_reason = None
         return True  # if value changed
 
-    @property
+    @hybrid_property
     def is_new(self):
         # today = datetime.date.today()
         # delta = datetime.timedelta(days=settings.BOT_CONSIDERED_NEW)
@@ -213,9 +213,10 @@ class Bot(BaseModel):
     @staticmethod
     def select_new_bots():
         return Bot.select().where(
-            (Bot.revision >= Revision.get_instance().nr - settings.BOT_CONSIDERED_NEW + 1) &
-            (Bot.revision < Revision.get_instance().next) &
-            Bot.approved == True & Bot.disabled == False
+            Bot.is_new == True,
+            Bot.revision < Revision.get_instance().next,
+            Bot.approved == True,
+            Bot.disabled == False
         )
 
     @staticmethod
