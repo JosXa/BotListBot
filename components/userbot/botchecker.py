@@ -226,7 +226,7 @@ class BotChecker(InteractionClientAsync):
         if photos:
             photo_size_object = photos[0][-1]
 
-            self.__photos_lock.acquire()
+            await self.__photos_lock.acquire()
             try:
                 try:
                     self.download_media(
@@ -249,7 +249,7 @@ class BotChecker(InteractionClientAsync):
                     if not similar:
                         shutil.copy(tmp_file, photo_path)
             finally:
-                self.__photos_lock.release()
+                await self.__photos_lock.release()
 
 
 async def check_bot(bot, bot_checker: BotChecker, to_check: BotModel, result_queue: asyncio.Queue):

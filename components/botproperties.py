@@ -240,7 +240,7 @@ def delete_keyword_suggestion(bot, update, chat_data, context):
 def delete_bot_confirm(bot, update, to_edit):
     chat_id = util.uid_from_update(update)
     reply_markup = InlineKeyboardMarkup([[
-        InlineKeyboardButton("Yes, disable it!", callback_data=util.callback_for_action(
+        InlineKeyboardButton("Yes, delete it!", callback_data=util.callback_for_action(
             CallbackActions.DELETE_BOT, {'id': to_edit.id}
         )),
         InlineKeyboardButton(captions.BACK, callback_data=util.callback_for_action(
