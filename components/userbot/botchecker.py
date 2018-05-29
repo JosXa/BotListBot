@@ -12,7 +12,6 @@ import time
 import traceback
 from datetime import datetime, timedelta
 from logzero import logger as log
-from pathlib import Path
 from pyrogram.api.errors import FloodWait, QueryTooShort, UnknownError, UsernameInvalid, \
     UsernameNotOccupied
 from pyrogram.api.functions.contacts import Search
