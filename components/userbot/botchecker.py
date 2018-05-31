@@ -117,8 +117,6 @@ class BotChecker(InteractionClientAsync):
         """
         Set basic properties of the bot
         """
-        user = None
-
         if isinstance(peer, ResolvedPeer):
             peer = self.resolve_peer(peer.peer.user_id)
         elif isinstance(peer, InputPeerUser):
@@ -126,15 +124,14 @@ class BotChecker(InteractionClientAsync):
         else:
             peer = self.resolve_peer(peer.id)
 
-        if not user:
-            try:
-                user = self.send(GetUsers([peer]))[0]
-            except:
-                traceback.print_exc()
-                print("this peer does not work for GetUsers:")
-                print(type(peer))
-                print(peer)
-                return None
+        try:
+            user = self.send(GetUsers([peer]))[0]
+        except:
+            traceback.print_exc()
+            print("this peer does not work for GetUsers:")
+            print(type(peer))
+            print(peer)
+            return None
 
         if hasattr(user, 'bot') and user.bot is True:
             # Regular bot
@@ -251,7 +248,12 @@ class BotChecker(InteractionClientAsync):
                 await self.__photos_lock.release()
 
 
-async def check_bot(bot, bot_checker: BotChecker, to_check: BotModel, result_queue: asyncio.Queue):
+async def check_bot(
+        bot,
+        bot_checker: BotChecker,
+        to_check: BotModel,
+        result_queue: asyncio.Queue
+):
     log.debug("Checking bot {}...".format(to_check.username))
 
     try:
@@ -280,7 +282,7 @@ async def check_bot(bot, bot_checker: BotChecker, to_check: BotModel, result_que
     try:
         response = await bot_checker.get_ping_response(
             to_check.chat_id,
-            timeout=18,
+            timeout=30,
             try_inline=to_check.inlinequeries)
     except UnknownError as e:
         result_queue.put(e.MESSAGE)
@@ -307,6 +309,34 @@ async def check_bot(bot, bot_checker: BotChecker, to_check: BotModel, result_que
             'offline' if to_check.offline else 'online'
         ), timeout=40)
 
+    await add_keywords(bot, response, to_check)
+
+    # Download profile picture
+    if settings.DOWNLOAD_PROFILE_PICTURES:
+        await download_profile_picture(bot, bot_checker, to_check)
+
+    to_check.save()
+
+    if settings.DELETE_CONVERSATION_AFTER_PING:
+        await bot_checker.schedule_conversation_deletion(to_check.chat_id, 10)
+
+    await disable_decider(bot, to_check)
+
+    await result_queue.put('offline' if to_check.offline else 'online')
+
+
+async def download_profile_picture(bot, bot_checker, to_check):
+    photo_file = to_check.thumbnail_file
+    sticker_file = os.path.join(settings.BOT_THUMBNAIL_DIR, '_sticker_tmp.webp')
+    await bot_checker.download_profile_photo(to_check, photo_file)
+    if settings.NOTIFY_NEW_PROFILE_PICTURE:
+        make_sticker(photo_file, sticker_file)
+        bot.send_notification("New profile picture of {}:".format(to_check.username))
+        bot.send_sticker(settings.BOTLIST_NOTIFICATIONS_ID,
+                         open(photo_file, 'rb'), timeout=360)
+
+
+async def add_keywords(bot, response, to_check):
     if isinstance(response, Response) and not response.empty:  # might also be bool
         # Search for botbuilder pattern to see if this bot is a Manybot/Chatfuelbot/etc.
         full_text = response.full_text.lower()
@@ -340,27 +370,6 @@ async def check_bot(bot, bot_checker: BotChecker, to_check: BotModel, result_que
                 to_check.str_no_md)
             bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, msg, timeout=40)
             log.info(msg)
-
-    # Download profile picture
-    if settings.DOWNLOAD_PROFILE_PICTURES:
-        photo_file = to_check.thumbnail_file
-        sticker_file = os.path.join(settings.BOT_THUMBNAIL_DIR, '_sticker_tmp.webp')
-
-        await bot_checker.download_profile_photo(to_check, photo_file)
-        if settings.NOTIFY_NEW_PROFILE_PICTURE:
-            make_sticker(photo_file, sticker_file)
-            bot.send_notification("New profile picture of {}:".format(to_check.username))
-            bot.send_sticker(settings.BOTLIST_NOTIFICATIONS_ID,
-                             open(photo_file, 'rb'), timeout=360)
-
-    to_check.save()
-
-    if settings.DELETE_CONVERSATION_AFTER_PING:
-        await bot_checker.schedule_conversation_deletion(to_check.chat_id, 10)
-
-    await disable_decider(bot, to_check)
-
-    await result_queue.put('offline' if to_check.offline else 'online')
 
 
 async def result_reader(queue) -> Counter:
