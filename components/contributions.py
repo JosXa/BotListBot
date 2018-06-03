@@ -239,6 +239,7 @@ def new_bot_submission(bot, update, chat_data, args=None, bot_checker=None):
 
 @run_async
 def check_submission(bot, bot_checker: BotChecker, to_check: Bot):
+    # TODO: make this method async
     if bot_checker is None:
         return
 
@@ -297,9 +298,10 @@ def check_submission(bot, bot_checker: BotChecker, to_check: Bot):
     # Download profile picture
     if settings.DOWNLOAD_PROFILE_PICTURES:
         # TODO: does this work asynchronously?
-        download_profile_picture(bot, bot_checker, to_check)
+        loop.run_until_complete(download_profile_picture(bot, bot_checker, to_check))
 
     to_check.save()
+    log.info(f"{to_check} was evaluated and looks good for approval.")
 
     # if settings.DELETE_CONVERSATION_AFTER_PING:
     #     await bot_checker.schedule_conversation_deletion(to_check.chat_id, 10)

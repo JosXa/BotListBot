@@ -173,7 +173,6 @@ class BotChecker(InteractionClientAsync):
             max_wait_response=timeout,
             raise_=False
         )
-        print(response)
         if response.empty:
             if try_inline and to_check.inlinequeries:
                 for q in settings.PING_INLINEQUERIES:
@@ -215,7 +214,7 @@ class BotChecker(InteractionClientAsync):
                 except StopIteration:
                     pass
         except QueryTooShort:
-            log.error("QueryTooShort: {}".format(bot.username))
+            pass
 
         if self.username_flood_until:
             if self.username_flood_until < datetime.now():

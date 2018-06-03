@@ -454,10 +454,6 @@ def recommend_moderator(bot, update, bot_in_question, page):
 
 def share_with_moderator(bot, update, bot_in_question, moderator):
     user = User.from_update(update)
-    answer_text = mdformat.success(
-        "I will ask {} to have a look at this submission.".format(moderator.plaintext))
-    if update.callback_query:
-        update.callback_query.answer(text=answer_text)
 
     buttons = [[
         InlineKeyboardButton('Yea, let me take this one!',
@@ -469,8 +465,17 @@ def share_with_moderator(bot, update, bot_in_question, moderator):
     text = "{} thinks that you have the means to inspect this bot submission:\n▶️ {}".format(
         user.markdown_short, bot_in_question
     )
-    util.send_md_message(bot, moderator.chat_id, text, reply_markup=reply_markup,
-                         disable_web_page_preview=True)
+    try:
+        util.send_md_message(bot, moderator.chat_id, text, reply_markup=reply_markup,
+                             disable_web_page_preview=True)
+        answer_text = mdformat.success(
+            "I will ask {} to have a look at this submission.".format(moderator.plaintext))
+    except Exception as e:
+        answer_text = mdformat.failure(f"Could not contact {moderator.plaintext}: {e}")
+
+    if update.callback_query:
+        update.callback_query.answer(text=answer_text)
+
     Statistic.of(update, 'share',
                  'submission {} with {}'.format(bot_in_question.username, moderator.plaintext))
 

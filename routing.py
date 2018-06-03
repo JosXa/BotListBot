@@ -297,8 +297,6 @@ def register(dp: Dispatcher, bot_checker: BotChecker):
     def add(*args, **kwargs):
         dp.add_handler(*args, **kwargs)
 
-    add(CallbackQueryHandler(callback_router, pass_chat_data=True, pass_user_data=True,
-                             pass_job_queue=True))
 
     keywords_handler = ConversationHandler(
         entry_points=[
@@ -334,6 +332,7 @@ def register(dp: Dispatcher, bot_checker: BotChecker):
         allow_reentry=False
 
     )
+    add(keywords_handler)
 
     broadcasting_handler = ConversationHandler(
         entry_points=[
@@ -352,6 +351,9 @@ def register(dp: Dispatcher, bot_checker: BotChecker):
         allow_reentry=True
     )
     add(broadcasting_handler)
+
+    add(CallbackQueryHandler(callback_router, pass_chat_data=True, pass_user_data=True,
+                             pass_job_queue=True))
 
     add(CommandHandler(('cat', 'category', 'categories'), select_category, pass_chat_data=True))
     add(CommandHandler(('s', 'search'), search_handler, pass_args=True, pass_chat_data=True))
@@ -478,7 +480,6 @@ def register(dp: Dispatcher, bot_checker: BotChecker):
 
     add(CommandHandler('ping', basic.ping))
 
-    add(keywords_handler)
     add(ChosenInlineResultHandler(inlinequeries.chosen_result, pass_chat_data=True))
     add(InlineQueryHandler(inlinequeries.inlinequery_handler, pass_chat_data=True))
     add(MessageHandler(Filters.all, all_handler, pass_chat_data=True), group=98)
