@@ -1,5 +1,4 @@
 import time
-
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from telegram.ext.dispatcher import run_async
 
@@ -169,7 +168,7 @@ def get_hint_message_and_markup(text):
 def hint_handler(bot, update):
     chat_id = update.message.chat_id
     if chat_id not in [settings.BOTLISTCHAT_ID, settings.BOTLIST_NOTIFICATIONS_ID,
-                                      settings.BLSF_ID]:
+                       settings.BLSF_ID]:
         return
     text = update.message.text
     reply_to = update.message.reply_to_message

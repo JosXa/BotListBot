@@ -1,8 +1,7 @@
+import emoji
 import logging
 import random
 import re
-
-import emoji
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ConversationHandler
 
@@ -179,7 +178,6 @@ def send_bot_details(bot, update, chat_data, item=None):
     is_group = util.is_group_message(update)
     cid = update.effective_chat.id
     user = User.from_update(update)
-    first_row = list()
 
     if item is None:
         if is_group:
@@ -188,66 +186,67 @@ def send_bot_details(bot, update, chat_data, item=None):
         try:
             text = update.message.text
             bot_in_text = re.findall(settings.REGEX_BOT_IN_TEXT, text)[0]
-            item = Bot.by_username(bot_in_text)
+            item = Bot.by_username(bot_in_text, include_disabled=True)
 
         except Bot.DoesNotExist:
             update.message.reply_text(util.failure(
-                "This bot is not in the @BotList. If you think this is a mistake, see the /examples for /contributing."))
+                "This bot is not in the @BotList. If you think this is a "
+                "mistake, see the /examples for /contributing."))
             return
 
+    header_buttons = []
+    buttons = []
     if item.disabled:
-        txt = '{} {}.'.format(item, item.disabled_reason)
+        txt = '{} {} and thus removed from the @BotList.'.format(
+            item, Bot.DisabledReason.to_str(item.disabled_reason))
     elif item.approved:
         # bot is already in the botlist => show information
         txt = item.detail_text
-        if item.description is None and not Keyword.select().where(Keyword.entity == item).exists():
+        if item.description is None and not Keyword.select().where(
+                Keyword.entity == item).exists():
             txt += ' is in the @BotList.'
         btn = InlineCallbackButton(captions.BACK_TO_CATEGORY,
                                    CallbackActions.SELECT_BOT_FROM_CATEGORY,
                                    {'id': item.category.id})
-        first_row.insert(0, btn)
-        first_row.append(InlineKeyboardButton(captions.SHARE, switch_inline_query=item.username))
+        header_buttons.insert(0, btn)
+        header_buttons.append(InlineKeyboardButton(captions.SHARE, switch_inline_query=item.username))
 
         # if cid in settings.MODERATORS:
-        first_row.append(InlineKeyboardButton(
+        header_buttons.append(InlineKeyboardButton(
             "📝 Edit", callback_data=util.callback_for_action(
                 CallbackActions.EDIT_BOT,
                 {'id': item.id}
             )))
+
+        # Add favorite button
+        favorite_found = Favorite.search_by_bot(user, item)
+        if favorite_found:
+            buttons.append(
+                InlineKeyboardButton(captions.REMOVE_FAVORITE_VERBOSE,
+                                     callback_data=util.callback_for_action(
+                                         CallbackActions.REMOVE_FAVORITE,
+                                         {'id': favorite_found.id, 'details': True}))
+            )
+        else:
+            buttons.append(
+                InlineKeyboardButton(captions.ADD_TO_FAVORITES,
+                                     callback_data=util.callback_for_action(
+                                         CallbackActions.ADD_TO_FAVORITES,
+                                         {'id': item.id, 'details': True}))
+            )
     else:
         txt = '{} is currently pending to be accepted for the @BotList.'.format(item)
         if cid in settings.MODERATORS:
-            first_row.append(InlineKeyboardButton(
+            header_buttons.append(InlineKeyboardButton(
                 "🛃 Accept / Reject", callback_data=util.callback_for_action(
                     CallbackActions.APPROVE_REJECT_BOTS,
                     {'id': item.id}
                 )))
 
-    buttons = [first_row]
-    if is_group:
-        buttons = None  # TODO
-    elif item.approved:
-        # Add favorite button
-        favorite_found = Favorite.search_by_bot(user, item)
-        if favorite_found:
-            buttons.append([
-                InlineKeyboardButton(captions.REMOVE_FAVORITE_VERBOSE,
-                                     callback_data=util.callback_for_action(
-                                         CallbackActions.REMOVE_FAVORITE,
-                                         {'id': favorite_found.id, 'details': True}))
-            ])
-        else:
-            buttons.append([
-                InlineKeyboardButton(captions.ADD_TO_FAVORITES,
-                                     callback_data=util.callback_for_action(
-                                         CallbackActions.ADD_TO_FAVORITES,
-                                         {'id': item.id, 'details': True}))
-            ])
-    else:
-        pass
-
-    if buttons:
-        reply_markup = InlineKeyboardMarkup(buttons)
+    if buttons or header_buttons:
+        reply_markup = InlineKeyboardMarkup(
+            util.build_menu(buttons, n_cols=3, header_buttons=header_buttons)
+        )
     else:
         reply_markup = None
 

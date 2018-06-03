@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
-import asyncio
 import datetime
 import re
 from logzero import logger as log
 from peewee import fn
 from pprint import pprint
-from pyrogram.api.errors import UsernameNotOccupied, UnknownError
+from pyrogram.api.errors import UsernameNotOccupied
 from telegram import Message as TelegramMessage, ParseMode
 from telegram.ext import ConversationHandler, run_async
 
 import settings
 import util
+from appglobals import loop
 from components.admin import notify_submittant_rejected
 from components.userbot import BotChecker
 from components.userbot.botchecker import add_keywords, download_profile_picture
-from appglobals import loop
 from model import Bot, Country, Suggestion, User
 from model.revision import Revision
 from util import track_groups
@@ -86,71 +85,9 @@ def notify_bot_spam(bot, update, args=None):
 
 def notify_bot_offline(bot, update, args=None):
     tg_user = update.message.from_user
-    user = User.from_telegram_object(tg_user)
-
     update.message.reply_text(
         "Thanks, but the BotList now automatically detects when a bot goes offline 😇😍")
     return
-
-    # if util.stop_banned(update, user):
-    #     return
-    # reply_to = util.original_reply_id(update)
-    #
-    # if args:
-    #     text = ' '.join(args)
-    # else:
-    #     text = update.message.text
-    #     command_no_args = len(re.findall(r'^/offline\s*$', text)) > 0 or text.lower().strip() == '/offline@botlistbot'
-    #     if command_no_args:
-    #         update.message.reply_text(
-    #             util.action_hint("Please use this command with an argument. For example:\n/offline @mybot"),
-    #             reply_to_message_id=reply_to)
-    #         return
-    #
-    # # `#offline` is already checked by handler
-    # try:
-    #     username = re.match(settings.REGEX_BOT_IN_TEXT, text).groups()[0]
-    #     if username == '@' + settings.SELF_BOT_NAME:
-    #         log.info("Ignoring {}".format(text))
-    #         return
-    # except AttributeError:
-    #     if args:
-    #         update.message.reply_text(util.failure("Sorry, but you didn't send me a bot `@username`."), quote=True,
-    #                                   parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
-    #     else:
-    #         log.info("Ignoring {}".format(text))
-    #         # no bot username, ignore update
-    #         pass
-    #     return
-    #
-    # def already_reported():
-    #     update.message.reply_text(mdformat.none_action("Someone already reported this, thanks anyway 😊"),
-    #                               reply_to_message_id=reply_to)
-    #
-    # try:
-    #     offline_bot = Bot.get(fn.lower(Bot.username) ** username.lower(), Bot.approved == True)
-    #     if offline_bot.offline:
-    #         return already_reported()
-    #     if offline_bot.official:
-    #         update.message.reply_text(mdformat.none_action("Official bots usually don't go offline for a long time. "
-    #                                                        "Just wait a couple hours and it will be back up ;)"),
-    #                                   reply_to_message_id=reply_to)
-    #         return
-    #
-    #     try:
-    #         Suggestion.get(action="offline", subject=offline_bot, executed=False)
-    #         return already_reported()
-    #     except Suggestion.DoesNotExist:
-    #         suggestion = Suggestion(user=user, action="offline", value=True, date=datetime.date.today(),
-    #                                 subject=offline_bot)
-    #         suggestion.save()
-    #
-    #     update.message.reply_text(util.success("Thank you! We will review your suggestion and set the bot offline."),
-    #                               reply_to_message_id=reply_to)
-    # except Bot.DoesNotExist:
-    #     update.message.reply_text(
-    #         util.action_hint("The bot you sent me is not in the @BotList."), reply_to_message_id=reply_to)
-    # return ConversationHandler.END
 
 
 @track_groups
@@ -189,8 +126,13 @@ def new_bot_submission(bot, update, chat_data, args=None, bot_checker=None):
         return
 
     try:
-        new_bot = Bot.by_username(username)
-        if new_bot.approved:
+        new_bot = Bot.by_username(username, include_disabled=True)
+        if new_bot.disabled:
+            update.message.reply_text(
+                util.failure(
+                    "{} is banned from the @BotList.".format(new_bot.username)),
+                reply_to_message_id=reply_to)
+        elif new_bot.approved:
             update.message.reply_text(
                 util.action_hint(
                     "Sorry fool, but {} is already in the @BotList 😉".format(new_bot.username)),
@@ -305,4 +247,3 @@ def check_submission(bot, bot_checker: BotChecker, to_check: Bot):
 
     # if settings.DELETE_CONVERSATION_AFTER_PING:
     #     await bot_checker.schedule_conversation_deletion(to_check.chat_id, 10)
-

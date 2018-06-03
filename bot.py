@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import asyncio
 import threading
 import time
 from logzero import logger as log

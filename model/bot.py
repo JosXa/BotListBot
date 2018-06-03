@@ -2,10 +2,9 @@
 import os
 from datetime import timedelta
 from enum import IntEnum
-from typing import List
-
 from peewee import *
 from playhouse.hybrid import hybrid_property
+from typing import List
 
 import helpers
 import settings
@@ -26,9 +25,9 @@ class Bot(BaseModel):
         @classmethod
         def to_str(cls, value):
             if value == cls.banned:
-                return "is banned."
+                return "is banned"
             elif value == cls.offline:
-                return "has been offline for too long."
+                return "has been offline for too long"
 
     id = PrimaryKeyField()
     revision = IntegerField()
@@ -97,18 +96,18 @@ class Bot(BaseModel):
     @property
     def serialize(self):
         return {
-            'id'           : self.id,
-            'category_id'  : self.category.id,
+            'id': self.id,
+            'category_id': self.category.id,
             # 'name': self.name,
-            'username'     : self.username,
-            'description'  : self.description,
-            'date_added'   : self.date_added,
+            'username': self.username,
+            'description': self.description,
+            'date_added': self.date_added,
             'inlinequeries': self.inlinequeries,
-            'official'     : self.official,
-            'extra_text'   : self.extra,
-            'offline'      : self.offline,
-            'spam'         : self.spam,
-            'botlist_url'  : helpers.botlist_url_for_category(self.category),
+            'official': self.official,
+            'extra_text': self.extra,
+            'offline': self.offline,
+            'spam': self.spam,
+            'botlist_url': helpers.botlist_url_for_category(self.category),
         }
 
     def disable(self, reason: DisabledReason):
@@ -170,11 +169,16 @@ class Bot(BaseModel):
                (' ' + self.extra if self.extra else '')
 
     @staticmethod
-    def by_username(username: str):
-        result = Bot.select().where(
-            fn.lower(Bot.username) == username.lower(),
-            Bot.disabled == False
-        )
+    def by_username(username: str, include_disabled=False):
+        if include_disabled:
+            result = Bot.select().where(
+                fn.lower(Bot.username) == username.lower()
+            )
+        else:
+            result = Bot.select().where(
+                fn.lower(Bot.username) == username.lower(),
+                Bot.disabled == False
+            )
         if len(result) > 0:
             return result[0]
         else:

@@ -17,6 +17,7 @@ import mdformat
 import settings
 import util
 from appglobals import db
+from components.lookup import lookup_entity
 from const import *
 from const import BotStates, CallbackActions
 from custemoji import Emoji
@@ -664,20 +665,18 @@ def notify_submittant_rejected(
 
 
 @restricted
-def ban_handler(bot, update, args, ban_state: bool):
+def ban_handler(bot, update, args, chat_data, ban_state: bool):
     if args:
         query = ' '.join(args) if isinstance(args, list) else args
 
-        try:
-            user = User.by_username(query)
-        except User.DoesNotExist:
-            try:
-                user = User.get(chat_id=query)
-            except User.DoesNotExist:
-                update.message.reply_text("This user does not exist.")
-                return
+        entity_to_ban = lookup_entity(query, exact=True)
 
-        ban_user(bot, update, user, ban_state)
+        if isinstance(entity_to_ban, User):
+            ban_user(bot, update, entity_to_ban, ban_state)
+        elif isinstance(entity_to_ban, Bot):
+            ban_bot(bot, update, chat_data, entity_to_ban, ban_state)
+        else:
+            update.message.reply_text(mdformat.failure("Can only ban users and bots."))
     else:
         # no search term
         update.message.reply_text(messages.BAN_MESSAGE if ban_state else messages.UNBAN_MESSAGE,
@@ -686,7 +685,7 @@ def ban_handler(bot, update, args, ban_state: bool):
 
 
 @restricted
-def ban_user(bot, update, user: User, ban_state: bool):
+def ban_user(_bot, update, user: User, ban_state: bool):
     if user.banned and ban_state is True:
         update.message.reply_text(mdformat.none_action("User {} is already banned.".format(user)),
                                   parse_mode='markdown')
@@ -722,6 +721,33 @@ def ban_user(bot, update, user: User, ban_state: bool):
                                   parse_mode='markdown')
         Statistic.of(update, 'unban', user.markdown_short)
     user.save()
+
+
+@restricted
+def ban_bot(bot, update, chat_data, to_ban: Bot, ban_state: bool):
+    if to_ban.disabled and ban_state is True:
+        update.message.reply_text(
+            mdformat.none_action("{} is already banned.".format(to_ban)),
+            parse_mode='markdown'
+        )
+        return
+    if not to_ban.disabled and ban_state is False:
+        update.message.reply_text(
+            mdformat.none_action("{} is not banned.".format(to_ban)),
+            parse_mode='markdown')
+        return
+
+    if ban_state:
+        to_ban.disable(Bot.DisabledReason.banned)
+        update.message.reply_text("Bot was banned.")
+    else:
+        to_ban.enable()
+        update.message.reply_text("Bot was unbanned.")
+
+    to_ban.save()
+
+    from components.explore import send_bot_details
+    return send_bot_details(bot, update, chat_data, to_ban)
 
 
 def last_update_job(bot, job: Job):

@@ -185,7 +185,7 @@ def callback_router(bot, update, chat_data, user_data, job_queue):
             elif action == CallbackActions.DELETE_BOT:
                 to_edit = Bot.get(id=obj['id'])
                 botproperties.delete_bot(bot, update, to_edit)
-                send_category(bot, update, chat_data, to_edit.category)
+                # send_category(bot, update, chat_data, to_edit.category)
             elif action == CallbackActions.ACCEPT_SUGGESTION:
                 suggestion = Suggestion.get(id=obj['id'])
                 components.botproperties.accept_suggestion(bot, update, suggestion)
@@ -287,16 +287,15 @@ def reply_router(bot, update, chat_data):
         raise DispatcherHandlerStop
     elif text == messages.BAN_MESSAGE:
         query = update.message.text
-        admin.ban_handler(bot, update, query, True)
+        admin.ban_handler(bot, update, chat_data, query, True)
     elif text == messages.UNBAN_MESSAGE:
         query = update.message.text
-        admin.ban_handler(bot, update, query, False)
+        admin.ban_handler(bot, update, chat_data, query, False)
 
 
 def register(dp: Dispatcher, bot_checker: BotChecker):
     def add(*args, **kwargs):
         dp.add_handler(*args, **kwargs)
-
 
     keywords_handler = ConversationHandler(
         entry_points=[
@@ -432,10 +431,10 @@ def register(dp: Dispatcher, bot_checker: BotChecker):
     add(CommandHandler(("e", "explore"), explore.explore, pass_chat_data=True))
     add(CommandHandler("official", explore.show_official))
 
-    add(CommandHandler('ban', lambda bot, update, args: admin.ban_handler(
-        bot, update, args, True), pass_args=True))
-    add(CommandHandler('unban', lambda bot, update, args: admin.ban_handler(
-        bot, update, args, False), pass_args=True))
+    add(CommandHandler('ban', partial(admin.ban_handler, ban_state=True), pass_args=True,
+                       pass_chat_data=True))
+    add(CommandHandler('unban', partial(admin.ban_handler, ban_state=False), pass_args=True,
+                       pass_chat_data=True))
     add(CommandHandler('t3chno', t3chnostats))
     add(CommandHandler('random', eastereggs.send_random_bot))
     add(CommandHandler('easteregg', eastereggs.send_next, pass_args=True))

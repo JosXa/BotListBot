@@ -13,9 +13,8 @@ from const import BotStates, CallbackActions
 from custemoji import Emoji
 from dialog import messages
 from lib import InlineCallbackButton
-from model import Country, Keyword, Statistic, Suggestion, User, track_activity
+from model import Bot, Country, Keyword, Statistic, Suggestion, User, track_activity
 from util import restricted
-from logzero import logger as log
 
 CLEAR_QUERY = "x"
 
@@ -253,12 +252,16 @@ def delete_bot_confirm(bot, update, to_edit):
 
 
 @restricted
-def delete_bot(bot, update, to_edit):
+def delete_bot(bot, update, to_edit: Bot):
     username = to_edit.username
-    to_edit.delete_instance()
-    bot.formatter.send_or_edit(update.effective_user.id, "Bot has been deleted.",
-                               to_edit=util.mid_from_update(update))
-    Statistic.of(update, 'delete', username, Statistic.IMPORTANT)
+    to_edit.disable(Bot.DisabledReason.banned)
+    to_edit.save()
+    bot.formatter.send_or_edit(
+        update.effective_user.id,
+        "Bot has been disabled and banned.",
+        to_edit=util.mid_from_update(update)
+    )
+    Statistic.of(update, 'disable', username, Statistic.IMPORTANT)
 
 
 def change_category(bot, update, to_edit, category):

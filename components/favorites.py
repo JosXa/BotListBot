@@ -38,7 +38,7 @@ def add_favorite_handler(bot, update, args=None):
             username = re.match(settings.REGEX_BOT_IN_TEXT, query).groups()[0]
             try:
                 # TODO: get exact database matches for input without `@`
-                item = Bot.by_username(username)
+                item = Bot.by_username(username, include_disabled=True)
 
                 return add_favorite(bot, update, item)
             except Bot.DoesNotExist:

@@ -312,7 +312,7 @@ async def check_bot(
         await result_queue.put('messages sent')
 
     was_offline = to_check.offline
-    is_offline = not bool(response)
+    is_offline = response.empty if isinstance(response, Response) else not bool(response)
 
     now = datetime.now()
     to_check.last_ping = now
