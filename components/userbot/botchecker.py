@@ -173,6 +173,7 @@ class BotChecker(InteractionClientAsync):
             max_wait_response=timeout,
             raise_=False
         )
+        print(response)
         if response.empty:
             if try_inline and to_check.inlinequeries:
                 for q in settings.PING_INLINEQUERIES:
@@ -407,7 +408,12 @@ async def run(telegram_bot, bot_checker, bots, stop_event: threading.Event = Non
             expected_total=len(bots),
     ) as pool:
         for to_check in bots:
-            await pool.push(telegram_bot, bot_checker, to_check, result_queue)
+            print('ADDED')
+            if stop_event and stop_event.is_set():
+                print('JOINING')
+                pool.join()
+            else:
+                await pool.push(telegram_bot, bot_checker, to_check, result_queue)
 
     await result_queue.put(None)
     return await reader_future

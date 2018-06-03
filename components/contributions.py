@@ -275,7 +275,7 @@ def check_submission(bot, bot_checker: BotChecker, to_check: Bot):
     # Check online state
     response = loop.run_until_complete(
         bot_checker.get_ping_response(
-            to_check.chat_id,
+            to_check,
             timeout=18,
             try_inline=to_check.inlinequeries
         )
