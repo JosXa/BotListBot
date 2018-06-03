@@ -1,7 +1,7 @@
 import json
 import re
 import traceback
-
+from functools import partial
 from logzero import logger as log
 from telegram.ext import CallbackQueryHandler, ChosenInlineResultHandler, CommandHandler, \
     ConversationHandler, Dispatcher, DispatcherHandlerStop, Filters, InlineQueryHandler, \
@@ -19,6 +19,7 @@ from components.botlistchat import HINTS
 from components.explore import select_category, send_bot_details, send_category, show_new_bots
 from components.misc import access_token, set_notifications, t3chnostats
 from components.search import search_handler, search_query
+from components.userbot import BotChecker
 from const import BotStates, CallbackActions
 from dialog import messages
 from lib import InlineCallbackHandler
@@ -184,7 +185,7 @@ def callback_router(bot, update, chat_data, user_data, job_queue):
             elif action == CallbackActions.DELETE_BOT:
                 to_edit = Bot.get(id=obj['id'])
                 botproperties.delete_bot(bot, update, to_edit)
-                send_category(bot, update, to_edit.category)
+                send_category(bot, update, chat_data, to_edit.category)
             elif action == CallbackActions.ACCEPT_SUGGESTION:
                 suggestion = Suggestion.get(id=obj['id'])
                 components.botproperties.accept_suggestion(bot, update, suggestion)
@@ -281,6 +282,8 @@ def reply_router(bot, update, chat_data):
         # Reply for setting a bot property
         botproperties.set_text_property(bot, update, chat_data, bot_property)
         print('raising...')
+        print(partition)
+        print(partition[1])
         raise DispatcherHandlerStop
     elif text == messages.BAN_MESSAGE:
         query = update.message.text
@@ -290,7 +293,7 @@ def reply_router(bot, update, chat_data):
         admin.ban_handler(bot, update, query, False)
 
 
-def register(dp: Dispatcher):
+def register(dp: Dispatcher, bot_checker: BotChecker):
     def add(*args, **kwargs):
         dp.add_handler(*args, **kwargs)
 
@@ -394,10 +397,21 @@ def register(dp: Dispatcher):
 
     add(CommandHandler(('manybot', 'manybots'), admin.manybots))
 
-    add(CommandHandler('new', contributions.new_bot_submission, pass_args=True,
-                       pass_chat_data=True))
-    add(RegexHandler('.*#new.*', contributions.new_bot_submission, pass_chat_data=True),
-        group=1)
+    add(
+        CommandHandler(
+            'new',
+            partial(contributions.new_bot_submission, bot_checker=bot_checker),
+            pass_args=True,
+            pass_chat_data=True
+        ))
+    add(
+        RegexHandler(
+            '.*#new.*',
+            lambda bot, update, chat_data: contributions.new_bot_submission(
+                bot, update, chat_data, args=None, bot_checker=bot_checker),
+            pass_chat_data=True),
+        group=1
+    )
     add(CommandHandler('offline', contributions.notify_bot_offline, pass_args=True))
     add(RegexHandler('.*#offline.*', contributions.notify_bot_offline), group=1)
     add(CommandHandler('spam', contributions.notify_bot_spam, pass_args=True))
@@ -461,6 +475,8 @@ def register(dp: Dispatcher):
     for hashtag in HINTS.keys():
         add(RegexHandler(r'{}.*'.format(hashtag), botlistchat.hint_handler), group=1)
     add(CommandHandler(('hint', 'hints'), botlistchat.show_available_hints))
+
+    add(CommandHandler('ping', basic.ping))
 
     add(keywords_handler)
     add(ChosenInlineResultHandler(inlinequeries.chosen_result, pass_chat_data=True))

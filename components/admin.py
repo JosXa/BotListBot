@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
 import datetime
-import logging
+import emoji
 import os
 import re
-from typing import Dict
-
+from logzero import logger as log
 from peewee import fn
 from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, \
     ReplyKeyboardMarkup, \
     TelegramError
 from telegram.ext import ConversationHandler, Job
+from typing import Dict
 
 import captions
-import emoji
 import helpers
 import mdformat
 import settings
@@ -24,8 +23,6 @@ from custemoji import Emoji
 from dialog import messages
 from model import Bot, Category, Revision, Statistic, Suggestion, User, track_activity
 from util import restricted
-
-from logzero import logger as log
 
 
 @track_activity('menu', 'Administration', Statistic.ANALYSIS)
@@ -579,7 +576,7 @@ def reject_bot_submission(bot, update, args=None, to_reject=None, verbose=True,
         reason = reason if reason else (" ".join(args) if args else None)
 
         try:
-            update.message.disable()
+            update.message.delete()
         except:
             pass
 
@@ -604,8 +601,31 @@ def reject_bot_submission(bot, update, args=None, to_reject=None, verbose=True,
             return
 
     Statistic.of(update, 'reject', to_reject.username)
-    log_msg = "{} rejected by {}.".format(to_reject.username, user)
-    notification_successful = None
+    text = notify_submittant_rejected(
+        bot,
+        user,
+        notify_submittant,
+        reason,
+        to_reject,
+    )
+    to_reject.delete_instance()
+
+    if verbose:
+        bot.sendMessage(uid, text)
+
+    if update.callback_query:
+        update.callback_query.answer(text=text)
+
+
+def notify_submittant_rejected(
+        bot,
+        admin_user,
+        notify_submittant,
+        reason,
+        to_reject
+):
+    notification_successful = False
+    msg = "{} rejected by {}.".format(to_reject.username, admin_user)
     if notify_submittant or reason:
         try:
             if reason:
@@ -619,14 +639,13 @@ def reject_bot_submission(bot, update, args=None, to_reject=None, verbose=True,
                 bot.sendMessage(to_reject.submitted_by.chat_id,
                                 util.failure(
                                     messages.REJECTION_PRIVATE_MESSAGE.format(to_reject.username)))
-            log_msg += "\nUser {} was notified.".format(str(to_reject.submitted_by))
+            msg += "\nUser {} was notified.".format(str(to_reject.submitted_by))
             notification_successful = True
         except TelegramError:
-            log_msg += "\nUser {} could NOT be contacted/notified in private.".format(
+            msg += "\nUser {} could NOT be contacted/notified in private.".format(
                 str(to_reject.submitted_by))
             notification_successful = False
-    to_reject.delete_instance()
-    log.info(log_msg)
+    log.info(msg)
 
     text = util.success("{} rejected.".format(to_reject.username))
     if notification_successful is True:
@@ -636,12 +655,7 @@ def reject_bot_submission(bot, update, args=None, to_reject=None, verbose=True,
             "Could not contact {}.".format(to_reject.submitted_by.plaintext))
     else:
         text += " No notification sent."
-
-    if verbose:
-        bot.sendMessage(uid, text)
-
-    if update.callback_query:
-        update.callback_query.answer(text=text)
+    return msg
 
 
 @restricted

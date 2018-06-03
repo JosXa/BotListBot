@@ -1,18 +1,12 @@
+import sys
+
 import logging
 import os
 import signal
 import time
-from pprint import pprint
-
-import sys
-
-from telegram import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardButton, \
-    InlineKeyboardMarkup
-from telegram.ext import CommandHandler
-from telegram.ext import ConversationHandler
-from telegram.ext import Filters
-from telegram.ext import MessageHandler
-from telegram.ext import RegexHandler
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, \
+    ReplyKeyboardMarkup, ReplyKeyboardRemove
+from telegram.ext import CommandHandler, ConversationHandler, Filters, MessageHandler, RegexHandler
 
 import appglobals
 import captions
@@ -22,10 +16,10 @@ import settings
 import util
 from components import help
 from components.botlist import new_channel_post
-from components.search import search_query, search_handler
+from components.search import search_handler, search_query
 from dialog import messages
-from model import User, Category
-from model.statistic import track_activity, Statistic
+from model import Category, User
+from model.statistic import Statistic, track_activity
 from util import track_groups
 
 log = logging.getLogger(__name__)
@@ -66,7 +60,8 @@ def start(bot, update, chat_data, args):
 
     else:
         bot.sendSticker(chat_id,
-                        open(os.path.join(appglobals.ROOT_DIR, 'assets', 'sticker', 'greetings-humanoids.webp'), 'rb'))
+                        open(os.path.join(appglobals.ROOT_DIR, 'assets', 'sticker',
+                                          'greetings-humanoids.webp'), 'rb'))
         help.help(bot, update)
         util.wait(bot, update)
         if util.is_private_message(update):
@@ -76,7 +71,8 @@ def start(bot, update, chat_data, args):
 
 def main_menu_buttons(admin=False):
     buttons = [
-        [KeyboardButton(captions.CATEGORIES), KeyboardButton(captions.EXPLORE), KeyboardButton(captions.FAVORITES)],
+        [KeyboardButton(captions.CATEGORIES), KeyboardButton(captions.EXPLORE),
+         KeyboardButton(captions.FAVORITES)],
         [KeyboardButton(captions.NEW_BOTS), KeyboardButton(captions.SEARCH)],
         [KeyboardButton(captions.HELP)],
     ]
@@ -90,7 +86,8 @@ def main_menu(bot, update):
     chat_id = update.effective_chat.id
     is_admin = chat_id in settings.MODERATORS
     reply_markup = ReplyKeyboardMarkup(main_menu_buttons(is_admin),
-                                       resize_keyboard=True, one_time_keyboard=True) if util.is_private_message(
+                                       resize_keyboard=True,
+                                       one_time_keyboard=True) if util.is_private_message(
         update) else ReplyKeyboardRemove()
 
     bot.sendMessage(chat_id, mdformat.action_hint("What would you like to do?"),
@@ -183,6 +180,10 @@ def add_thank_you_button(bot, update, cid, mid):
     bot.edit_message_reply_markup(cid, mid, reply_markup=thank_you_markup(0))
 
 
+def ping(bot, update):
+    update.message.reply_text("pong")
+
+
 @track_groups
 def all_handler(bot, update, chat_data):
     if update.message and update.message.new_chat_members:
@@ -199,5 +200,6 @@ def register(dp):
     dp.add_handler(CommandHandler('r', restart))
     dp.add_error_handler(error)
     dp.add_handler(
-        MessageHandler(Filters.text & Filters.group, plaintext_group, pass_chat_data=True, pass_update_queue=True))
+        MessageHandler(Filters.text & Filters.group, plaintext_group, pass_chat_data=True,
+                       pass_update_queue=True))
     dp.add_handler(CommandHandler("removekeyboard", remove_keyboard))

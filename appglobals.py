@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 from decouple import config
@@ -24,6 +25,8 @@ def disconnect():
 
 # globals
 db = db()
+
+loop = asyncio.get_event_loop()
 
 
 # redis = StrictRedis(host='localhost', port=6379, db=0)

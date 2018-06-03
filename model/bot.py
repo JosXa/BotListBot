@@ -23,6 +23,13 @@ class Bot(BaseModel):
         banned = 10
         offline = 20
 
+        @classmethod
+        def to_str(cls, value):
+            if value == cls.banned:
+                return "is banned."
+            elif value == cls.offline:
+                return "has been offline for too long."
+
     id = PrimaryKeyField()
     revision = IntegerField()
     category = ForeignKeyField(Category, null=True)

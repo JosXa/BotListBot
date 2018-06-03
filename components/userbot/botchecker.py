@@ -8,6 +8,7 @@ import logging
 import os
 import re
 import shutil
+import threading
 import time
 import traceback
 from datetime import datetime, timedelta
@@ -21,6 +22,8 @@ from pyrogram.api.types import InputPeerUser
 from pyrogram.api.types.contacts import ResolvedPeer
 from telegram import Bot as TelegramBot, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import BadRequest
+from tgintegration import InlineResultContainer, InteractionClientAsync, Response
+from typing import Union
 
 import captions
 import helpers
@@ -28,8 +31,7 @@ import settings
 import util
 from const import CallbackActions
 from helpers import make_sticker
-from model import Bot as BotModel, Keyword
-from tgintegration import InteractionClientAsync, Response
+from model import Bot, Bot as BotModel, Keyword
 
 logging.getLogger().setLevel(logging.WARNING)
 
@@ -159,15 +161,29 @@ class BotChecker(InteractionClientAsync):
     #     self._last_ping = time.time()
     #     return result
 
-    async def get_ping_response(self, peer, timeout=30, try_inline=True):
+    async def get_ping_response(
+            self,
+            to_check: Bot,
+            timeout=30,
+            try_inline=True
+    ) -> Union[Response, InlineResultContainer]:
         response = await self.ping_bot(
-            peer,
+            to_check.chat_id,
             override_messages=settings.PING_MESSAGES,
             max_wait_response=timeout,
             raise_=False
         )
         if response.empty:
-            return False
+            if try_inline and to_check.inlinequeries:
+                for q in settings.PING_INLINEQUERIES:
+                    try:
+                        return self.get_inline_bot_results(to_check.username, q)
+                    except UnknownError as e:
+                        if "timeout" in e.MESSAGE.lower():
+                            continue
+                        else:
+                            raise e
+                return False
 
         # Evaluate WJClub's ParkMeBot flags
         reserved_username = ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR1 + ZERO_CHAR1
@@ -245,7 +261,7 @@ class BotChecker(InteractionClientAsync):
                     if not similar:
                         shutil.copy(tmp_file, photo_path)
             finally:
-                await self.__photos_lock.release()
+                self.__photos_lock.release()
 
 
 async def check_bot(
@@ -281,7 +297,7 @@ async def check_bot(
     # Check online state
     try:
         response = await bot_checker.get_ping_response(
-            to_check.chat_id,
+            to_check,
             timeout=30,
             try_inline=to_check.inlinequeries)
     except UnknownError as e:
@@ -337,39 +353,30 @@ async def download_profile_picture(bot, bot_checker, to_check):
 
 
 async def add_keywords(bot, response, to_check):
-    if isinstance(response, Response) and not response.empty:  # might also be bool
-        # Search for botbuilder pattern to see if this bot is a Manybot/Chatfuelbot/etc.
-        full_text = response.full_text.lower()
-        if botbuilder_pattern.search(full_text):
-            to_check.botbuilder = True
+    if not isinstance(response, Response) or response.empty:
+        return
 
-        # Search /start and /help response for global list of keywords
-        to_add = []
-        for name in Keyword.get_distinct_names(exclude_from_bot=to_check):
-            if re.search(r'\b{}\b'.format(name), full_text, re.IGNORECASE):
-                to_add.append(name)
+    full_text = response.full_text.lower()
+    # Search for botbuilder pattern to see if this bot is a Manybot/Chatfuelbot/etc.
+    if botbuilder_pattern.search(full_text):
+        to_check.botbuilder = True
 
-        to_add = [x for x in to_add if x not in settings.FORBIDDEN_KEYWORDS]
+    # Search /start and /help response for global list of keywords
+    to_add = []
+    for name in Keyword.get_distinct_names(exclude_from_bot=to_check):
+        if re.search(r'\b{}\b'.format(name), full_text, re.IGNORECASE):
+            to_add.append(name)
 
-        if to_add:
-            for k in to_add:
-                Keyword.insert(name=k, entity=to_check).execute()
-                # s = Suggestion.add_or_update(
-                #     user=User.botlist_user_instance(),
-                #     action="add_keyword",
-                #     subject=to_check,
-                #     value=k
-                # )
-                # s.apply()
-            # KeywordSuggestion.insert_many(
-            #     [dict(name=x, entity=to_check) for x in to_add]
-            # ).execute()
-            msg = 'New keyword{}: {} for {}.'.format(
-                's' if len(to_add) > 1 else '',
-                ', '.join(['#' + k for k in to_add]),
-                to_check.str_no_md)
-            bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, msg, timeout=40)
-            log.info(msg)
+    to_add = [x for x in to_add if x not in settings.FORBIDDEN_KEYWORDS]
+
+    if to_add:
+        Keyword.insert_many([dict(name=k, entity=to_check) for k in to_add]).execute()
+        msg = 'New keyword{}: {} for {}.'.format(
+            's' if len(to_add) > 1 else '',
+            ', '.join(['#' + k for k in to_add]),
+            to_check.str_no_md)
+        bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, msg, timeout=40)
+        log.info(msg)
 
 
 async def result_reader(queue) -> Counter:
@@ -382,7 +389,7 @@ async def result_reader(queue) -> Counter:
     return stats
 
 
-async def run(telegram_bot, bot_checker, bots) -> Counter:
+async def run(telegram_bot, bot_checker, bots, stop_event: threading.Event = None) -> Counter:
     result_queue = asyncio.Queue()
     loop = bot_checker.event_loop
     reader_future = asyncio.ensure_future(result_reader(result_queue), loop=loop)
@@ -407,7 +414,8 @@ async def run(telegram_bot, bot_checker, bots) -> Counter:
 
 
 def ping_bots_job(bot, job):
-    bot_checker = job.context.get('checker')
+    bot_checker: BotChecker = job.context.get('checker')
+    stop_event: threading.Event = job.context.get('stop')
     loop = bot_checker.event_loop
 
     all_bots = BotModel.select(BotModel).where(
@@ -420,7 +428,7 @@ def ping_bots_job(bot, job):
     )
 
     start = time.time()
-    result = loop.run_until_complete(run(bot, bot_checker, all_bots))  # type: Counter
+    result = loop.run_until_complete(run(bot, bot_checker, all_bots, stop_event))  # type: Counter
     end = time.time()
 
     if not result:

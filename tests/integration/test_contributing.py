@@ -17,6 +17,7 @@ def test_new(client: BotIntegrationClient):
         res = client.send_command_await("new", [uname])
         if client.get_me().id in settings.MODERATORS:
             assert 'is currently pending' in res.full_text.lower()
+            assert res.inline_keyboards[0].find_button(r'.*Accept.*')
         else:
             assert re.search('you submitted.*for approval', res.full_text, re.IGNORECASE)
     finally:

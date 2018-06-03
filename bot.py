@@ -63,7 +63,6 @@ def main():
     # thread = threading.Thread(target=botlistapi.start_server)
     # thread.start()
 
-    loop = asyncio.new_event_loop()
     botchecker_context = {}
 
     bot_token = str(settings.BOT_TOKEN)
@@ -86,7 +85,7 @@ def main():
 
     botlistbot.formatter = MarkdownFormatter(updater.bot)
 
-    # Get the dispatcher to register handlers
+    # Get the dispatcher to on_mount handlers
     dp = updater.dispatcher
 
     # message_queue = MessageQueue()
@@ -96,21 +95,22 @@ def main():
     # updater.bot.queuedmessage = messagequeue.queuedmessage
     # updater.bot.send_message = updater.bot.queuedmessage(updater.bot.send_message)
 
-    routing.register(dp)
-    basic.register(dp)
+    bot_checker = None
+    if settings.USE_USERBOT:
+        bot_checker = BotChecker(
+            event_loop=appglobals.loop,
+            session_name=settings.USERBOT_SESSION,
+            api_id=settings.API_ID,
+            api_hash=settings.API_HASH,
+            phone_number=settings.USERBOT_PHONE,
+        )
+        log.info("Starting Userbot...")
+        bot_checker.start()
+        log.info("Userbot running.")
 
     # Start Userbot
     if settings.RUN_BOTCHECKER:
         def start_botchecker():
-            bot_checker = BotChecker(
-                event_loop=loop,
-                session_name=settings.USERBOT_SESSION,
-                api_id=settings.API_ID,
-                api_hash=settings.API_HASH,
-                phone_number=settings.USERBOT_PHONE,
-            )
-            bot_checker.start()
-
             botchecker_context.update(
                 {'checker': bot_checker, 'stop': threading.Event()})
             updater.job_queue.run_repeating(
@@ -121,6 +121,9 @@ def main():
             )
 
         threading.Thread(target=start_botchecker, name="BotChecker").start()
+
+    routing.register(dp, bot_checker)
+    basic.register(dp)
 
     updater.job_queue.run_repeating(admin.last_update_job, interval=3600 * 24)
     updater.start_polling()

@@ -133,7 +133,7 @@ def show_new_bots(bot, update, chat_data, back_button=False):
     return ConversationHandler.END
 
 
-def send_category(bot, update, chat_data, category=None):
+def send_category(bot, update, chat_data, category):
     uid = util.uid_from_update(update)
     cid = update.effective_chat.id
     bots = Bot.of_category_without_new(category)[:settings.MAX_BOTS_PER_MESSAGE]
@@ -195,7 +195,9 @@ def send_bot_details(bot, update, chat_data, item=None):
                 "This bot is not in the @BotList. If you think this is a mistake, see the /examples for /contributing."))
             return
 
-    if item.approved:
+    if item.disabled:
+        txt = '{} {}.'.format(item, item.disabled_reason)
+    elif item.approved:
         # bot is already in the botlist => show information
         txt = item.detail_text
         if item.description is None and not Keyword.select().where(Keyword.entity == item).exists():
@@ -221,12 +223,11 @@ def send_bot_details(bot, update, chat_data, item=None):
                     {'id': item.id}
                 )))
 
+    buttons = [first_row]
     if is_group:
-        # TODO
-        reply_markup = InlineKeyboardMarkup([])
+        buttons = None  # TODO
     elif item.approved:
         # Add favorite button
-        buttons = [first_row]
         favorite_found = Favorite.search_by_bot(user, item)
         if favorite_found:
             buttons.append([
@@ -242,6 +243,10 @@ def send_bot_details(bot, update, chat_data, item=None):
                                          CallbackActions.ADD_TO_FAVORITES,
                                          {'id': item.id, 'details': True}))
             ])
+    else:
+        pass
+
+    if buttons:
         reply_markup = InlineKeyboardMarkup(buttons)
     else:
         reply_markup = None
