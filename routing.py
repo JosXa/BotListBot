@@ -287,10 +287,10 @@ def reply_router(bot, update, chat_data):
         raise DispatcherHandlerStop
     elif text == messages.BAN_MESSAGE:
         query = update.message.text
-        admin.ban_handler(bot, update, chat_data, query, True)
+        admin.ban_handler(bot, update, query, chat_data, True)
     elif text == messages.UNBAN_MESSAGE:
         query = update.message.text
-        admin.ban_handler(bot, update, chat_data, query, False)
+        admin.ban_handler(bot, update, query, chat_data, False)
 
 
 def register(dp: Dispatcher, bot_checker: BotChecker):
@@ -417,8 +417,6 @@ def register(dp: Dispatcher, bot_checker: BotChecker):
     add(RegexHandler('.*#offline.*', contributions.notify_bot_offline), group=1)
     add(CommandHandler('spam', contributions.notify_bot_spam, pass_args=True))
     add(RegexHandler('.*#spam.*', contributions.notify_bot_spam), group=1)
-    add(RegexHandler('^{}$'.format(settings.REGEX_BOT_ONLY), send_bot_details,
-                     pass_chat_data=True))
 
     add(CommandHandler('help', help.help))
     add(CommandHandler(("contribute", "contributing"), help.contributing))
@@ -478,6 +476,8 @@ def register(dp: Dispatcher, bot_checker: BotChecker):
     add(CommandHandler(('hint', 'hints'), botlistchat.show_available_hints))
 
     add(CommandHandler('ping', basic.ping))
+    add(RegexHandler('^{}$'.format(settings.REGEX_BOT_ONLY), send_bot_details,
+                     pass_chat_data=True))
 
     add(ChosenInlineResultHandler(inlinequeries.chosen_result, pass_chat_data=True))
     add(InlineQueryHandler(inlinequeries.inlinequery_handler, pass_chat_data=True))

@@ -95,6 +95,7 @@ def main():
     # updater.bot.send_message = updater.bot.queuedmessage(updater.bot.send_message)
 
     bot_checker = None
+
     if settings.USE_USERBOT:
         bot_checker = BotChecker(
             event_loop=appglobals.loop,
@@ -103,23 +104,23 @@ def main():
             api_hash=settings.API_HASH,
             phone_number=settings.USERBOT_PHONE,
         )
-        log.info("Starting Userbot...")
-        bot_checker.start()
-        log.info("Userbot running.")
 
-    # Start Userbot
-    if settings.RUN_BOTCHECKER:
-        def start_botchecker():
-            botchecker_context.update(
-                {'checker': bot_checker, 'stop': threading.Event()})
-            updater.job_queue.run_repeating(
-                botchecker.ping_bots_job,
-                context=botchecker_context,
-                first=1.5,
-                interval=settings.BOTCHECKER_INTERVAL
-            )
+        def start_userbot():
+            log.info("Starting Userbot...")
+            bot_checker.start()
+            log.info("Userbot running.")
 
-        threading.Thread(target=start_botchecker, name="BotChecker").start()
+            if settings.RUN_BOTCHECKER:
+                botchecker_context.update(
+                    {'checker': bot_checker, 'stop': threading.Event()})
+                updater.job_queue.run_repeating(
+                    botchecker.ping_bots_job,
+                    context=botchecker_context,
+                    first=1.5,
+                    interval=settings.BOTCHECKER_INTERVAL
+                )
+
+        threading.Thread(target=start_userbot, name="BotChecker").start()
 
     routing.register(dp, bot_checker)
     basic.register(dp)

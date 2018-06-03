@@ -8,7 +8,7 @@ from peewee import fn
 from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, \
     ReplyKeyboardMarkup, \
     TelegramError
-from telegram.ext import ConversationHandler, Job
+from telegram.ext import ConversationHandler, Job, DispatcherHandlerStop
 from typing import Dict
 
 import captions
@@ -689,11 +689,11 @@ def ban_user(_bot, update, user: User, ban_state: bool):
     if user.banned and ban_state is True:
         update.message.reply_text(mdformat.none_action("User {} is already banned.".format(user)),
                                   parse_mode='markdown')
-        return
+        raise DispatcherHandlerStop
     if not user.banned and ban_state is False:
         update.message.reply_text(mdformat.none_action("User {} is not banned.".format(user)),
                                   parse_mode='markdown')
-        return
+        raise DispatcherHandlerStop
     user.banned = ban_state
     if ban_state is True:
         with db.atomic():

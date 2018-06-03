@@ -407,7 +407,7 @@ async def run(telegram_bot, bot_checker, bots, stop_event: threading.Event = Non
             expected_total=len(bots),
     ) as pool:
         for to_check in bots:
-            print('ADDED')
+            # TODO: implement properly
             if stop_event and stop_event.is_set():
                 print('JOINING')
                 pool.join()
