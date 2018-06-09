@@ -8,7 +8,7 @@ from peewee import fn
 from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, \
     ReplyKeyboardMarkup, \
     TelegramError
-from telegram.ext import ConversationHandler, Job, DispatcherHandlerStop
+from telegram.ext import ConversationHandler, DispatcherHandlerStop, Job
 from typing import Dict
 
 import captions
@@ -770,11 +770,12 @@ def last_update_job(bot, job: Job):
         difference = today - last_update
 
         if difference > delta:
-            for a in settings.MODERATORS:
+            for admin in settings.ADMINS:
                 try:
-                    bot.sendMessage(a,
-                                    "Last @BotList update was {} days ago. UPDATE NOW YOU CARNT! /admin".format(
-                                        difference.days))
+                    bot.sendMessage(
+                        admin,
+                        f"Last @BotList update was {difference.days} days ago. "
+                        f"UPDATE NOW YOU CARNT! /admin")
                 except TelegramError:
                     pass
 
