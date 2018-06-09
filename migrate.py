@@ -2,9 +2,9 @@ from playhouse.migrate import SqliteMigrator, BooleanField, migrate, IntegerFiel
 from peewee import *
 
 import appglobals
-from model import Bot, User, Suggestion
-from model.basemodel import EnumField
-from model.keywordmodel import Keyword
+from models import Bot, User, Suggestion
+from models.basemodel import EnumField
+from models.keywordmodel import Keyword
 
 migrator = SqliteMigrator(appglobals.db)
 

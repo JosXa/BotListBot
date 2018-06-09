@@ -2,7 +2,7 @@
 import emoji
 from peewee import *
 
-from model.basemodel import BaseModel
+from models.basemodel import BaseModel
 
 
 class Country(BaseModel):

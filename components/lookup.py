@@ -1,4 +1,4 @@
-from model import User, Bot
+from models import User, Bot
 
 
 def lookup_entity(query, exact=True):
@@ -10,14 +10,19 @@ def lookup_entity(query, exact=True):
             return Bot.by_username(query, include_disabled=True)
         except Bot.DoesNotExist:
             pass
+
         try:
-            return Bot.get(chat_id=query)
+            return Bot.get(chat_id=int(query))
+        except ValueError:
+            pass
         except Bot.DoesNotExist:
             pass
+
         try:
             return User.by_username(query)
         except User.DoesNotExist:
             pass
+
         try:
             return User.get(chat_id=query)
         except User.DoesNotExist:

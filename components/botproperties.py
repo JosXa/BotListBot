@@ -13,7 +13,7 @@ from const import BotStates, CallbackActions
 from custemoji import Emoji
 from dialog import messages
 from lib import InlineCallbackButton
-from model import Bot, Country, Keyword, Statistic, Suggestion, User, track_activity
+from models import Bot, Country, Keyword, Statistic, Suggestion, User, track_activity
 from util import restricted
 
 CLEAR_QUERY = "x"

@@ -10,7 +10,7 @@ from telegram import InlineKeyboardMarkup
 from telegram import ParseMode
 from telegram.ext import ConversationHandler
 
-from model import track_activity
+from models import track_activity
 from util import track_groups
 
 

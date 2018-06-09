@@ -1,6 +1,6 @@
 from playhouse.sqlite_ext import *
 
-from model.basemodel import BaseFTSModel
+from models.basemodel import BaseFTSModel
 
 
 class BotIndex(BaseFTSModel):

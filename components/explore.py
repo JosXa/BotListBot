@@ -14,7 +14,7 @@ from components import botlistchat
 from const import CallbackActions, CallbackStates
 from dialog import messages
 from lib import InlineCallbackButton
-from model import Bot, Category, Favorite, Keyword, Statistic, User, track_activity
+from models import Bot, Category, Favorite, Keyword, Statistic, User, track_activity
 from util import track_groups
 
 log = logging.getLogger()

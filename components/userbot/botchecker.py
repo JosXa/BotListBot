@@ -31,7 +31,7 @@ import settings
 import util
 from const import CallbackActions
 from helpers import make_sticker
-from model import Bot, Bot as BotModel, Keyword
+from models import Bot, Bot as BotModel, Keyword
 
 logging.getLogger().setLevel(logging.WARNING)
 

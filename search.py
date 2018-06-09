@@ -3,10 +3,10 @@ import re
 from peewee import fn
 
 import settings
-from model import Bot
-from model import Category
-from model import Keyword
-from model.revision import Revision
+from models import Bot
+from models import Category
+from models import Keyword
+from models.revision import Revision
 
 
 def search_bots(query):

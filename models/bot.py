@@ -9,11 +9,11 @@ from typing import List
 import helpers
 import settings
 import util
-from model.basemodel import BaseModel, EnumField
-from model.category import Category
-from model.country import Country
-from model.revision import Revision
-from model.user import User
+from models.basemodel import BaseModel, EnumField
+from models.category import Category
+from models.country import Country
+from models.revision import Revision
+from models.user import User
 
 
 class Bot(BaseModel):
@@ -144,7 +144,7 @@ class Bot(BaseModel):
 
     @property
     def detail_text(self):
-        from model import Keyword
+        from models import Keyword
         keywords = Keyword.select().where(Keyword.entity == self)
         txt = '{}'.format(self.__str__())
         txt += '\n_{}_'.format(util.escape_markdown(self.name)) if self.name else ''
@@ -244,7 +244,7 @@ class Bot(BaseModel):
 
     @property
     def keywords(self):
-        from model.keywordmodel import Keyword
+        from models.keywordmodel import Keyword
         return Keyword.select().where(Keyword.entity == self)
 
     @property

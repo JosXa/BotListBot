@@ -18,8 +18,8 @@ from components import help
 from components.botlist import new_channel_post
 from components.search import search_handler, search_query
 from dialog import messages
-from model import Category, User
-from model.statistic import Statistic, track_activity
+from models import Category, User
+from models.statistic import Statistic, track_activity
 from util import track_groups
 
 log = logging.getLogger(__name__)

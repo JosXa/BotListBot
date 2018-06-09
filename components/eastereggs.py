@@ -3,7 +3,7 @@ from pprint import pprint
 
 from peewee import fn
 
-from model import Bot
+from models import Bot
 
 from telegram import ReplyKeyboardMarkup
 
@@ -11,7 +11,7 @@ import util
 from telegram import KeyboardButton
 
 import captions
-from model import track_activity
+from models import track_activity
 
 
 @track_activity('easteregg', '"crappy troll markup"')

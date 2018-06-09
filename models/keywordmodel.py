@@ -2,8 +2,8 @@
 from peewee import *
 from typing import Set
 
-from model.basemodel import BaseModel
-from model.bot import Bot
+from models.basemodel import BaseModel
+from models.bot import Bot
 
 
 class Keyword(BaseModel):

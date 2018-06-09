@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from peewee import *
 from telegram import Chat
-from model.basemodel import BaseModel
+from models.basemodel import BaseModel
 
 
 class Group(BaseModel):

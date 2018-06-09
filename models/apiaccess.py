@@ -2,8 +2,8 @@
 from peewee import *
 from telegram import User as TelegramUser
 import util
-from model.user import User
-from model.basemodel import BaseModel
+from models.user import User
+from models.basemodel import BaseModel
 
 
 class APIAccess(BaseModel):

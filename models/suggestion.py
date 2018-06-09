@@ -5,8 +5,8 @@ from peewee import *
 
 import settings
 import util
-from model import Bot, Keyword, User
-from model.basemodel import BaseModel
+from models import Bot, Keyword, User
+from models.basemodel import BaseModel
 
 
 class Suggestion(BaseModel):
@@ -49,8 +49,8 @@ class Suggestion(BaseModel):
     @property
     def value(self):
         # cast types
-        from model import Category
-        from model import Country
+        from models import Category
+        from models import Country
 
         if self._value == 'None':
             return None
@@ -72,7 +72,7 @@ class Suggestion(BaseModel):
 
     @staticmethod
     def add_or_update(user, action, subject, value):
-        from model import Statistic
+        from models import Statistic
         # value may be None
         already_exists = Suggestion.get_pending(action, subject, user, value)
         if already_exists:
@@ -157,7 +157,7 @@ class Suggestion(BaseModel):
             return False
 
         if self.action == 'category':
-            from model import Category
+            from models import Category
             try:
                 cat = Category.get(Category.id == self.value)
                 self.subject.category = cat
@@ -175,7 +175,7 @@ class Suggestion(BaseModel):
             if self._value == 'None' or self._value is None:
                 self.subject.country = None
             else:
-                from model import Country
+                from models import Country
                 try:
                     con = Country.get(id=self._value)
                     self.subject.country = con
@@ -220,7 +220,7 @@ class Suggestion(BaseModel):
 
         text = ''
         if self.action == 'category':
-            from model import Category
+            from models import Category
             try:
                 cat = Category.get(id=self.value)
                 text += "move {} ➜ {}".format(uname, cat.name)
@@ -239,7 +239,7 @@ class Suggestion(BaseModel):
             if self._value == 'None' or self._value is None:
                 text += "None"
             else:
-                from model import Country
+                from models import Country
                 try:
                     con = Country.get(id=self._value)
                     text += str(con)

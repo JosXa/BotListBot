@@ -70,6 +70,8 @@ FORBIDDEN_KEYWORDS = config('FORBIDDEN_KEYWORDS', cast=Csv(), default=[])
 
 DEBUG_LOG_FILE = "botlistbot.log"
 
+BOTLIST_REQUESTS_CHANNEL = None
+
 if not os.path.exists(BOT_THUMBNAIL_DIR):
     os.makedirs(BOT_THUMBNAIL_DIR)
 

@@ -9,10 +9,10 @@ import search
 import util
 from components import favorites, botlistchat
 from dialog import messages
-from model import Bot, Category
-from model import Favorite
-from model import Statistic
-from model import User
+from models import Bot, Category
+from models import Favorite
+from models import Statistic
+from models import User
 from telegram import InlineKeyboardButton
 from telegram import InlineKeyboardMarkup
 from telegram import InlineQueryResultArticle

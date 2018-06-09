@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-# -*- coding: utf-8 -*-
 from peewee import *
 
-from model.basemodel import BaseModel
+from models.basemodel import BaseModel
 
 
 class Channel(BaseModel):
@@ -18,7 +18,7 @@ class Channel(BaseModel):
 
 from peewee import *
 
-from model.basemodel import BaseModel
+from models.basemodel import BaseModel
 
 
 class Channel(BaseModel):

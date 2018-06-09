@@ -60,7 +60,7 @@ def get_commands():
 
 
 def get_channel():
-    from model import Channel
+    from models import Channel
     try:
         return Channel.get(Channel.username == SELF_CHANNEL_USERNAME)
     except Channel.DoesNotExist:

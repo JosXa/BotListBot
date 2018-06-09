@@ -16,9 +16,9 @@ from bot import log
 from const import *
 from const import BotStates, CallbackActions
 from custemoji import Emoji
-from model import Bot
-from model import Category
-from model import Suggestion
+from models import Bot
+from models import Category
+from models import Suggestion
 from util import restricted
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)

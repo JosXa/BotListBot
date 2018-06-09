@@ -13,12 +13,12 @@ import settings
 import util
 from custemoji import Emoji
 from dialog import messages
-from model import Bot, Country
-from model import Category
-from model import Notifications
-from model import Statistic
-from model.channel import Channel
-from model.revision import Revision
+from models import Bot, Country
+from models import Category
+from models import Notifications
+from models import Statistic
+from models.channel import Channel
+from models.revision import Revision
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import BadRequest, TelegramError
 from telegram.ext.dispatcher import run_async

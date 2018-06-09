@@ -14,8 +14,8 @@ from appglobals import loop
 from components.admin import notify_submittant_rejected
 from components.userbot import BotChecker
 from components.userbot.botchecker import add_keywords, download_profile_picture
-from model import Bot, Country, Suggestion, User
-from model.revision import Revision
+from models import Bot, Country, Suggestion, User
+from models.revision import Revision
 from util import track_groups
 
 
@@ -174,7 +174,10 @@ def new_bot_submission(bot, update, chat_data, args=None, bot_checker=None):
             util.success("You submitted {} for approval.{}".format(new_bot, description_notify)),
             parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
 
-    check_submission(bot, bot_checker, new_bot)
+    try:
+        check_submission(bot, bot_checker, new_bot)
+    except Exception as e:
+        log.exception(e)
 
     return ConversationHandler.END
 

@@ -15,12 +15,12 @@ import settings
 import util
 from dialog import messages
 from layouts import Layouts
-from model import Bot
-from model import Favorite
-from model import Statistic
-from model import User
+from models import Bot
+from models import Favorite
+from models import Statistic
+from models import User
 from const import CallbackActions, DeepLinkingActions
-from model import track_activity
+from models import track_activity
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)

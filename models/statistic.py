@@ -7,8 +7,8 @@ from telegram import Update
 
 import helpers
 import util
-from model import User
-from model.basemodel import BaseModel
+from models import User
+from models.basemodel import BaseModel
 
 
 def track_activity(action: str, entity: str = None, level: int = logging.INFO):

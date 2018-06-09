@@ -3,7 +3,7 @@ from functools import lru_cache
 
 from peewee import *
 
-from model.basemodel import BaseModel
+from models.basemodel import BaseModel
 
 
 class Revision(BaseModel):

@@ -6,8 +6,8 @@ from telegram import ParseMode
 from telegram.ext import ConversationHandler
 
 import util
-from model import Statistic, APIAccess
-from model import User, Bot, Notifications
+from models import Statistic, APIAccess
+from models import User, Bot, Notifications
 from util import restricted
 
 

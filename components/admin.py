@@ -22,7 +22,7 @@ from const import *
 from const import BotStates, CallbackActions
 from custemoji import Emoji
 from dialog import messages
-from model import Bot, Category, Revision, Statistic, Suggestion, User, track_activity
+from models import Bot, Category, Revision, Statistic, Suggestion, User, track_activity
 from util import restricted
 
 
@@ -766,7 +766,7 @@ def last_update_job(bot, job: Job):
     last_update = helpers.get_channel().last_update
     if last_update:
         today = datetime.date.today()
-        delta = datetime.timedelta(days=7)
+        delta = datetime.timedelta(days=10)
         difference = today - last_update
 
         if difference > delta:

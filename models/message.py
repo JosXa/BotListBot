@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from peewee import *
 
-from model import Bot
-from model.basemodel import BaseModel
+from models import Bot
+from models.basemodel import BaseModel
 
 
 class Message(BaseModel):

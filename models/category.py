@@ -4,7 +4,7 @@ from peewee import *
 
 import const
 import helpers
-from model.basemodel import BaseModel
+from models.basemodel import BaseModel
 
 
 class Category(BaseModel):

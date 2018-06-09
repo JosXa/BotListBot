@@ -9,9 +9,9 @@ from flask_autodoc.autodoc import Autodoc
 from peewee import fn
 
 import settings
-from model import Bot
-from model import Category
-from model.apiaccess import APIAccess
+from models import Bot
+from models import Category
+from models.apiaccess import APIAccess
 
 
 def md2html(text):

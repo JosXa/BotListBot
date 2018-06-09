@@ -26,7 +26,7 @@ def stop_banned(update, user):
 
 
 def track_groups(func):
-    from model.group import Group
+    from models.group import Group
     """
     Decorator that stores all groups that the bot has been added to
     """

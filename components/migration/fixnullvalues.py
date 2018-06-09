@@ -1,5 +1,5 @@
-from model import Bot
-from model import User
+from models import Bot
+from models import User
 
 if __name__ == '__main__':
     all_bots = Bot.select()

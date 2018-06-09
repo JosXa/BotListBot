@@ -6,11 +6,11 @@ from peewee import *
 
 import helpers
 import util
-from model import Bot
-from model.basemodel import BaseModel
-from model.category import Category
-from model.country import Country
-from model.user import User
+from models import Bot
+from models.basemodel import BaseModel
+from models.category import Category
+from models.country import Country
+from models.user import User
 
 
 class Favorite(BaseModel):

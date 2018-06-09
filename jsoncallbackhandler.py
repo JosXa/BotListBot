@@ -6,8 +6,8 @@ from pprint import pprint
 
 from future.utils import string_types
 
-from model import Bot
-from model import Category
+from models import Bot
+from models import Category
 from telegram import Update
 from telegram.utils.deprecate import deprecate
 from telegram.ext.handler import Handler

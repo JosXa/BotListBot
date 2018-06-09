@@ -12,7 +12,7 @@ import util
 from components import errors
 from components.botlistchat import BROADCAST_REPLACEMENTS, _delete_multiple_delayed
 from const import BotStates
-from model import User
+from models import User
 from util import restricted
 
 

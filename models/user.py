@@ -7,7 +7,7 @@ from telegram import User as TelegramUser
 
 import util
 from layouts import Layouts
-from model.basemodel import BaseModel
+from models.basemodel import BaseModel
 
 
 class User(BaseModel):
@@ -46,12 +46,12 @@ class User(BaseModel):
 
     @property
     def has_favorites(self):
-        from model import Favorite
+        from models import Favorite
         return Favorite.select().where(Favorite.user == self).count() > 0
 
     @property
     def num_contributions(self):
-        from model import Bot
+        from models import Bot
         return Bot.select().where(Bot.submitted_by == self).count()
 
     @property

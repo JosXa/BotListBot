@@ -7,7 +7,7 @@ import settings
 import util
 from const import CallbackActions
 from dialog import messages
-from model import track_activity
+from models import track_activity
 
 HINTS = {
     '#inline': {
