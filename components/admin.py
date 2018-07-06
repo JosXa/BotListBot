@@ -751,18 +751,7 @@ def ban_bot(bot, update, chat_data, to_ban: Bot, ban_state: bool):
 
 
 def last_update_job(bot, job: Job):
-    ## SEND A MESSAGE
-    # user_ids = [u.chat_id for u in User.select()]
-    # not_sent = list()
-    # for uid in user_ids:
-    #     import bot as botlistbot
-    #     try:
-    #         bot.sendMessage(uid, "Hey, check out my new Keyboard! 😍",
-    #                         reply_markup=ReplyKeyboardMarkup(botlistbot._main_menu_buttons()))
-    #     except TelegramError:
-    #         not_sent.append(uid)
-    # pprint(not_sent)
-
+    return  # make admins happy :)
     last_update = helpers.get_channel().last_update
     if last_update:
         today = datetime.date.today()
