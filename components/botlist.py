@@ -19,8 +19,9 @@ from models import Notifications
 from models import Statistic
 from models.channel import Channel
 from models.revision import Revision
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.error import BadRequest, TelegramError
+from telegram.ext import CallbackContext
 from telegram.ext.dispatcher import run_async
 from util import restricted
 
@@ -41,7 +42,7 @@ class BotList:
     ENGLISH_INTRO_TEXT = 'files/intro_en.txt'
     SPANISH_INTRO_TEXT = 'files/intro_es.txt'
 
-    def __init__(self, bot, update, channel, resend, silent):
+    def __init__(self, update: Update, context: CallbackContext, channel, resend, silent):
         if not channel:
             self.notify_admin_err(
                 "I don't know the channel `{}`. Please make sure I am an admin there, "
@@ -49,7 +50,7 @@ class BotList:
                     self.channel.username))
             return
 
-        self.bot = bot
+        self.bot = context.bot
         self.update = update
         self.channel = channel
         self.resend = resend
@@ -57,7 +58,7 @@ class BotList:
         self.sent = dict()
         self.sent['category'] = list()
         self.chat_id = update.effective_chat.id
-        self.message_id = util.mid_from_update(update)
+        self.message_id = update.effective_message.message_id
 
     def notify_admin(self, txt):
         self.bot.formatter.send_or_edit(self.chat_id, Emoji.HOURGLASS_WITH_FLOWING_SAND + ' ' + txt,
@@ -320,7 +321,7 @@ class BotList:
 
 @restricted(strict=True)
 @run_async
-def send_botlist(bot, update, resend=False, silent=False):
+def send_botlist(update: Update, context: CallbackContext, resend=False, silent=False):
     log.info("Re-sending BotList..." if resend else "Updating BotList...")
 
     channel = helpers.get_channel()
@@ -330,7 +331,7 @@ def send_botlist(bot, update, resend=False, silent=False):
 
     all_categories = Category.select_all()
 
-    botlist = BotList(bot, update, channel, resend, silent)
+    botlist = BotList(update, context, channel, resend, silent)
     if resend:
         botlist.delete_full_botlist()
     botlist.update_intro()
@@ -343,71 +344,71 @@ def send_botlist(bot, update, resend=False, silent=False):
     Statistic.of(update, 'send', 'botlist (resend: {})'.format(str(resend)), Statistic.IMPORTANT)
 
 
-def new_channel_post(bot, update, photo=None):
-    post = update.channel_post
-    if post.chat.username != settings.SELF_CHANNEL_USERNAME:
-        return
-    text = post.text
-
-    channel, created = Channel.get_or_create(chat_id=post.chat_id, username=post.chat.username)
-    if created:
-        channel.save()
-
-    category_list = '•Share your bots to the @BotListChat using the hashtag #new' in text
-    intro = 'Hi! Welcome' in text
-    category = text[0] == '•' and not category_list
-    new_bots_list = 'NEW→' in text
-
-    # TODO: is this a document?
-    if photo:
-        pass
-    elif category:
-        try:
-            # get the category meta data
-            meta = re.match(r'•(.*?)([A-Z].*):(?:\n(.*):)?', text).groups()
-            if len(meta) < 2:
-                raise ValueError("Category could not get parsed.")
-
-            emojis = str.strip(meta[0])
-            name = str.strip(meta[1])
-            extra = str.strip(meta[2]) if meta[2] else None
-            try:
-                cat = Category.get(name=name)
-            except Category.DoesNotExist:
-                cat = Category(name=name)
-            cat.emojis = emojis
-            cat.extra = extra
-            cat.save()
-
-            # get the bots in that category
-            bots = re.findall(r'^(🆕)?.*(@\w+)( .+)?$', text, re.MULTILINE)
-            languages = Country.select().execute()
-            for b in bots:
-                username = b[1]
-                try:
-                    new_bot = Bot.by_username(username)
-                except Bot.DoesNotExist:
-                    new_bot = Bot(username=username)
-
-                new_bot.category = cat
-
-                new_bot.inlinequeries = "🔎" in b[2]
-                new_bot.official = "🔹" in b[2]
-
-                extra = re.findall(r'(\[.*\])', b[2])
-                if extra:
-                    new_bot.extra = extra[0]
-
-                # find language
-                for lang in languages:
-                    if lang.emoji in b[2]:
-                        new_bot.country = lang
-
-                if b[0]:
-                    new_bot.date_added = datetime.date.today()
-                else:
-                    new_bot.date_added = datetime.date.today() - datetime.timedelta(days=31)
-
-                new_bot.save()
-        except AttributeError:
-            log.error("Error parsing the following text:\n" + text)
+# def new_channel_post(bot, update, photo=None):
+#     post = update.channel_post
+#     if post.chat.username != settings.SELF_CHANNEL_USERNAME:
+#         return
+#     text = post.text
+#
+#     channel, created = Channel.get_or_create(chat_id=post.chat_id, username=post.chat.username)
+#     if created:
+#         channel.save()
+#
+#     category_list = '•Share your bots to the @BotListChat using the hashtag #new' in text
+#     intro = 'Hi! Welcome' in text
+#     category = text[0] == '•' and not category_list
+#     new_bots_list = 'NEW→' in text
+#
+#     # TODO: is this a document?
+#     if photo:
+#         pass
+#     elif category:
+#         try:
+#             # get the category meta data
+#             meta = re.match(r'•(.*?)([A-Z].*):(?:\n(.*):)?', text).groups()
+#             if len(meta) < 2:
+#                 raise ValueError("Category could not get parsed.")
+#
+#             emojis = str.strip(meta[0])
+#             name = str.strip(meta[1])
+#             extra = str.strip(meta[2]) if meta[2] else None
+#             try:
+#                 cat = Category.get(name=name)
+#             except Category.DoesNotExist:
+#                 cat = Category(name=name)
+#             cat.emojis = emojis
+#             cat.extra = extra
+#             cat.save()
+#
+#             # get the bots in that category
+#             bots = re.findall(r'^(🆕)?.*(@\w+)( .+)?$', text, re.MULTILINE)
+#             languages = Country.select().execute()
+#             for b in bots:
+#                 username = b[1]
+#                 try:
+#                     new_bot = Bot.by_username(username)
+#                 except Bot.DoesNotExist:
+#                     new_bot = Bot(username=username)
+#
+#                 new_bot.category = cat
+#
+#                 new_bot.inlinequeries = "🔎" in b[2]
+#                 new_bot.official = "🔹" in b[2]
+#
+#                 extra = re.findall(r'(\[.*\])', b[2])
+#                 if extra:
+#                     new_bot.extra = extra[0]
+#
+#                 # find language
+#                 for lang in languages:
+#                     if lang.emoji in b[2]:
+#                         new_bot.country = lang
+#
+#                 if b[0]:
+#                     new_bot.date_added = datetime.date.today()
+#                 else:
+#                     new_bot.date_added = datetime.date.today() - datetime.timedelta(days=31)
+#
+#                 new_bot.save()
+#         except AttributeError:
+#             log.error("Error parsing the following text:\n" + text)

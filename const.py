@@ -19,7 +19,7 @@ class BotStates:
     *rest = big_range
 
 
-class CallbackStates:
+class States:
     SHOWING_BOT_DETAILS, \
     SELECTING_BOT, \
     SELECTING_CATEGORY, \

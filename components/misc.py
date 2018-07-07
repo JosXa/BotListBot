@@ -60,5 +60,5 @@ def set_notifications(bot, update, value: bool):
 
     msg = util.success("Nice! Notifications enabled.") if value else "Ok, notifications disabled."
     msg += '\nYou can always adjust this setting with the /subscribe command.'
-    bot.formatter.send_or_edit(cid, msg, to_edit=util.mid_from_update(update))
+    bot.formatter.send_or_edit(cid, msg, to_edit=update.effective_message.message_id)
     return ConversationHandler.END

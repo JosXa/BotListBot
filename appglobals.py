@@ -23,11 +23,11 @@ def disconnect():
     pass  # I assume this is done by peewee automatically upon receiving a signal
 
 
+redis = StrictRedis(config("REDIS_URL", default=None))
+
 # globals
 db = db()
 
 loop = asyncio.get_event_loop()
 
-
 # redis = StrictRedis(host='localhost', port=6379, db=0)
-

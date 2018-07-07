@@ -1,48 +1,119 @@
-from uuid import uuid4
+from collections import Iterable
 
 import emoji
+from typing import Dict, TypeVar
+from uuid import uuid4
 
 import captions
 import const
 import mdformat
 import search
 import util
-from components import favorites, botlistchat
+from actions import *
+from components import botlistchat, favorites
 from dialog import messages
-from models import Bot, Category
-from models import Favorite
-from models import Statistic
-from models import User
-from telegram import InlineKeyboardButton
-from telegram import InlineKeyboardMarkup
-from telegram import InlineQueryResultArticle
-from telegram import InputTextMessageContent
-from telegram import ParseMode
+from models import Bot, Category, Favorite, Statistic, User
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InlineQueryResult, InlineQueryResultArticle, \
+    InputTextMessageContent, ParseMode, Update
+from telegram.ext import CallbackContext, Dispatcher
 
 # CONSTANTS
+from telegram.flow.actionbutton import ActionButton
+
 MAX_BOTS = 30
 SEARCH_QUERY_MIN_LENGTH = 2
 CONTRIBUTING_QUERIES = [const.DeepLinkingActions.CONTRIBUTING, 'ctrbt', 'contrib']
 EXAMPLES_QUERIES = ['example', const.DeepLinkingActions.EXAMPLES]
 
 
+# TODO:
+class MessageBlueprint:
+    pass
+
+
+class MessageBuilder:
+    def __init__(self, text):
+        pass
+
+    def render(self) -> MessageBlueprint:
+        raise NotImplemented  # TODO
+
+
+# ENDTODO
+
+
+class ArticleBuilder:
+    def __init__(self, title: str = None):
+        self.title = title
+        self.message_text: str = None
+        self.parse_mode: ParseMode = None
+        self.disable_web_page_preview: bool = True
+        self._id = None
+
+        # Data for custom values
+        self.data: Dict = {}
+
+    def render(self, result_action_id=None, callback_manager=None) -> InlineQueryResultArticle:
+        if not self._id:
+            if self.data:
+                if not all((callback_manager, result_action_id)):
+                    raise ValueError("If `data` is provided, the `result_action_id` and `callback_manager` arguments "
+                                     "must be given in order to persist the values.")
+                self._id = callback_manager.create_callback(result_action_id, self.data)
+            else:
+                self._id = str(uuid4())  # No callback necessary
+
+        return InlineQueryResultArticle(
+            action=self._id,
+            title=self.title,
+            input_message_content=InputTextMessageContent(
+                message_text=self.message_text,
+                parse_mode=self.parse_mode,
+                disable_web_page_preview=self.disable_web_page_preview
+            )
+        )
+
+
+Articles = TypeVar([ArticleBuilder, InlineQueryResult])
+
+
+class ArticleContainer:
+    def __init__(self, chat_id):
+        self.chat_id = chat_id
+        self.results = None
+        self.head = []
+        self.footer = []
+
+    @staticmethod
+    def __make_list(articles):
+        if not isinstance(articles, Iterable):
+            articles = [articles]
+        return articles
+
+    def set_head(self, articles):
+        self.head = self.__make_list(articles)
+
+    def set_footer(self, articles):
+        self.footer = self.__make_list(articles)
+
+    def add_article(self, articles: Articles):
+        self.results.append(articles)
+
+
 def query_too_short_article():
-    txt = '[I am a stupid, crazy fool.](https://www.youtube.com/watch?v=DLzxrzFCyOs)'
-    return InlineQueryResultArticle(
-        id=uuid4(),
-        title=util.action_hint('Your search term must be at least {} characters long.'.format(
-            SEARCH_QUERY_MIN_LENGTH)),
-        input_message_content=InputTextMessageContent(message_text=txt,
-                                                      parse_mode="Markdown",
-                                                      disable_web_page_preview=True)
+    art = ArticleBuilder(
+        title='Your search term must be at least {} characters long.'.format(SEARCH_QUERY_MIN_LENGTH)
     )
+    art.message_text = '[I am a stupid, crazy fool.](https://www.youtube.com/watch?v=DLzxrzFCyOs)'
+    art.parse_mode = 'markdown'
+    return art
 
 
 def new_bots_article():
     from components.explore import _new_bots_text
     msg_text = messages.PROMOTION_MESSAGE + '\n\n' + _new_bots_text()
     return InlineQueryResultArticle(
-        id=uuid4(),
+        action=uuid4(),
         title='🆕 New Bots',
         input_message_content=InputTextMessageContent(message_text=msg_text, parse_mode="Markdown"),
         description='Bots added since the last update',
@@ -56,7 +127,7 @@ def category_article(cat):
     txt += "There are *{}* bots in the category *{}*:\n\n".format(len(cat_bots), str(cat))
     txt += '\n'.join([str(b) for b in cat_bots])
     return InlineQueryResultArticle(
-        id=uuid4(),
+        action=uuid4(),
         title=emoji.emojize(cat.emojis, use_aliases=True) + cat.name,
         input_message_content=InputTextMessageContent(message_text=txt,
                                                       parse_mode=ParseMode.MARKDOWN),
@@ -69,11 +140,14 @@ def bot_article(b):
     txt = '{} ➡️ {}'.format(messages.rand_call_to_action(), b.detail_text)
     txt += '\n\n' + messages.PROMOTION_MESSAGE
     buttons = [
-        [InlineKeyboardButton(captions.ADD_TO_FAVORITES, callback_data=util.callback_for_action(
-            const.CallbackActions.ADD_TO_FAVORITES, {'id': b.id, 'discreet': True}))]]
+        [
+            ActionButton(Actions.ADD_TO_FAVORITES, view_data=BotNotifyModel(bot=b, discreet=True)),
+            ActionButton(Actions.EDIT_BOT, view_data=BotNotifyModel(bot=b), switch_inline_current_chat=b.username)
+        ]
+    ]
     reply_markup = InlineKeyboardMarkup(buttons)
     return InlineQueryResultArticle(
-        id=uuid4(),
+        action=uuid4(),
         title=b.str_no_md,
         input_message_content=InputTextMessageContent(message_text=txt,
                                                       parse_mode=ParseMode.MARKDOWN),
@@ -88,7 +162,7 @@ def all_bot_results_article(lst, too_many_results):
     txt += "{} one of these {} bots:\n\n".format(messages.rand_call_to_action(), len(lst))
     txt += '\n'.join([str(b) for b in lst])
     return InlineQueryResultArticle(
-        id=uuid4(),
+        action=uuid4(),
         title='{} {} ʙᴏᴛ ʀᴇsᴜʟᴛs'.format(
             mdformat.smallcaps("Send"),
             len(lst)),
@@ -103,7 +177,7 @@ def favorites_article(user):
     fav_list = Favorite.select_all(user)
     text = favorites._favorites_categories_md(fav_list) + '\n\n' + messages.PROMOTION_MESSAGE
     return InlineQueryResultArticle(
-        id=uuid4(),
+        action=uuid4(),
         title=captions.FAVORITES,
         input_message_content=InputTextMessageContent(message_text=text,
                                                       parse_mode="Markdown"),
@@ -112,7 +186,7 @@ def favorites_article(user):
 
 def hint_article(msg, reply_markup, key):
     return InlineQueryResultArticle(
-        id=uuid4(),
+        action=uuid4(),
         title=key.replace('#', '').capitalize() + ' hint',
         input_message_content=InputTextMessageContent(
             message_text=msg,
@@ -123,7 +197,7 @@ def hint_article(msg, reply_markup, key):
     )
 
 
-def inlinequery_handler(bot, update, chat_data):
+def inlinequery_handler(update: Update, context: CallbackContext):
     query = update.inline_query.query.lower()
 
     # TODO: remove or enhance eventually, this is potentially very spammy
@@ -153,50 +227,50 @@ def inlinequery_handler(bot, update, chat_data):
     # query for new bots
     if query == messages.NEW_BOTS_INLINEQUERY.lower() or query == 'new':
         results_list.append(new_bots_article())
-        bot.answerInlineQuery(update.inline_query.id, results=results_list)
+        context.bot.answerInlineQuery(update.inline_query.id, results=results_list)
         return
 
     if query in CONTRIBUTING_QUERIES:
         results_list.append(InlineQueryResultArticle(
-            id=uuid4(),
+            action=uuid4(),
             title='Contributing',
             input_message_content=InputTextMessageContent(message_text=messages.CONTRIBUTING,
                                                           parse_mode="Markdown"),
         ))
-        bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=600)
+        context.bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=600)
         return
 
     if query in EXAMPLES_QUERIES:
         results_list.append(InlineQueryResultArticle(
-            id=uuid4(),
+            action=uuid4(),
             title='Examples',
             input_message_content=InputTextMessageContent(message_text=messages.EXAMPLES,
                                                           parse_mode="Markdown"),
         ))
-        bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=600)
+        context.bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=600)
         return
 
     if query in (const.DeepLinkingActions.RULES, '#rules'):
         results_list.append(InlineQueryResultArticle(
-            id=uuid4(),
+            action=uuid4(),
             title='@BotListChat Rules',
             input_message_content=InputTextMessageContent(message_text=messages.BOTLISTCHAT_RULES,
                                                           parse_mode="Markdown",
                                                           disable_web_page_preview=True),
         ))
-        bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=600)
+        context.bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=600)
         return
 
     if query == const.DeepLinkingActions.FAVORITES and user.has_favorites:
         results_list.append(favorites_article(user))
-        bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=0,
-                              is_personal=True)
+        context.bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=0,
+                                      is_personal=True)
         return
 
     msg, reply_markup, key = botlistchat.get_hint_message_and_markup(query)
     if msg is not None:
         results_list.append(hint_article(msg, reply_markup, key))
-        bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=600)
+        context.bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=600)
         return
 
     invalid_search_term = query_too_short and not cat_results
@@ -213,13 +287,13 @@ def inlinequery_handler(bot, update, chat_data):
             results_list.append(bot_article(b))
 
         if len(bot_results) > 0:
-            bot.answerInlineQuery(update.inline_query.id, results=results_list,
-                                  switch_pm_text="See all results" if too_many_results else "Search in private chat",
-                                  switch_pm_parameter=util.encode_base64(query), cache_time=0,
-                                  is_personal=True)
+            context.bot.answerInlineQuery(update.inline_query.id, results=results_list,
+                                          switch_pm_text="See all results" if too_many_results else "Search in private chat",
+                                          switch_pm_parameter=util.encode_base64(query), cache_time=0,
+                                          is_personal=True)
         else:
-            bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=0,
-                                  is_personal=True)
+            context.bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=0,
+                                          is_personal=True)
     else:
         if user.has_favorites:
             results_list.append(favorites_article(user))
@@ -229,16 +303,12 @@ def inlinequery_handler(bot, update, chat_data):
             results_list.append(category_article(c))
 
         if invalid_search_term or not input_given:
-            bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=0,
-                                  is_personal=True)
+            context.bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=0,
+                                          is_personal=True)
         else:
-            bot.answerInlineQuery(update.inline_query.id, results=results_list,
-                                  switch_pm_text="No results. Contribute a bot?",
-                                  switch_pm_parameter='contributing', cache_time=0,
-                                  is_personal=True)
+            context.bot.answerInlineQuery(update.inline_query.id, results=results_list,
+                                          switch_pm_text="No results. Contribute a bot?",
+                                          switch_pm_parameter='contributing', cache_time=0,
+                                          is_personal=True)
 
 
-def chosen_result(bot, update, chat_data):
-    if update.chosen_inline_result.inline_message_id:
-        chat_data['sent_inlinequery'] = update.chosen_inline_result.inline_message_id
-    Statistic.of(update, 'chosen-inlinequery-result', level=Statistic.ANALYSIS)

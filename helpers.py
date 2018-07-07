@@ -83,7 +83,7 @@ def format_keyword(kw):
 def reroute_private_chat(bot, update, quote, action, message, redirect_message=None,
                          reply_markup=None):
     cid = update.effective_chat.id
-    mid = util.mid_from_update(update)
+    mid = update.effective_message.message_id
     if redirect_message is None:
         redirect_message = messages.REROUTE_PRIVATE_CHAT
 

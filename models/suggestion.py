@@ -10,7 +10,7 @@ from models.basemodel import BaseModel
 
 
 class Suggestion(BaseModel):
-    # class Action:
+    # class CallbackAction:
     #     OFFLINE = 'offline'
     #     SPAM = 'spam'
     #     CHANGE_CATEGORY = 'category'
@@ -21,7 +21,7 @@ class Suggestion(BaseModel):
     #
     #     @staticmethod
     #     def textual():
-    #         return [Suggestion.Action.CHANGE_DESCRIPTION]
+    #         return [Suggestion.CallbackAction.CHANGE_DESCRIPTION]
     ACTIONS = [
         'category',
         'name',

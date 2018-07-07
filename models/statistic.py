@@ -13,8 +13,8 @@ from models.basemodel import BaseModel
 
 def track_activity(action: str, entity: str = None, level: int = logging.INFO):
     def decorator(func):
-        def wrapped(bot, update, *args, **kwargs):
-            result = func(bot, update, *args, **kwargs)
+        def wrapped(update, context, *args, **kwargs):
+            result = func(update, context, *args, **kwargs)
             Statistic.of(update, action, entity, level)
             return result
 

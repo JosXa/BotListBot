@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 import inflect
 from peewee import *
-
-import settings
 from telegram import User as TelegramUser
 
+import settings
 import util
 from layouts import Layouts
 from models.basemodel import BaseModel
@@ -20,7 +19,6 @@ class User(BaseModel):
     banned = BooleanField(default=False)
     favorites_layout = CharField(choices=Layouts.choices(), default=Layouts.default())
 
-
     @staticmethod
     def from_telegram_object(user: TelegramUser):
         try:
@@ -29,7 +27,8 @@ class User(BaseModel):
             u.last_name = user.last_name
             u.username = user.username
         except User.DoesNotExist:
-            u = User(chat_id=user.id, username=user.username, first_name=user.first_name, last_name=user.last_name)
+            u = User(chat_id=user.id, username=user.username, first_name=user.first_name,
+                     last_name=user.last_name)
 
         u.save()
         return u
@@ -40,7 +39,8 @@ class User(BaseModel):
         try:
             u = User.get(User.chat_id == user.id)
         except User.DoesNotExist:
-            u = User(chat_id=user.id, username=user.username, first_name=user.first_name, last_name=user.last_name)
+            u = User(chat_id=user.id, username=user.username, first_name=user.first_name,
+                     last_name=user.last_name)
             u.save()
         return u
 
@@ -77,7 +77,8 @@ class User(BaseModel):
         if self.first_name:
             displayname = util.escape_markdown(self.first_name)
         if self.username:
-            text = '[👤 {}](https://t.me/{})'.format(displayname, util.escape_markdown(self.username))
+            text = '[👤 {}](https://t.me/{})'.format(displayname,
+                                                     util.escape_markdown(self.username))
         else:
             text = displayname
         return text.encode('utf-8').decode('utf-8')
@@ -90,7 +91,6 @@ class User(BaseModel):
             self.last_name if self.last_name else ''
         ])
         return text.encode('utf-8').decode('utf-8')
-
 
     @staticmethod
     def by_username(username: str):
@@ -108,9 +108,9 @@ class User(BaseModel):
     def botlist_user_instance(cls):
         if not hasattr(cls, '_botlist_user'):
             bl_user, created = User.get_or_create(id=100000, defaults={
-                'chat_id' : settings.SELF_BOT_ID,
-                'username' : 'BotListBot',
-                'first_name' : 'BotListBot',
+                'chat_id': settings.SELF_BOT_ID,
+                'username': 'BotListBot',
+                'first_name': 'BotListBot',
             })
             cls._botlist_user = bl_user
         return cls._botlist_user

@@ -5,13 +5,14 @@ from peewee import fn
 
 from models import Bot
 
-from telegram import ReplyKeyboardMarkup
+from telegram import ReplyKeyboardMarkup, Update
 
 import util
 from telegram import KeyboardButton
 
 import captions
 from models import track_activity
+from telegram.ext import CallbackContext
 
 
 @track_activity('easteregg', '"crappy troll markup"')
@@ -36,17 +37,17 @@ def _crapPy_Tr0ll_kbmarkup(rows=None):
     return buttons
 
 
-def send_next(bot, update, args=None):
-    uid = util.uid_from_update(update)
+def send_next(update: Update, context: CallbackContext):
+    uid = update.effective_user.id
     rows = None
-    if args:
+    if context.args:
         try:
-            rows = int(args[0])
+            rows = int(context.args[0])
         except:
             rows = None
     reply_markup = ReplyKeyboardMarkup(_crapPy_Tr0ll_kbmarkup(rows), one_time_keyboard=True, per_user=True)
     text = 'ɹoʇɐɹǝuǝb ǝɯɐuɹǝsn ɯɐɹbǝןǝʇ'
-    util.send_md_message(bot, uid, text, reply_markup=reply_markup)
+    util.send_md_message(context.bot, uid, text, reply_markup=reply_markup)
 
 
 def send_random_bot(bot, update):

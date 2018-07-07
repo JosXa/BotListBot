@@ -1,8 +1,8 @@
 import re
 from pprint import pprint
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ConversationHandler
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import ConversationHandler, CallbackContext
 
 import captions
 import const
@@ -14,42 +14,42 @@ from components.botlistchat import BROADCAST_REPLACEMENTS, _delete_multiple_dela
 from const import BotStates
 from models import User
 from util import restricted
+from actions import *
 
 
 @restricted
-def pin_message(bot, update, message_id):
+def pin_message(update: Update, context: CallbackContext[MessageLinkModel]):
+    message_id = context.view_model.message_id
     cid = update.effective_chat.id
-    try:
-        bot.pinChatMessage(cid, message_id, False)
-    except:
-        errors.no_library_support(bot, update)
+    context.bot.pin_chat_message(cid, message_id, False)
 
 
 @restricted
-def broadcast(bot, update, user_data):
+def broadcast(update: Update, context: CallbackContext):
     cid = update.effective_chat.id
     uid = update.effective_user.id
-    mid = util.mid_from_update(update)
+    mid = update.effective_message.message_id
     user = User.from_update(update)
     text = ''
 
     if cid == settings.BOTLISTCHAT_ID:
         replied_to = update.message.reply_to_message
         if replied_to:
-            user_data['broadcast'] = dict(user_data.get('broadcast', dict()), reply_to_message_id=replied_to.message_id)
+            context.user_data['broadcast'] = dict(context.user_data.get('broadcast', dict()),
+                                           reply_to_message_id=replied_to.message_id)
             if replied_to.from_user.username.lower() == settings.SELF_BOT_NAME:
                 # editing
                 text += '*You are editing one of my messages*\n\n'
-                user_data['broadcast']['mode'] = 'editing'
+                context.user_data['broadcast']['mode'] = 'editing'
             else:
                 # replying
                 text += '*You are replying to a message of {}.*\n\n'.format(
                     update.message.reply_to_message.from_user.first_name
                 )
-                user_data['broadcast']['mode'] = 'replying'
+                context.user_data['broadcast']['mode'] = 'replying'
         # answer and clean
-        msg = bot.send_message(cid, "k")
-        _delete_multiple_delayed(bot, cid, delayed=[msg.message_id], immediately=[update.message.message_id])
+        msg = context.bot.send_message(cid, "k")
+        _delete_multiple_delayed(context.bot, cid, delayed=[msg.message_id], immediately=[update.message.message_id])
 
     to_text = "  _to_  "
     text += "Send me the text to broadcast to @BotListChat.\n"
@@ -60,12 +60,12 @@ def broadcast(bot, update, user_data):
     # TODO Build text mentioning replacements
     # text += '\n@' + str(update.effective_user.username) + to_text + user.markdown_short
 
-    bot.formatter.send_or_edit(uid, mdformat.action_hint(text), mid)
+    context.bot.formatter.send_or_edit(uid, mdformat.action_hint(text), mid)
     return BotStates.BROADCASTING
 
 
 @restricted
-def broadcast_preview(bot, update, user_data):
+def broadcast_preview(update: Update, context: CallbackContext):
     uid = update.effective_user.id
 
     formatted_text = update.message.text_markdown
@@ -75,9 +75,9 @@ def broadcast_preview(bot, update, user_data):
         formatted_text = pattern.sub(v, formatted_text)
         formatted_text = re.sub(r"\\({})".format(k), r"\1", formatted_text, re.IGNORECASE)
 
-    user_data['broadcast'] = dict(user_data.get('broadcast', dict()),
+    context.user_data['broadcast'] = dict(context.user_data.get('broadcast', dict()),
                                   **dict(text=formatted_text, target_chat_id=settings.BOTLISTCHAT_ID))
-    mode = user_data['broadcast'].get('mode', 'just_send')
+    mode = context.user_data['broadcast'].get('mode', 'just_send')
 
     buttons = [
         InlineKeyboardButton("Type again", callback_data=util.callback_for_action('broadcast')),
@@ -87,31 +87,31 @@ def broadcast_preview(bot, update, user_data):
     ]
 
     reply_markup = InlineKeyboardMarkup(util.build_menu(buttons, 1))
-    util.send_md_message(bot, uid, formatted_text, reply_markup=reply_markup)
+    util.send_md_message(context.bot, uid, formatted_text, reply_markup=reply_markup)
     return ConversationHandler.END
 
 
 @restricted
-def send_broadcast(bot, update, user_data):
+def send_broadcast(update: Update, context: CallbackContext):
     uid = update.effective_user.id
 
     try:
-        bc = user_data['broadcast']
+        bc = context.user_data['broadcast']
         text = bc['text']
         recipient = bc['target_chat_id']
         mode = bc.get('mode', 'just_send')
     except AttributeError:
-        bot.formatter.send_failure(uid, "Missing attributes for broadcast. Aborting...")
+        context.bot.formatter.send_failure(uid, "Missing attributes for broadcast. Aborting...")
         return ConversationHandler.END
 
     mid = bc.get('reply_to_message_id')
 
     if mode == 'replying':
-        msg = util.send_md_message(bot, recipient, text, reply_to_message_id=mid)
+        msg = util.send_md_message(context.bot, recipient, text, reply_to_message_id=mid)
     elif mode == 'editing':
-        msg = bot.formatter.send_or_edit(recipient, text, to_edit=mid)
+        msg = context.bot.formatter.send_or_edit(recipient, text, to_edit=mid)
     else:
-        msg = util.send_md_message(bot, recipient, text)
+        msg = util.send_md_message(context.bot, recipient, text)
 
     # Post actions
     buttons = [
@@ -122,6 +122,6 @@ def send_broadcast(bot, update, user_data):
                                                                     {'cid': recipient, 'mid': msg.message_id})),
     ]
     reply_markup = InlineKeyboardMarkup(util.build_menu(buttons, 1))
-    mid = util.mid_from_update(update)
+    mid = update.effective_message.message_id
     action_taken = "edited" if mode == 'editing' else "broadcasted"
-    bot.formatter.send_or_edit(uid, mdformat.success("Message {}.".format(action_taken)), mid, reply_markup=reply_markup)
+    context.bot.formatter.send_or_edit(uid, mdformat.success("Message {}.".format(action_taken)), mid, reply_markup=reply_markup)

@@ -1,19 +1,19 @@
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, ParseMode, InlineKeyboardMarkup, InlineKeyboardButton, \
-    ForceReply
-from telegram.ext import ConversationHandler
-
 import captions
 import const
 import search
 import settings
 import util
+from actions import SearchQueryModel
 from components import basic
-from components.explore import send_bot_details
+from components.explore import Update, send_bot_details
 from dialog import messages
+from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup, ParseMode, ReplyKeyboardMarkup
+from telegram.ext import CallbackContext, ConversationHandler
 
 
-def search_query(bot, update, chat_data, query, send_errors=True):
+def search_query(update: Update, context: CallbackContext[SearchQueryModel]):
     cid = update.effective_chat.id
+    query = context.view_model.query
 
     results = search.search_bots(query)
 
@@ -24,7 +24,7 @@ def search_query(bot, update, chat_data, query, send_errors=True):
     ) if util.is_private_message(update) else None
     if results:
         if len(results) == 1:
-            return send_bot_details(bot, update, chat_data, results[0])
+            return send_bot_details(context.bot, update, context.chat_data, results[0])
         too_many_results = len(results) > settings.MAX_SEARCH_RESULTS
 
         bots_list = ''
@@ -39,7 +39,7 @@ def search_query(bot, update, chat_data, query, send_errors=True):
                                                    query=query)
         msg = update.message.reply_text(bots_list, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
     else:
-        if send_errors:
+        if context.view_model.send_errors:
             update.message.reply_text(
                 util.failure("Sorry, I couldn't find anything related "
                              "to *{}* in the @BotList. /search".format(util.escape_markdown(query))),

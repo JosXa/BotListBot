@@ -1,13 +1,14 @@
 from mdformat import success, failure, action_hint
-from telegram import Message, constants
+from telegram import Message, constants, Bot
 from telegram import ParseMode
 from telegram import ReplyKeyboardRemove
 from telegram.error import BadRequest
 
 
 class MarkdownFormatter:
-    def __init__(self, bot):
+    def __init__(self, bot: Bot, message_id: int=None):
         self.bot = bot
+        self.message_id = message_id
 
     @staticmethod
     def _set_defaults(kwargs):
@@ -67,17 +68,14 @@ class MarkdownFormatter:
             action_hint(text),
             **self._set_defaults(kwargs))
 
-    def send_or_edit(self, chat_id, text, to_edit=None, **kwargs):
-        mid = to_edit
-        if isinstance(to_edit, Message):
-            mid = to_edit.message_id
+    def send_or_edit(self, chat_id, text, **kwargs):
 
         try:
-            if to_edit:
+            if self.message_id:
                 return self.bot.edit_message_text(
                     text,
                     chat_id=chat_id,
-                    message_id=mid,
+                    message_id=self.message_id,
                     **self._set_defaults(kwargs)
                 )
 

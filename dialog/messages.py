@@ -119,3 +119,9 @@ def rand_thank_you_slang():
                "👌 You da man!", "👌 That's just perfect!", "👌 Well done!", "🙏 Good one!", "🙏 Great, keep it up!",
                "👏 I like it!", "👏 Orng Nice!"]
     return random.choice(choices)
+
+
+def random_explore_text():
+    choices = ["Explore", "Get me another", "Next", "Another one", "More", "One more", "Next one",
+               "Hit me"]
+    return '{} 🔄'.format(random.choice(choices))

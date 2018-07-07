@@ -2,39 +2,22 @@
 import threading
 import time
 from logzero import logger as log
-from telegram import Bot as TelegramBot
-from telegram.ext import Updater
-from telegram.utils.request import Request
+from multiprocessing import Process
+from signal import SIGABRT, SIGINT, SIGTERM, signal
 
 import appglobals
 import routing
 import settings
 import util
-from components import admin, basic
+from components import admin
 from components.userbot import botchecker
 from components.userbot.botchecker import BotChecker
+from lib import context
 from lib.markdownformatter import MarkdownFormatter
-
-
-# def setup_logger():
-#     logger = logging.getLogger('botlistbot')
-#     logger.setLevel(logging.INFO)
-#
-#     console_formatter = logging.Formatter("%(name)-12s: %(levelname)-8s %(message)s")
-#     file_formatter = logging.Formatter(
-#         "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
-#
-#     # create console handler and set level to info
-#     handler = logging.StreamHandler()
-#     handler.setLevel(logging.INFO)
-#     handler.setFormatter(console_formatter)
-#     logger.addHandler(handler)
-#
-#     # create debug file handler and set level to debug
-#     handler = logging.FileHandler(settings.DEBUG_LOG_FILE, "w", encoding=None, delay="true")
-#     handler.setLevel(logging.DEBUG)
-#     handler.setFormatter(file_formatter)
-#     logger.addHandler(handler)
+from telegram import Bot as TelegramBot
+from telegram.ext import Updater
+from telegram.ext.callbackmanager import DictCallbackManager
+from telegram.utils.request import Request
 
 
 class BotListBot(TelegramBot):
@@ -66,15 +49,21 @@ def main():
 
     bot_token = str(settings.BOT_TOKEN)
 
+    callback_manager = DictCallbackManager()
+
     botlistbot = BotListBot(bot_token, request=Request(
         read_timeout=8,
         connect_timeout=7,
-        con_pool_size=settings.WORKER_COUNT + 4
-    ))
+        con_pool_size=settings.WORKER_COUNT + 4,
+    ), callback_manager=callback_manager)
     updater = Updater(
         bot=botlistbot,
         workers=settings.WORKER_COUNT,
+        use_context=True,
+        callback_manager=callback_manager
     )
+
+    context.add_hooks()
     # updater.dispatcher = BotListDispatcher(
     #     botlistbot,
     #     updater.update_queue,
@@ -82,6 +71,7 @@ def main():
     #     workers=settings.WORKER_COUNT,
     #     exception_event=threading.Event())
 
+    # TODO: remove
     botlistbot.formatter = MarkdownFormatter(updater.bot)
 
     # Get the dispatcher to on_mount handlers
@@ -95,6 +85,7 @@ def main():
     # updater.bot.send_message = updater.bot.queuedmessage(updater.bot.send_message)
 
     bot_checker = None
+    bot_checker_process = None
 
     if settings.USE_USERBOT:
         bot_checker = BotChecker(
@@ -120,10 +111,10 @@ def main():
                     interval=settings.BOTCHECKER_INTERVAL
                 )
 
-        threading.Thread(target=start_userbot, name="BotChecker").start()
+        bot_checker_process = Process(target=start_userbot, name="BotChecker")
+        bot_checker_process.start()
 
     routing.register(dp, bot_checker)
-    basic.register(dp)
 
     updater.job_queue.run_repeating(admin.last_update_job, interval=3600 * 24)
     updater.start_polling()
@@ -131,15 +122,27 @@ def main():
     log.info('Listening...')
     updater.bot.send_message(settings.ADMINS[0], "Ready to rock", timeout=10)
 
+    is_idle = True
+
+    def signal_handler(self, signum, frame):
+        if bot_checker_process:
+            if bot_checker_process.is_alive():
+                bot_checker_process.terminate()
+            global is_idle
+            is_idle = False
+
     # Idling
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        # botchecker_context.get('stop').set()
-        updater.stop()
-        log.info('Disconnecting...')
-        appglobals.disconnect()
+    stop_signals = (SIGINT, SIGTERM, SIGABRT)
+    for sig in stop_signals:
+        signal(sig, signal_handler)
+
+    while is_idle:
+        time.sleep(1)
+
+    appglobals.disconnect()
+    updater.stop()
+    updater.dispatcher.stop()
+    log.info('Disconnecting...')
 
 
 if __name__ == '__main__':

@@ -1,21 +1,23 @@
 # -*- coding: utf-8 -*-
 import datetime
 import re
+import traceback
 from logzero import logger as log
 from peewee import fn
 from pprint import pprint
 from pyrogram.api.errors import UsernameNotOccupied
-from telegram import Message as TelegramMessage, ParseMode
-from telegram.ext import ConversationHandler, run_async
 
 import settings
 import util
+from actions import Actions, BotViewModel
 from appglobals import loop
 from components.admin import notify_submittant_rejected
 from components.userbot import BotChecker
 from components.userbot.botchecker import add_keywords, download_profile_picture
 from models import Bot, Country, Suggestion, User
 from models.revision import Revision
+from telegram import InlineQueryResultArticle, InputTextMessageContent, Message as TelegramMessage, ParseMode, Update
+from telegram.ext import CallbackContext, ConversationHandler, DispatcherHandlerStop, RerouteToAction, run_async
 from util import track_groups
 
 
@@ -29,15 +31,16 @@ def extract_bot_mentions(message: TelegramMessage):
     # Other ones will be thrown away, assuming that we already have all the verified bots
 
 
-def notify_bot_spam(bot, update, args=None):
+
+def notify_bot_spammy(update: Update, context: CallbackContext):
     tg_user = update.message.from_user
     user = User.from_telegram_object(tg_user)
     if util.stop_banned(update, user):
         return
     reply_to = util.original_reply_id(update)
 
-    if args:
-        text = ' '.join(args)
+    if context.args:
+        text = ' '.join(context.args)
     else:
         text = update.message.text
         command_no_args = len(
@@ -56,7 +59,7 @@ def notify_bot_spam(bot, update, args=None):
             log.info("Ignoring {}".format(text))
             return
     except AttributeError:
-        if args:
+        if context.args:
             update.message.reply_text(
                 util.failure("Sorry, but you didn't send me a bot `@username`."), quote=True,
                 parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
@@ -83,7 +86,7 @@ def notify_bot_spam(bot, update, args=None):
     return ConversationHandler.END
 
 
-def notify_bot_offline(bot, update, args=None):
+def notify_bot_offline(update: Update, context: CallbackContext):
     tg_user = update.message.from_user
     update.message.reply_text(
         "Thanks, but the BotList now automatically detects when a bot goes offline 😇😍")
@@ -91,15 +94,15 @@ def notify_bot_offline(bot, update, args=None):
 
 
 @track_groups
-def new_bot_submission(bot, update, chat_data, args=None, bot_checker=None):
+def new_bot_submission(update: Update, context: CallbackContext, bot_checker=None):
     tg_user = update.message.from_user
     user = User.from_telegram_object(tg_user)
     if util.stop_banned(update, user):
         return
     reply_to = util.original_reply_id(update)
 
-    if args:
-        text = ' '.join(args)
+    if context.args:
+        text = ' '.join(context.args)
     else:
         text = update.message.text
         command_no_args = len(
@@ -117,7 +120,7 @@ def new_bot_submission(bot, update, chat_data, args=None, bot_checker=None):
             log.info("Ignoring {}".format(text))
             return
     except AttributeError:
-        if args:
+        if context.args:
             update.message.reply_text(
                 util.failure("Sorry, but you didn't send me a bot `@username`."), quote=True,
                 parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
@@ -166,24 +169,23 @@ def new_bot_submission(bot, update, chat_data, args=None, bot_checker=None):
         description_notify = ' Your description was included.'
 
     new_bot.save()
-    if util.is_private_message(update) and util.uid_from_update(update) in settings.MODERATORS:
-        from components.explore import send_bot_details
-        send_bot_details(bot, update, chat_data, new_bot)
+    if util.is_private_message(update) and update.effective_user.id in settings.MODERATORS:
+        do_send_bot_details = True
     else:
         msg = update.message.reply_text(
             util.success("You submitted {} for approval.{}".format(new_bot, description_notify)),
             parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
 
     try:
-        check_submission(bot, bot_checker, new_bot)
+        check_submission(context, bot_checker, new_bot)
     except Exception as e:
         log.exception(e)
 
-    return ConversationHandler.END
+    return RerouteToAction(Actions.SEND_BOT_DETAILS, BotViewModel(new_bot), new_state=ConversationHandler.END)
 
 
 @run_async
-def check_submission(bot, bot_checker: BotChecker, to_check: Bot):
+def check_submission(context: CallbackContext, bot_checker: BotChecker, to_check: Bot):
     # TODO: make this method async
     if bot_checker is None:
         return
@@ -195,13 +197,13 @@ def check_submission(bot, bot_checker: BotChecker, to_check: Bot):
     def reject(reason):
         to_check.delete_instance()
         msg = notify_submittant_rejected(
-            bot,
+            context.bot,
             botlistbot_user,
             notify_submittant=True,
             reason=reason,
             to_reject=to_check
         )
-        bot.formatter.send_message(settings.BOTLIST_NOTIFICATIONS_ID, msg)
+        context.bot.formatter.send_message(settings.BOTLIST_NOTIFICATIONS_ID, msg)
 
     try:
         peer = bot_checker.resolve_bot(to_check)
@@ -238,12 +240,12 @@ def check_submission(bot, bot_checker: BotChecker, to_check: Bot):
     to_check.last_ping = now
     to_check.last_response = now
 
-    loop.run_until_complete(add_keywords(bot, response, to_check))
+    loop.run_until_complete(add_keywords(context.bot, response, to_check))
 
     # Download profile picture
     if settings.DOWNLOAD_PROFILE_PICTURES:
         # TODO: does this work asynchronously?
-        loop.run_until_complete(download_profile_picture(bot, bot_checker, to_check))
+        loop.run_until_complete(download_profile_picture(context.bot, bot_checker, to_check))
 
     to_check.save()
     log.info(f"{to_check} was evaluated and looks good for approval.")

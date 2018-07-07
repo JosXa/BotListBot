@@ -12,10 +12,11 @@ from typing import List
 import const
 import settings
 from custemoji import Emoji
-from telegram import ChatAction
+from telegram import ChatAction, Update
 from telegram import ParseMode
 from telegram import TelegramError, ReplyKeyboardRemove
 from telegram.error import BadRequest
+from telegram.ext import CallbackContext
 
 
 def stop_banned(update, user):
@@ -32,7 +33,7 @@ def track_groups(func):
     """
 
     @wraps(func)
-    def wrapped(bot, update, *args, **kwargs):
+    def wrapped(update, context, *args, **kwargs):
         try:
             if update.effective_chat.type == 'group':
                 Group.from_telegram_object(update.effective_chat)
@@ -42,7 +43,7 @@ def track_groups(func):
                     Group.from_telegram_object(update.callback_query.message.chat)
             except (NameError, AttributeError):
                 logging.error("No chat_id available in update for track_groups.")
-        return func(bot, update, *args, **kwargs)
+        return func(update, context, *args, **kwargs)
 
     return wrapped
 
@@ -54,14 +55,14 @@ def restricted(func=None, strict=False, silent=False):
         return partial(restricted, strict=strict, silent=silent)
 
     @wraps(func)
-    def wrapped(bot, update, *args, **kwargs):
+    def wrapped(update, context, *args, **kwargs):
         chat_id = update.effective_user.id
 
         if chat_id not in settings.MODERATORS:
             try:
                 print("Unauthorized access denied for {}.".format(chat_id))
                 if not silent:
-                    bot.sendPhoto(chat_id, open('assets/img/go_away_noob.png', 'rb'),
+                    context.bot.sendPhoto(chat_id, open('assets/img/go_away_noob.png', 'rb'),
                                   caption="Moderator Area. Unauthorized.")
                 return
             except (TelegramError, AttributeError):
@@ -69,10 +70,11 @@ def restricted(func=None, strict=False, silent=False):
 
         if strict and chat_id not in settings.ADMINS:
             if not silent:
-                bot.sendMessage(chat_id, "This function is restricted to the channel creator.")
+                context.bot.sendMessage(chat_id, "This function is restricted to the channel "
+                                              "creator.")
             return
 
-        return func(bot, update, *args, **kwargs)
+        return func(update, context, *args, **kwargs)
 
     return wrapped
 
@@ -233,9 +235,9 @@ def callback_str_from_dict(d):
     return dumped
 
 
-def wait(bot, update, t=1.5):
-    chat_id = uid_from_update(update)
-    bot.sendChatAction(chat_id, ChatAction.TYPING)
+def wait(update: Update, context: CallbackContext, t=1.5):
+    cid = update.effective_chat.id
+    context.bot.send_chat_action(cid, ChatAction.TYPING)
     time.sleep(t)
 
 
