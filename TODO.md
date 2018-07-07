@@ -1,0 +1,4 @@
+- Delete messages in BLC on keyword triggers
+- Fix keywords adding
+- Gracefully stop botchecker
+- Allow markdown in bot descriptions

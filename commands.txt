@@ -1,0 +1,3 @@
+start - Start the Bot
+help - Get Help
+toggle - Switch between inline and regular keyboard buttons
