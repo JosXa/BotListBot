@@ -16,7 +16,7 @@ from lib import context
 from lib.markdownformatter import MarkdownFormatter
 from telegram import Bot as TelegramBot
 from telegram.ext import Updater
-from telegram.ext.callbackmanager import DictCallbackManager
+from flow.callbackmanager import DictCallbackManager
 from telegram.utils.request import Request
 
 

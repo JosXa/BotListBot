@@ -27,6 +27,7 @@ tgcrypto = "*"
 python-telegram-bot = "*"
 #telegram = {git = "git://github.com/python-telegram-bot/python-telegram-bot.git", editable = true, ref = "V11-callbackmanager"}
 dataclasses = "*"
+colorama = "*"
 
 [dev-packages]
 pytest = "*"

@@ -6,7 +6,7 @@ from datetime import timedelta
 
 DEV = config("DEV", default=False, cast=bool)
 
-### BOT CONFIGURATION ###
+# BOT CONFIGURATION #
 BOT_TOKEN = config('BOT_TOKEN', default=None) or (sys.argv[1] if len(sys.argv) > 1 else None)
 LOG_DIR = config('LOG_DIR', default=os.path.dirname(os.path.abspath(__file__)))
 BOT_THUMBNAIL_DIR = config('BOT_THUMBNAIL_DIR',
@@ -46,7 +46,7 @@ SUGGESTION_LIMIT = 25
 API_URL = "localhost" if DEV else "josxa.jumpingcrab.com"
 API_PORT = 6060
 
-### BOTCHECKER
+# BOTCHECKER
 USE_USERBOT = config('USE_USERBOT', cast=bool, default=True)
 RUN_BOTCHECKER = config("RUN_BOTCHECKER", True, cast=bool)
 API_ID = config("API_ID", cast=int)
@@ -75,7 +75,7 @@ BOTLIST_REQUESTS_CHANNEL = None
 if not os.path.exists(BOT_THUMBNAIL_DIR):
     os.makedirs(BOT_THUMBNAIL_DIR)
 
-### TESTS
+# TESTS
 BOT_UNDER_TEST = TEST_BOT_NAME if DEV else LIVE_BOT_NAME
 # BOT_UNDER_TEST = LIVE_BOT_NAME
 TEST_USERBOT_PHONE = config('TEST_USERBOT_PHONE', default=None)
