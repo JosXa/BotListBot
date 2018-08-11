@@ -135,7 +135,7 @@ def new_bot_submission(bot, update, chat_data, args=None, bot_checker=None):
         elif new_bot.approved:
             update.message.reply_text(
                 util.action_hint(
-                    "Sorry fool, but {} is already in the @BotList 😉".format(new_bot.username)),
+                    "Sorry bro, but {} is already in the @BotList 😉".format(new_bot.username)),
                 reply_to_message_id=reply_to)
         else:
             update.message.reply_text(
