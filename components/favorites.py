@@ -165,7 +165,7 @@ def _favorites_categories_md(favorites, layout=None):
 
     else:
         # sort favorites by database order
-        favorites.sort(key=lambda x: x.bot.category.order)
+        favorites.sort(key=lambda x: x.bot.category.order if x.bot.category else x.bot.username)
 
         current_category = None
         for n, f in enumerate(favorites):
