@@ -14,10 +14,12 @@ from appglobals import loop
 from components.admin import notify_submittant_rejected
 from components.userbot import BotChecker
 from components.userbot.botchecker import add_keywords, download_profile_picture
+from flow import RerouteToAction
+from flow.context import FlowContext
 from models import Bot, Country, Suggestion, User
 from models.revision import Revision
 from telegram import InlineQueryResultArticle, InputTextMessageContent, Message as TelegramMessage, ParseMode, Update
-from telegram.ext import CallbackContext, ConversationHandler, DispatcherHandlerStop, RerouteToAction, run_async
+from telegram.ext import CallbackContext, ConversationHandler, DispatcherHandlerStop, run_async
 from util import track_groups
 
 
@@ -32,7 +34,7 @@ def extract_bot_mentions(message: TelegramMessage):
 
 
 
-def notify_bot_spammy(update: Update, context: CallbackContext):
+def notify_bot_spammy(update: Update, context: FlowContext):
     tg_user = update.message.from_user
     user = User.from_telegram_object(tg_user)
     if util.stop_banned(update, user):
@@ -86,7 +88,7 @@ def notify_bot_spammy(update: Update, context: CallbackContext):
     return ConversationHandler.END
 
 
-def notify_bot_offline(update: Update, context: CallbackContext):
+def notify_bot_offline(update: Update, context: FlowContext):
     tg_user = update.message.from_user
     update.message.reply_text(
         "Thanks, but the BotList now automatically detects when a bot goes offline 😇😍")
@@ -94,7 +96,7 @@ def notify_bot_offline(update: Update, context: CallbackContext):
 
 
 @track_groups
-def new_bot_submission(update: Update, context: CallbackContext, bot_checker=None):
+def new_bot_submission(update: Update, context: FlowContext, bot_checker=None):
     tg_user = update.message.from_user
     user = User.from_telegram_object(tg_user)
     if util.stop_banned(update, user):
@@ -185,7 +187,7 @@ def new_bot_submission(update: Update, context: CallbackContext, bot_checker=Non
 
 
 @run_async
-def check_submission(context: CallbackContext, bot_checker: BotChecker, to_check: Bot):
+def check_submission(context: FlowContext, bot_checker: BotChecker, to_check: Bot):
     # TODO: make this method async
     if bot_checker is None:
         return
@@ -203,7 +205,7 @@ def check_submission(context: CallbackContext, bot_checker: BotChecker, to_check
             reason=reason,
             to_reject=to_check
         )
-        context.bot.formatter.send_message(settings.BOTLIST_NOTIFICATIONS_ID, msg)
+        context.bot.send_message(settings.BOTLIST_NOTIFICATIONS_ID, msg)
 
     try:
         peer = bot_checker.resolve_bot(to_check)

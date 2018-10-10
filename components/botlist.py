@@ -13,6 +13,7 @@ import settings
 import util
 from custemoji import Emoji
 from dialog import messages
+from flow.context import FlowContext
 from models import Bot, Country
 from models import Category
 from models import Notifications
@@ -42,7 +43,7 @@ class BotList:
     ENGLISH_INTRO_TEXT = 'files/intro_en.txt'
     SPANISH_INTRO_TEXT = 'files/intro_es.txt'
 
-    def __init__(self, update: Update, context: CallbackContext, channel, resend, silent):
+    def __init__(self, update: Update, context: FlowContext, channel, resend, silent):
         if not channel:
             self.notify_admin_err(
                 "I don't know the channel `{}`. Please make sure I am an admin there, "
@@ -61,12 +62,12 @@ class BotList:
         self.message_id = update.effective_message.message_id
 
     def notify_admin(self, txt):
-        self.bot.formatter.send_or_edit(self.chat_id, Emoji.HOURGLASS_WITH_FLOWING_SAND + ' ' + txt,
+        self.bot.send_or_edit(self.chat_id, Emoji.HOURGLASS_WITH_FLOWING_SAND + ' ' + txt,
                                         to_edit=self.message_id,
                                         disable_web_page_preview=True, disable_notification=False)
 
     def notify_admin_err(self, txt):
-        self.bot.formatter.send_or_edit(self.chat_id, util.failure(txt),
+        self.bot.send_or_edit(self.chat_id, util.failure(txt),
                                         to_edit=self.message_id,
                                         disable_web_page_preview=True, disable_notification=False)
 
@@ -107,14 +108,14 @@ class BotList:
                                             disable_notification=True, reply_markup=reply_markup)
             else:
                 if reply_markup:
-                    return self.bot.formatter.send_or_edit(self.channel.chat_id, text,
+                    return self.bot.send_or_edit(self.channel.chat_id, text,
                                                            to_edit=message_id,
                                                            timeout=120,
                                                            disable_web_page_preview=True,
                                                            disable_notification=True,
                                                            reply_markup=reply_markup)
                 else:
-                    return self.bot.formatter.send_or_edit(self.channel.chat_id, text,
+                    return self.bot.send_or_edit(self.channel.chat_id, text,
                                                            to_edit=message_id,
                                                            timeout=120,
                                                            disable_web_page_preview=True,
@@ -263,7 +264,7 @@ class BotList:
         else:
             footer_to_edit = self.channel.footer_mid
 
-        footer_msg = self.bot.formatter.send_or_edit(self.channel.chat_id, footer,
+        footer_msg = self.bot.send_or_edit(self.channel.chat_id, footer,
                                                      to_edit=footer_to_edit,
                                                      timeout=120,
                                                      disable_notifications=self.silent,
@@ -305,7 +306,7 @@ class BotList:
             text = mdformat.none_action("No changes were necessary.")
 
         log.info(self.sent)
-        self.bot.formatter.send_or_edit(self.chat_id, text, to_edit=self.message_id)
+        self.bot.send_or_edit(self.chat_id, text, to_edit=self.message_id)
 
     def delete_full_botlist(self):
         all_cats = Category.select_all()
@@ -321,7 +322,7 @@ class BotList:
 
 @restricted(strict=True)
 @run_async
-def send_botlist(update: Update, context: CallbackContext, resend=False, silent=False):
+def send_botlist(update: Update, context: FlowContext, resend=False, silent=False):
     log.info("Re-sending BotList..." if resend else "Updating BotList...")
 
     channel = helpers.get_channel()

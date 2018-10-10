@@ -15,18 +15,20 @@ from components.userbot import BotChecker
 from const import BotStates
 from dialog import messages
 from dialog.hints import HINTS
+from flow import RerouteToAction
+from flow.context import FlowContext
+from flow.handlers.actionhandler import ActionHandler
+from flow.handlers.choseninlineactionhandler import ChosenInlineActionHandler
+from flow.handlers.inlinequeryactionhandler import InlineQueryActionHandler
 from misc import manage_subscription
 from models import Statistic
 from telegram import Update
-from telegram.ext import (ActionHandler, CallbackContext, CommandHandler, ConversationHandler, Dispatcher,
+from telegram.ext import (CallbackContext, CommandHandler, ConversationHandler, Dispatcher,
                           DispatcherHandlerStop, Filters, InlineQueryHandler,
                           MessageHandler, RegexHandler)
-from telegram.flow.action import RerouteToAction
-from telegram.flow.choseninlineactionhandler import ChosenInlineActionHandler
-from telegram.flow.inlinequeryactionhandler import InlineQueryActionHandler
 
 
-def remove_favorite(update: Update, context: CallbackContext[RemoveFavoriteModel]):
+def remove_favorite(update: Update, context: FlowContext[RemoveFavoriteModel]):
     context.view_model.favorite.delete_instance()
 
     if context.view_model.show_details:
@@ -52,7 +54,7 @@ def forward_router(bot, update, chat_data):
         pass  # no valid username in forwarded message
 
 
-def reply_router(update: Update, context: CallbackContext):
+def reply_router(update: Update, context: FlowContext):
     text = update.effective_message.reply_to_message.text
 
     if text == messages.ADD_FAVORITE:
@@ -101,8 +103,6 @@ def register(dp: Dispatcher, bot_checker: BotChecker):
 
     def add(*args, **kwargs):
         dp.add_handler(*args, **kwargs)
-
-    ### Experimental
 
     ### ActionHandlers
     add(ActionHandler(Actions.DELETE_CONVERSATION, botlistchat.delete_conversation))

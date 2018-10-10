@@ -4,9 +4,8 @@ from typing import List, Union
 
 import captions
 from custemoji import Emoji
+from flow.action import Action, ViewModel, ActionRepository
 from models import Bot, Category, Favorite, Keyword, Suggestion, User
-from telegram.ext import Action
-from telegram.flow.action import ActionRepository, ViewModel
 
 
 # region View Model

@@ -12,6 +12,7 @@ from typing import List
 import const
 import settings
 from custemoji import Emoji
+from flow.context import FlowContext
 from telegram import ChatAction, Update
 from telegram import ParseMode
 from telegram import TelegramError, ReplyKeyboardRemove
@@ -70,7 +71,7 @@ def restricted(func=None, strict=False, silent=False):
 
         if strict and chat_id not in settings.ADMINS:
             if not silent:
-                context.bot.sendMessage(chat_id, "This function is restricted to the channel "
+                context.bot.send_message(chat_id, "This function is restricted to the channel "
                                               "creator.")
             return
 
@@ -235,7 +236,7 @@ def callback_str_from_dict(d):
     return dumped
 
 
-def wait(update: Update, context: CallbackContext, t=1.5):
+def wait(update: Update, context: FlowContext, t=1.5):
     cid = update.effective_chat.id
     context.bot.send_chat_action(cid, ChatAction.TYPING)
     time.sleep(t)

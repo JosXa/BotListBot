@@ -8,10 +8,11 @@ from actions import *
 from components import admin
 from const import BotStates, CallbackActions
 from dialog import messages
+from flow.actionbutton import ActionButton
+from flow.context import FlowContext
 from models import Bot, Country, Keyword, Statistic, Suggestion, User, track_activity
 from telegram import ForceReply, InlineKeyboardMarkup, ParseMode, Update
 from telegram.error import BadRequest
-from telegram.ext import ActionButton, CallbackContext, RerouteToAction
 from util import restricted
 
 CLEAR_QUERY = "x"
@@ -21,7 +22,7 @@ def _is_clear_query(query):
     return query.lower() == CLEAR_QUERY
 
 
-def set_country_menu(update: Update, context: CallbackContext[BotViewModel]):
+def set_country_menu(update: Update, context: FlowContext[BotViewModel]):
     uid = update.effective_user.id
     countries = Country.select().order_by(Country.name).execute()
     to_edit = context.view_model.bot
@@ -38,13 +39,13 @@ def set_country_menu(update: Update, context: CallbackContext[BotViewModel]):
         ActionButton(captions.BACK, Actions.EDIT_BOT, BotViewModel(to_edit)),
         ActionButton(Actions.SET_COUNTRY, "None", BotCategoryModel(category=None, bot=to_edit))
     ])
-    return context.bot.formatter.send_or_edit(uid, util.action_hint(
+    return context.bot.send_or_edit(uid, util.action_hint(
         "Please select a country/language for {}".format(to_edit)),
                                               to_edit=update.effective_message.message_id,
                                               reply_markup=InlineKeyboardMarkup(buttons))
 
 
-def set_country(update: Update, context: CallbackContext, to_edit, country):
+def set_country(update: Update, context: FlowContext, to_edit, country):
     user = User.from_update(update)
 
     if check_suggestion_limit(update, context, user):
@@ -58,7 +59,7 @@ def set_country(update: Update, context: CallbackContext, to_edit, country):
     Suggestion.add_or_update(user, 'country', to_edit, value)
 
 
-def set_text_property(update: Update, context: CallbackContext, property_name, to_edit=None):
+def set_text_property(update: Update, context: FlowContext, property_name, to_edit=None):
     uid = update.effective_user.id
     user = User.from_update(update)
     if check_suggestion_limit(update, context, user):
@@ -86,7 +87,7 @@ def set_text_property(update: Update, context: CallbackContext, property_name, t
         to_edit = context.chat_data.get('edit_bot', None)
 
         def too_long(n):
-            context.bot.formatter.send_failure(uid, "Your {} text is too long, it must be shorter "
+            context.bot.send_failure(uid, "Your {} text is too long, it must be shorter "
                                                     "than {} characters. Please try again.".format(
                 property_name, n))
             util.wait(update, context)
@@ -100,7 +101,7 @@ def set_text_property(update: Update, context: CallbackContext, property_name, t
             if value:
                 to_edit = context.chat_data.get('edit_bot', None)
             else:
-                context.bot.formatter.send_failure(uid,
+                context.bot.send_failure(uid,
                                                    "The username you entered is not valid. Please try again...")
                 return admin.edit_bot(update, context, to_edit)
 
@@ -114,10 +115,10 @@ def set_text_property(update: Update, context: CallbackContext, property_name, t
                 Suggestion.add_or_update(user, property_name, to_edit, value)
             admin.edit_bot(update, context, to_edit)
         else:
-            context.bot.formatter.send_failure(uid, "An unexpected error occured.")
+            context.bot.send_failure(uid, "An unexpected error occured.")
 
 
-def toggle_value(update: Update, context: CallbackContext, property_name, to_edit, value):
+def toggle_value(update: Update, context: FlowContext, property_name, to_edit, value):
     user = User.from_update(update)
 
     if check_suggestion_limit(update, context, user):
@@ -125,14 +126,14 @@ def toggle_value(update: Update, context: CallbackContext, property_name, to_edi
     Suggestion.add_or_update(user, property_name, to_edit, bool(value))
 
 
-def set_keywords_init(update: Update, context: CallbackContext, values):
+def set_keywords_init(update: Update, context: FlowContext, values):
     to_edit = values.get('to_edit')
     context.chat_data['set_keywords_msg'] = update.effective_message.message_id
     return RerouteToAction(Actions.SET_KEYWORDS, BotViewModel(to_edit))
 
 
 @track_activity('menu', 'set keywords', Statistic.DETAILED)
-def set_keywords(update: Update, context: CallbackContext[BotViewModel]):
+def set_keywords(update: Update, context: FlowContext[BotViewModel]):
     to_edit = context.view_model.bot
     chat_id = update.effective_user.id
     keywords = Keyword.select().where(Keyword.entity == to_edit)
@@ -175,7 +176,7 @@ def set_keywords(update: Update, context: CallbackContext[BotViewModel]):
     ])
 
     reply_markup = InlineKeyboardMarkup(buttons)
-    msg = context.bot.formatter.send_or_edit(
+    msg = context.bot.send_or_edit(
         chat_id,
         util.action_hint('Send me the keywords for {} one by one...\n\n{}'.format(
             util.escape_markdown(to_edit.username), messages.KEYWORD_BEST_PRACTICES)),
@@ -190,7 +191,7 @@ def set_keywords(update: Update, context: CallbackContext[BotViewModel]):
     return BotStates.SENDING_KEYWORDS
 
 
-def add_keyword(update: Update, context: CallbackContext):
+def add_keyword(update: Update, context: FlowContext):
     user = User.from_telegram_object(update.effective_user)
     if check_suggestion_limit(update, context, user):
         return
@@ -220,7 +221,7 @@ def add_keyword(update: Update, context: CallbackContext):
     return RerouteToAction(Actions.SET_KEYWORDS, BotViewModel(bot_to_edit))
 
 
-def delete_keyword_suggestion(update: Update, context: CallbackContext, values):
+def delete_keyword_suggestion(update: Update, context: FlowContext, values):
     suggestion = values.get('suggestion')
     suggestion.delete_instance()
     return RerouteToAction(Actions.SET_KEYWORDS, BotViewModel(values.get('to_edit')))
@@ -233,7 +234,7 @@ def delete_bot_confirm(bot, update, to_edit):
         ActionButton(Actions.DELETE_BOT, BotViewModel(to_edit)),
         ActionButton(captions.BACK, Actions.EDIT_BOT, BotViewModel(to_edit))
     ]])
-    bot.formatter.send_or_edit(
+    bot.send_or_edit(
         chat_id,
         "Are you sure?",
         to_edit=update.effective_message.message_id,
@@ -241,11 +242,11 @@ def delete_bot_confirm(bot, update, to_edit):
 
 
 @restricted
-def delete_bot(update: Update, context: CallbackContext, to_edit: Bot):
+def delete_bot(update: Update, context: FlowContext, to_edit: Bot):
     username = to_edit.username
     to_edit.disable(Bot.DisabledReason.banned)
     to_edit.save()
-    context.bot.formatter.send_or_edit(
+    context.bot.send_or_edit(
         update.effective_user.id,
         "Bot has been disabled and banned.",
         to_edit=update.effective_message.message_id
@@ -253,7 +254,7 @@ def delete_bot(update: Update, context: CallbackContext, to_edit: Bot):
     Statistic.of(update, 'disable', username, Statistic.IMPORTANT)
 
 
-def change_category(update: Update, context: CallbackContext, to_edit, category):
+def change_category(update: Update, context: FlowContext, to_edit, category):
     uid = update.effective_user.id
     user = User.get(User.chat_id == uid)
 
@@ -267,10 +268,10 @@ def change_category(update: Update, context: CallbackContext, to_edit, category)
         Suggestion.add_or_update(user, 'category', to_edit, category.id)
 
 
-def check_suggestion_limit(update: Update, context: CallbackContext, user):
+def check_suggestion_limit(update: Update, context: FlowContext, user):
     cid = update.effective_chat.id
     if Suggestion.over_limit(user):
-        context.bot.formatter.send_failure(
+        context.bot.send_failure(
             cid,
             "You have reached the limit of {} suggestions. Please wait for "
             "the Moderators to approve of some of them.".format(settings.SUGGESTION_LIMIT))
@@ -280,7 +281,7 @@ def check_suggestion_limit(update: Update, context: CallbackContext, user):
     return False
 
 
-def change_suggestion(update: Update, context: CallbackContext[PaginationModel], suggestion: Suggestion):
+def change_suggestion(update: Update, context: FlowContext[PaginationModel], suggestion: Suggestion):
     mid = update.effective_message.message_id
     page_handover = context.view_model.page
 
@@ -306,14 +307,14 @@ def change_suggestion(update: Update, context: CallbackContext[PaginationModel],
     ]]
 
     reply_markup = InlineKeyboardMarkup(buttons)
-    context.bot.formatter.send_or_edit(update.effective_chat.id,
+    context.bot.send_or_edit(update.effective_chat.id,
                                        text,
                                        to_edit=mid,
                                        disable_web_page_preview=True,
                                        reply_markup=reply_markup)
 
 
-def remove_keyword(update: Update, context: CallbackContext, values):
+def remove_keyword(update: Update, context: FlowContext, values):
     user = User.from_telegram_object(update.effective_user)
     if check_suggestion_limit(update, context, user):
         return
@@ -325,7 +326,7 @@ def remove_keyword(update: Update, context: CallbackContext, values):
 
 
 @restricted
-def accept_suggestion(update: Update, context: CallbackContext[SuggestionModel]):
+def accept_suggestion(update: Update, context: FlowContext[SuggestionModel]):
     suggestion = context.view_model.suggestion
     user = User.from_telegram_object(update.effective_user)
     suggestion.apply()
@@ -356,6 +357,6 @@ def accept_suggestion(update: Update, context: CallbackContext[SuggestionModel])
 
 
 @restricted
-def reject_suggestion(update: Update, context: CallbackContext):
+def reject_suggestion(update: Update, context: FlowContext):
     update.message.reply_text("Coming soon")
     raise NotImplemented  # TODO

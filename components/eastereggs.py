@@ -1,18 +1,13 @@
 import random
-from pprint import pprint
 
 from peewee import fn
 
-from models import Bot
-
-from telegram import ReplyKeyboardMarkup, Update
-
 import util
-from telegram import KeyboardButton
-
-import captions
+from flow.context import FlowContext
+from models import Bot
 from models import track_activity
-from telegram.ext import CallbackContext
+from telegram import KeyboardButton
+from telegram import ReplyKeyboardMarkup, Update
 
 
 @track_activity('easteregg', '"crappy troll markup"')
@@ -37,7 +32,7 @@ def _crapPy_Tr0ll_kbmarkup(rows=None):
     return buttons
 
 
-def send_next(update: Update, context: CallbackContext):
+def send_next(update: Update, context: FlowContext):
     uid = update.effective_user.id
     rows = None
     if context.args:

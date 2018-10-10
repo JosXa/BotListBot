@@ -12,13 +12,12 @@ import util
 from actions import *
 from components import botlistchat, favorites
 from dialog import messages
+from flow.actionbutton import ActionButton
+from flow.context import FlowContext
 from models import Bot, Category, Favorite, Statistic, User
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InlineQueryResult, InlineQueryResultArticle, \
     InputTextMessageContent, ParseMode, Update
 from telegram.ext import CallbackContext, Dispatcher
-
-# CONSTANTS
-from telegram.flow.actionbutton import ActionButton
 
 MAX_BOTS = 30
 SEARCH_QUERY_MIN_LENGTH = 2
@@ -197,7 +196,7 @@ def hint_article(msg, reply_markup, key):
     )
 
 
-def inlinequery_handler(update: Update, context: CallbackContext):
+def inlinequery_handler(update: Update, context: FlowContext):
     query = update.inline_query.query.lower()
 
     # TODO: remove or enhance eventually, this is potentially very spammy

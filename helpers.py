@@ -103,7 +103,7 @@ def reroute_private_chat(bot, update, quote, action, message, redirect_message=N
             ))
     else:
         if mid:
-            bot.formatter.send_or_edit(cid, message, mid, reply_markup=reply_markup)
+            bot.send_or_edit(cid, message, mid, reply_markup=reply_markup)
         else:
             update.message.reply_text(message, quote=quote, parse_mode=ParseMode.MARKDOWN,
                                       reply_markup=reply_markup)

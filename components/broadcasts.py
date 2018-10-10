@@ -1,6 +1,7 @@
 import re
 from pprint import pprint
 
+from flow.context import FlowContext
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ConversationHandler, CallbackContext
 
@@ -18,14 +19,14 @@ from actions import *
 
 
 @restricted
-def pin_message(update: Update, context: CallbackContext[MessageLinkModel]):
+def pin_message(update: Update, context: FlowContext[MessageLinkModel]):
     message_id = context.view_model.message_id
     cid = update.effective_chat.id
     context.bot.pin_chat_message(cid, message_id, False)
 
 
 @restricted
-def broadcast(update: Update, context: CallbackContext):
+def broadcast(update: Update, context: FlowContext):
     cid = update.effective_chat.id
     uid = update.effective_user.id
     mid = update.effective_message.message_id
@@ -60,12 +61,12 @@ def broadcast(update: Update, context: CallbackContext):
     # TODO Build text mentioning replacements
     # text += '\n@' + str(update.effective_user.username) + to_text + user.markdown_short
 
-    context.bot.formatter.send_or_edit(uid, mdformat.action_hint(text), mid)
+    context.bot.send_or_edit(uid, mdformat.action_hint(text), mid)
     return BotStates.BROADCASTING
 
 
 @restricted
-def broadcast_preview(update: Update, context: CallbackContext):
+def broadcast_preview(update: Update, context: FlowContext):
     uid = update.effective_user.id
 
     formatted_text = update.message.text_markdown
@@ -92,7 +93,7 @@ def broadcast_preview(update: Update, context: CallbackContext):
 
 
 @restricted
-def send_broadcast(update: Update, context: CallbackContext):
+def send_broadcast(update: Update, context: FlowContext):
     uid = update.effective_user.id
 
     try:
@@ -101,7 +102,7 @@ def send_broadcast(update: Update, context: CallbackContext):
         recipient = bc['target_chat_id']
         mode = bc.get('mode', 'just_send')
     except AttributeError:
-        context.bot.formatter.send_failure(uid, "Missing attributes for broadcast. Aborting...")
+        context.bot.send_failure(uid, "Missing attributes for broadcast. Aborting...")
         return ConversationHandler.END
 
     mid = bc.get('reply_to_message_id')
@@ -109,7 +110,7 @@ def send_broadcast(update: Update, context: CallbackContext):
     if mode == 'replying':
         msg = util.send_md_message(context.bot, recipient, text, reply_to_message_id=mid)
     elif mode == 'editing':
-        msg = context.bot.formatter.send_or_edit(recipient, text, to_edit=mid)
+        msg = context.bot.send_or_edit(recipient, text, to_edit=mid)
     else:
         msg = util.send_md_message(context.bot, recipient, text)
 
@@ -124,4 +125,4 @@ def send_broadcast(update: Update, context: CallbackContext):
     reply_markup = InlineKeyboardMarkup(util.build_menu(buttons, 1))
     mid = update.effective_message.message_id
     action_taken = "edited" if mode == 'editing' else "broadcasted"
-    context.bot.formatter.send_or_edit(uid, mdformat.success("Message {}.".format(action_taken)), mid, reply_markup=reply_markup)
+    context.bot.send_or_edit(uid, mdformat.success("Message {}.".format(action_taken)), mid, reply_markup=reply_markup)

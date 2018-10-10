@@ -10,18 +10,19 @@ from actions import *
 from actions import Actions
 from const import DeepLinkingActions
 from dialog import messages
+from flow import RerouteToAction
+from flow.context import FlowContext
 from layouts import Layouts
 from models import Bot, Favorite, Statistic, User, track_activity
 from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, \
     Update
 from telegram.ext import CallbackContext, ConversationHandler
-from telegram.flow.action import RerouteToAction
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
-def add_favorite_handler(update: Update, context: CallbackContext):
+def add_favorite_handler(update: Update, context: FlowContext):
     uid = update.effective_user.id
     from components.basic import main_menu_buttons
     main_menu_markup = ReplyKeyboardMarkup(main_menu_buttons(uid in settings.MODERATORS))
@@ -66,7 +67,7 @@ def add_favorite_handler(update: Update, context: CallbackContext):
     return ConversationHandler.END
 
 
-def add_favorite(update: Update, context: CallbackContext[BotNotifyModel]):
+def add_favorite(update: Update, context: FlowContext[BotNotifyModel]):
     context.view_model.update(update)
     item = context.view_model.bot
     uid = update.effective_user.id
@@ -83,7 +84,7 @@ def add_favorite(update: Update, context: CallbackContext[BotNotifyModel]):
         if context.view_model.show_alert:
             update.callback_query.answer(text=text, show_alert=False)
         else:
-            msg = context.bot.formatter.send_or_edit(uid, text, reply_markup=main_menu_markup)
+            msg = context.bot.send_or_edit(uid, text, reply_markup=main_menu_markup)
             mid = msg.message_id
             util.wait(context.bot, update)
             send_favorites_list(update, context)
@@ -95,12 +96,12 @@ def add_favorite(update: Update, context: CallbackContext[BotNotifyModel]):
         if context.view_model.show_alert:
             update.callback_query.answer(text=text, show_alert=False)
         else:
-            context.bot.formatter.send_message(uid, text, reply_markup=main_menu_markup)
+            context.bot.send_message(uid, text, reply_markup=main_menu_markup)
     return ConversationHandler.END
 
 
 @track_activity('view-favorites', level=Statistic.ANALYSIS)
-def send_favorites_list(update: Update, context: CallbackContext):
+def send_favorites_list(update: Update, context: FlowContext):
     uid = update.effective_user.id
     user = User.from_update(update)
 
@@ -134,7 +135,7 @@ def send_favorites_list(update: Update, context: CallbackContext):
     else:
         text = _favorites_categories_md(favorites, user.favorites_layout)
 
-    context.bot.formatter.send_or_edit(uid, text, reply_markup=reply_markup)
+    context.bot.send_or_edit(uid, text, reply_markup=reply_markup)
 
 
 @track_activity('toggled their favorites layout', level=Statistic.ANALYSIS)
@@ -209,12 +210,12 @@ def remove_favorite_menu(bot, update):
                              callback_data=util.callback_for_action(Actions.SEND_FAVORITES))
     ])
     reply_markup = InlineKeyboardMarkup(buttons)
-    bot.formatter.send_or_edit(uid, util.action_hint("Select favorites to remove"),
+    bot.send_or_edit(uid, util.action_hint("Select favorites to remove"),
                                to_edit=update.effective_message.message_id,
                                reply_markup=reply_markup)
 
 
-def _too_many_favorites_handler(update: Update, context: CallbackContext):
+def _too_many_favorites_handler(update: Update, context: FlowContext):
     any_removed = False
     user = User.from_update(update)
     while too_many_favorites(user):
@@ -225,7 +226,7 @@ def _too_many_favorites_handler(update: Update, context: CallbackContext):
     if any_removed:
         txt = "You have too many favorites, _they do not fit into a single message_. That's why I removed your " \
               "oldest bot, *{}*, from your list of favorites.".format(oldest.bot if oldest.bot else oldest.custom_bot)
-        context.bot.formatter.send_message(update.effective_user.id, txt)
+        context.bot.send_message(update.effective_user.id, txt)
 
 
 def too_many_favorites(user):
@@ -235,7 +236,7 @@ def too_many_favorites(user):
     return message_length > 4096
 
 
-def add_custom(update: Update, context: CallbackContext[AddCustomFavoriteModel]):
+def add_custom(update: Update, context: FlowContext[AddCustomFavoriteModel]):
     uid = update.effective_user.id
     user = User.from_update(update)
     mid = update.effective_message.message_id
@@ -252,7 +253,7 @@ def add_custom(update: Update, context: CallbackContext[AddCustomFavoriteModel])
     except Favorite.DoesNotExist:
         fav = Favorite(user=user, custom_bot=context.view_model.username, date_added=datetime.date.today())
         fav.save()
-        msg = context.bot.formatter.send_or_edit(uid,
+        msg = context.bot.send_or_edit(uid,
                                                  mdformat.love("{} added to your /favorites.".format(
                                                      fav.custom_bot)),
                                                  to_edit=mid)

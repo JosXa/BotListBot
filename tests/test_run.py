@@ -1,7 +1,7 @@
 import pytest
 from threading import Thread
 
-import bot
+import main
 
 
 # async def test_run():

@@ -12,17 +12,18 @@ from components import botlistchat
 from const import States
 from dialog import messages
 from dialog.messages import random_explore_text
+from flow.actionbutton import ActionButton
+from flow.context import FlowContext
 from lib import InlineCallbackButton
 from models import Bot, Category, Favorite, Keyword, Statistic, User, track_activity
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackContext, ConversationHandler
-from telegram.flow.actionbutton import ActionButton
 from util import track_groups
 
 log = logging.getLogger()
 
 
-def show_official(update: Update, context: CallbackContext):
+def show_official(update: Update, context: FlowContext):
     text = '*Official Telegram Bots:*\n\n'
     update.effective_message.reply_text(
         text + Bot.get_official_bots_markdown(),
@@ -30,7 +31,7 @@ def show_official(update: Update, context: CallbackContext):
 
 
 @track_activity('explore', 'bots', Statistic.ANALYSIS)
-def explore(update: Update, context: CallbackContext):
+def explore(update: Update, context: FlowContext):
     cid = update.effective_chat.id
     uid = update.effective_user.id
     mid = update.effective_message.message_id
@@ -66,7 +67,7 @@ def explore(update: Update, context: CallbackContext):
     if uid in settings.MODERATORS and util.is_private_message(update):
         text += '\n\n🛃 /edit{}'.format(random_bot.id)
 
-    msg = context.bot.formatter.send_or_edit(cid, text, to_edit=mid, reply_markup=markup)
+    msg = context.bot.send_or_edit(cid, text, to_edit=mid, reply_markup=markup)
     context.chat_data['explored'].append(random_bot)
 
     # import time
@@ -93,14 +94,14 @@ def _select_category_buttons(callback_action: Action[CategoryModel] = None):
 
 @track_activity('menu', 'select category', Statistic.ANALYSIS)
 @track_groups
-def select_category(update: Update, context: CallbackContext[CallbackActionModel]):
+def select_category(update: Update, context: FlowContext[CallbackActionModel]):
     chat_id = update.effective_chat.id
     next_action = context.view_model.next_action
 
     reply_markup = InlineKeyboardMarkup(_select_category_buttons(next_action))
 
     reply_markup, callback = botlistchat.append_delete_button(update, context.chat_data, reply_markup)
-    msg = context.bot.formatter.send_or_edit(
+    msg = context.bot.send_or_edit(
         chat_id,
         util.action_hint(messages.SELECT_CATEGORY),
         to_edit=update.effective_message.message_id,
@@ -111,7 +112,7 @@ def select_category(update: Update, context: CallbackContext[CallbackActionModel
 
 
 @track_activity('explore', 'new bots', Statistic.ANALYSIS)
-def send_new_bots(update: Update, context: CallbackContext[ButtonModel]):
+def send_new_bots(update: Update, context: FlowContext[ButtonModel]):
     chat_id = update.effective_chat.id
     channel = helpers.get_channel()
     buttons = [[
@@ -126,7 +127,7 @@ def send_new_bots(update: Update, context: CallbackContext[ButtonModel]):
 
     reply_markup = InlineKeyboardMarkup(buttons)
     reply_markup, callback = botlistchat.append_delete_button(update, context.chat_data, reply_markup)
-    msg = context.bot.formatter.send_or_edit(chat_id, _new_bots_text(),
+    msg = context.bot.send_or_edit(chat_id, _new_bots_text(),
                                              to_edit=update.effective_message.message_id,
                                              reply_markup=reply_markup,
                                              reply_to_message_id=update.effective_message.message_id)
@@ -134,7 +135,7 @@ def send_new_bots(update: Update, context: CallbackContext[ButtonModel]):
     return ConversationHandler.END
 
 
-def send_category(update: Update, context: CallbackContext[CategoryModel]):
+def send_category(update: Update, context: FlowContext[CategoryModel]):
     uid = update.effective_user.id
     cid = update.effective_chat.id
     category = context.view_model.category
@@ -172,13 +173,13 @@ def send_category(update: Update, context: CallbackContext[CategoryModel]):
 
     reply_markup = InlineKeyboardMarkup(menu)
     reply_markup, callback = botlistchat.append_delete_button(update, context.chat_data, reply_markup)
-    msg = context.bot.formatter.send_or_edit(cid, txt, to_edit=update.effective_message.message_id,
+    msg = context.bot.send_or_edit(cid, txt, to_edit=update.effective_message.message_id,
                                      reply_markup=reply_markup)
     callback(msg)
     Statistic.of(update, 'menu', 'of category {}'.format(str(category)), Statistic.ANALYSIS)
 
 
-def send_bot_details(update: Update, context: CallbackContext[BotViewModel]):
+def send_bot_details(update: Update, context: FlowContext[BotViewModel]):
     is_group = util.is_group_message(update)
     cid = update.effective_chat.id
     user = User.from_update(update)
@@ -268,7 +269,7 @@ def send_bot_details(update: Update, context: CallbackContext[BotViewModel]):
     # else:
     #     preview = False
 
-    msg = context.bot.formatter.send_or_edit(
+    msg = context.bot.send_or_edit(
         cid,
         txt,
         to_edit=update.effective_message.message_id,

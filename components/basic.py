@@ -15,13 +15,16 @@ from actions import Actions, MessageLinkModel, SearchQueryModel, CallbackActionM
 from components import help
 from components.search import search_handler, search_query
 from dialog import messages
+from flow import RerouteToAction
+from flow.actionbutton import ActionButton
+from flow.context import FlowContext
+from flow.handlers.actionhandler import ActionHandler
 from models import Category, User
 from models.statistic import Statistic, track_activity
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, \
     ReplyKeyboardRemove, Update
 from telegram.error import BadRequest
-from telegram.ext import CommandHandler, ConversationHandler, Filters, MessageHandler, \
-    RegexHandler, ActionHandler, CallbackContext, ActionButton, RerouteToAction
+from telegram.ext import CommandHandler, ConversationHandler, Filters, MessageHandler, CallbackContext, RegexHandler
 from util import track_groups
 
 log = logging.getLogger(__name__)
@@ -29,7 +32,7 @@ log = logging.getLogger(__name__)
 
 @track_activity('command', 'start')
 @track_groups
-def start(update: Update, context: CallbackContext):
+def start(update: Update, context: FlowContext):
     tg_user = update.message.from_user
     chat_id = tg_user.id
 
@@ -86,7 +89,7 @@ def main_menu_buttons(admin=False):
 
 
 @track_activity('menu', 'main menu', Statistic.ANALYSIS)
-def main_menu(update: Update, context: CallbackContext):
+def main_menu(update: Update, context: FlowContext):
     chat_id = update.effective_chat.id
     is_admin = chat_id in settings.MODERATORS
 
@@ -104,25 +107,25 @@ def main_menu(update: Update, context: CallbackContext):
 
 
 @util.restricted
-def restart(update: Update, context: CallbackContext):
+def restart(update: Update, context: FlowContext):
     chat_id = update.effective_user.id
     os.kill(os.getpid(), signal.SIGINT)
-    context.bot.formatter.send_success(chat_id, "Bot is restarting...")
+    context.bot.send_success(chat_id, "Bot is restarting...")
     time.sleep(0.3)
     os.execl(sys.executable, sys.executable, *sys.argv)
 
 
-def error(update: Update, context: CallbackContext):
+def error(update: Update, context: FlowContext):
     log.error(context.error)
 
 
 @track_activity('remove', 'keyboard')
-def remove_keyboard(update: Update, context: CallbackContext):
+def remove_keyboard(update: Update, context: FlowContext):
     update.message.reply_text("Keyboard removed.", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 
-def delete_botlistchat_promotions(update: Update, context: CallbackContext):
+def delete_botlistchat_promotions(update: Update, context: FlowContext):
     cid = update.effective_chat.id
 
     if context.chat_data.get('delete_promotion_retries') >= 3:
@@ -146,7 +149,7 @@ def delete_botlistchat_promotions(update: Update, context: CallbackContext):
         context.update_queue.put(update)
 
 
-def plaintext_group(update: Update, context: CallbackContext):
+def plaintext_group(update: Update, context: FlowContext):
     # check if an inlinequery was sent to BotListChat
 
     # pprint(update.message.to_dict())
@@ -175,17 +178,17 @@ def thank_you_markup(count=0):
     return InlineKeyboardMarkup([[button]])
 
 
-def count_thank_you(update: Update, context: CallbackContext, count=0):
+def count_thank_you(update: Update, context: FlowContext, count=0):
     assert isinstance(count, int)
     update.effective_message.edit_reply_markup(reply_markup=thank_you_markup(count))
 
 
-def add_thank_you_button(update: Update, context: CallbackContext[MessageLinkModel]):
+def add_thank_you_button(update: Update, context: FlowContext[MessageLinkModel]):
     cid, mid = context.view_model.chat_id, context.view_model.message_id
     context.bot.edit_message_reply_markup(cid, mid, reply_markup=thank_you_markup(0))
 
 
-def ping(update: Update, context: CallbackContext):
+def ping(update: Update, context: FlowContext):
     update.effective_message.reply_text("pong")
 
 
@@ -210,7 +213,7 @@ def register(dp):
     dp.add_handler(ActionHandler(Actions.REMOVE_KEYBOARD, remove_keyboard))
 
 
-def delete_chosen_inline_result(update: Update, context: CallbackContext):
+def delete_chosen_inline_result(update: Update, context: FlowContext):
     try:
         update.message.delete()
     except BadRequest:

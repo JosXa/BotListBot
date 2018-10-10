@@ -5,11 +5,13 @@ import settings
 import util
 from actions import Actions
 from dialog import messages
+from flow.actionbutton import ActionButton
+from flow.context import FlowContext
 from helpers import reroute_private_chat
 from telegram import InlineKeyboardButton, Update
 from telegram import InlineKeyboardMarkup
 from telegram import ParseMode
-from telegram.ext import ConversationHandler, CallbackContext, ActionButton
+from telegram.ext import ConversationHandler, CallbackContext
 
 from models import track_activity
 from util import track_groups
@@ -21,31 +23,31 @@ def available_commands(bot, update):
 
 @track_groups
 @track_activity('command', 'help')
-def help(update: Update, context: CallbackContext):
+def help(update: Update, context: FlowContext):
     mid = update.effective_message.message_id
     cid = update.effective_chat.id
-    context.bot.formatter.send_or_edit(cid, messages.HELP_MESSAGE_ENGLISH, to_edit=mid, reply_markup=_help_markup())
+    context.bot.send_or_edit(cid, messages.HELP_MESSAGE_ENGLISH, to_edit=mid, reply_markup=_help_markup())
     return ConversationHandler.END
 
 
 @track_activity('command', 'contributing')
-def contributing(update: Update, context: CallbackContext):
+def contributing(update: Update, context: FlowContext):
     mid = update.effective_message.message_id
     cid = update.effective_chat.id
-    context.bot.formatter.send_or_edit(cid, messages.CONTRIBUTING, to_edit=mid, reply_markup=_help_markup())
+    context.bot.send_or_edit(cid, messages.CONTRIBUTING, to_edit=mid, reply_markup=_help_markup())
     return ConversationHandler.END
 
 
 @track_activity('command', 'examples')
-def examples(update: Update, context: CallbackContext):
+def examples(update: Update, context: FlowContext):
     mid = update.effective_message.message_id
     cid = update.effective_chat.id
-    context.bot.formatter.send_or_edit(cid, messages.EXAMPLES, to_edit=mid, reply_markup=_help_markup())
+    context.bot.send_or_edit(cid, messages.EXAMPLES, to_edit=mid, reply_markup=_help_markup())
     return ConversationHandler.END
 
 
 @track_activity('command', 'rules')
-def rules(update: Update, context: CallbackContext, quote=True):
+def rules(update: Update, context: FlowContext, quote=True):
     chat_id = update.effective_chat.id
     if chat_id == settings.BOTLISTCHAT_ID or util.is_private_message(update):
         reroute_private_chat(context.bot, update, quote, const.DeepLinkingActions.RULES, messages.BOTLISTCHAT_RULES)

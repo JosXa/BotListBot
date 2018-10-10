@@ -7,11 +7,12 @@ from actions import SearchQueryModel
 from components import basic
 from components.explore import Update, send_bot_details
 from dialog import messages
+from flow.context import FlowContext
 from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup, ParseMode, ReplyKeyboardMarkup
 from telegram.ext import CallbackContext, ConversationHandler
 
 
-def search_query(update: Update, context: CallbackContext[SearchQueryModel]):
+def search_query(update: Update, context: FlowContext[SearchQueryModel]):
     cid = update.effective_chat.id
     query = context.view_model.query
 

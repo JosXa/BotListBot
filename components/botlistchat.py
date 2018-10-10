@@ -5,6 +5,7 @@ import settings
 import util
 from const import CallbackActions
 from dialog.hints import HINTS
+from flow.context import FlowContext
 from models import track_activity
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import CallbackContext
@@ -42,7 +43,7 @@ def append_delete_button(update, chat_data, reply_markup):
 
 
 @track_activity('issued deletion of conversation in BotListChat')
-def delete_conversation(update: Update, context: CallbackContext):
+def delete_conversation(update: Update, context: FlowContext):
     cid = update.effective_chat.id
     uid = update.effective_user.id
     mid = update.effective_message.message_id
@@ -86,7 +87,7 @@ def _delete_multiple_delayed(bot, chat_id, immediately=None, delayed=None):
 
 
 @run_async
-def show_available_hints(update: Update, context: CallbackContext):
+def show_available_hints(update: Update, context: FlowContext):
     message = "In @BotListChat, you can use the following hashtags to guide new members:\n\n"
     message += '\n'.join(
         '🗣 {tag} ➖ {help}'.format(
@@ -121,7 +122,7 @@ def get_hint_message_and_markup(text):
 
 
 @run_async
-def hint_handler(update: Update, context: CallbackContext):
+def hint_handler(update: Update, context: FlowContext):
     chat_id = update.message.chat_id
     if chat_id not in [settings.BOTLISTCHAT_ID, settings.BOTLIST_NOTIFICATIONS_ID,
                        settings.BLSF_ID]:
@@ -132,7 +133,7 @@ def hint_handler(update: Update, context: CallbackContext):
     msg, reply_markup, _ = get_hint_message_and_markup(text)
 
     if msg is not None:
-        context.bot.formatter.send_message(chat_id, msg, reply_markup=reply_markup,
+        context.bot.send_message(chat_id, msg, reply_markup=reply_markup,
                                    reply_to_message_id=reply_to.message_id if reply_to else None)
         update.effective_message.disable()
 

@@ -7,7 +7,8 @@ from datetime import timedelta
 DEV = config("DEV", default=False, cast=bool)
 
 # BOT CONFIGURATION #
-BOT_TOKEN = config('BOT_TOKEN', default=None) or (sys.argv[1] if len(sys.argv) > 1 else None)
+BOT_TOKEN = str(config('BOT_TOKEN', default=None) or (sys.argv[1] if len(sys.argv) > 1 else None))
+PERSISTENCE_FILE = config('PERSISTENCE_FILE')
 LOG_DIR = config('LOG_DIR', default=os.path.dirname(os.path.abspath(__file__)))
 BOT_THUMBNAIL_DIR = config('BOT_THUMBNAIL_DIR',
                            default=os.path.expanduser(

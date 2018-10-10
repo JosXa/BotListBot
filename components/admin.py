@@ -17,24 +17,24 @@ from const import *
 from const import BotStates, CallbackActions
 from custemoji import Emoji
 from dialog import messages
+from flow.context import FlowContext
 from models import (Bot, Category, Revision, Statistic, Suggestion, User, track_activity)
 from telegram import (ForceReply, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup,
                       TelegramError, Update)
-from telegram.ext import (Action, ActionButton, CallbackContext, ConversationHandler, DispatcherHandlerStop, Job,
-                          RerouteToAction)
+from telegram.ext import (CallbackContext, ConversationHandler, DispatcherHandlerStop, Job)
 from util import restricted
 
 
 @track_activity('menu', 'Administration', Statistic.ANALYSIS)
 @restricted
-def menu(update: Update, context: CallbackContext):
+def menu(update: Update, context: FlowContext):
     uid = update.effective_user.id
 
     is_admin = uid in settings.ADMINS
     buttons = _admin_buttons(send_botlist_button=is_admin, logs_button=is_admin)
 
     txt = "🛃 Administration menu. Current revision: {}".format(Revision.get_instance().nr)
-    context.bot.formatter.send_message(uid, txt,
+    context.bot.send_message(uid, txt,
                                        reply_markup=ReplyKeyboardMarkup(buttons,
                                                                         resize_keyboard=True))
     return BotStates.ADMIN_MENU
@@ -82,9 +82,9 @@ def _admin_buttons(send_botlist_button=False, logs_button=False):
     return buttons
 
 @restricted
-def _input_failed(update: Update, context: CallbackContext, text):
+def _input_failed(update: Update, context: FlowContext, text):
     chat_id = update.effective_user.id
-    context.bot.formatter.send_failure(chat_id, text)
+    context.bot.send_failure(chat_id, text)
     Statistic.of(update, 'error', 'input failed in admin menu for {}'.format(text),
                  Statistic.ANALYSIS)
     context.chat_data['add_bot_message'] = None
@@ -176,7 +176,7 @@ def _edit_bot_buttons(to_edit: Bot, pending_suggestions: Dict, is_moderator):
     return util.build_menu(buttons, n_cols=2, header_buttons=header, footer_buttons=footer)
 
 @track_activity('menu', 'bot editing', Statistic.ANALYSIS)
-def edit_bot(update: Update, context: CallbackContext[BotViewModel]):
+def edit_bot(update: Update, context: FlowContext[BotViewModel]):
     uid = update.effective_user.id
     message_id = update.effective_message.message_id
     user = User.from_update(update)
@@ -199,7 +199,7 @@ def edit_bot(update: Update, context: CallbackContext[BotViewModel]):
                 update.message.reply_text(util.failure('No bot exists with this id.'))
                 return
         else:
-            context.bot.formatter.send_failure(uid, "An unexpected error occured.")
+            context.bot.send_failure(uid, "An unexpected error occured.")
             return
 
     if not to_edit.approved:
@@ -233,10 +233,10 @@ def edit_bot(update: Update, context: CallbackContext[BotViewModel]):
         pending_text
     )
 
-    context.bot.formatter.send_or_edit(uid, text, to_edit=message_id, reply_markup=reply_markup)
+    context.bot.send_or_edit(uid, text, to_edit=message_id, reply_markup=reply_markup)
 
 @restricted(strict=True)
-def prepare_transmission(update: Update, context: CallbackContext):
+def prepare_transmission(update: Update, context: FlowContext):
     chat_id = update.effective_user.id
     text = mdformat.action_hint(
         "Notify subscribers about this update?")
@@ -263,7 +263,7 @@ def prepare_transmission(update: Update, context: CallbackContext):
 
 @track_activity('menu', 'approve suggestions', Statistic.ANALYSIS)
 @restricted
-def approve_suggestions(update: Update, context: CallbackContext[PaginationModel]):
+def approve_suggestions(update: Update, context: FlowContext[PaginationModel]):
     page = context.view_model.page
     uid = update.effective_user.id
     suggestions = Suggestion.select_all()
@@ -279,7 +279,7 @@ def approve_suggestions(update: Update, context: CallbackContext[PaginationModel
     suggestions = suggestions[start:end]
 
     if len(suggestions) == 0:
-        context.bot.formatter.send_or_edit(uid, "No more suggestions available.",
+        context.bot.send_or_edit(uid, "No more suggestions available.",
                                            to_edit=update.effective_message.message_id)
         return
 
@@ -328,14 +328,14 @@ def approve_suggestions(update: Update, context: CallbackContext[PaginationModel
 
     reply_markup = InlineKeyboardMarkup(buttons)
 
-    context.bot.formatter.send_or_edit(uid, util.action_hint(text),
+    context.bot.send_or_edit(uid, util.action_hint(text),
                                        reply_markup=reply_markup, to_edit=update.effective_message.message_id,
                                        disable_web_page_preview=True)
     return States.APPROVING_BOTS
 
 @track_activity('menu', 'approve bots', Statistic.ANALYSIS)
 @restricted
-def approve_bots(update: Update, context: CallbackContext[ApproveBotsModel]):
+def approve_bots(update: Update, context: FlowContext[ApproveBotsModel]):
     chat_id = update.effective_user.id
 
     page = context.view_model.page
@@ -363,7 +363,7 @@ def approve_bots(update: Update, context: CallbackContext[ApproveBotsModel]):
     unapproved = unapproved[start:end]
 
     if len(unapproved) == 0:
-        context.bot.formatter.send_or_edit(chat_id, "No more unapproved bots available. "
+        context.bot.send_or_edit(chat_id, "No more unapproved bots available. "
                                                     "Good job! (Is this the first time? 😂)",
                                            to_edit=update.effective_message.message_id)
         return
@@ -418,14 +418,14 @@ def approve_bots(update: Update, context: CallbackContext[ApproveBotsModel]):
     reply_markup = InlineKeyboardMarkup(buttons)
     text = "What to do with {}?".format(util.escape_markdown(unapproved[0].username)) if len(
         unapproved) == 1 else "Please select a bot you want to accept for the BotList"
-    context.bot.formatter.send_or_edit(chat_id,
+    context.bot.send_or_edit(chat_id,
                                        util.action_hint(text),
                                        reply_markup=reply_markup,
                                        to_edit=update.effective_message.message_id)
     return States.APPROVING_BOTS
 
 @track_activity('menu', 'recommend moderator', Statistic.DETAILED)
-def recommend_moderator(update: Update, context: CallbackContext[PagedBotModel]):
+def recommend_moderator(update: Update, context: FlowContext[PagedBotModel]):
     uid = update.effective_user.id
     mid = update.effective_message.message_id
     page = context.view_model.page
@@ -446,9 +446,9 @@ def recommend_moderator(update: Update, context: CallbackContext[PagedBotModel])
     text = mdformat.action_hint(
         "Select a moderator you think is better suited to evaluate the submission of {}.".format(
             str(bot_subject)))
-    context.bot.formatter.send_or_edit(uid, text, to_edit=mid, reply_markup=reply_markup)
+    context.bot.send_or_edit(uid, text, to_edit=mid, reply_markup=reply_markup)
 
-def share_with_moderator(update: Update, context: CallbackContext[RecommendAdminModel]):
+def share_with_moderator(update: Update, context: FlowContext[RecommendAdminModel]):
     user = User.from_update(update)
     bot_subject = context.view_model.bot
     moderator = context.view_model.moderator
@@ -464,7 +464,7 @@ def share_with_moderator(update: Update, context: CallbackContext[RecommendAdmin
         user.markdown_short, bot_subject
     )
     try:
-        context.bot.formatter.send_message(
+        context.bot.send_message(
             moderator.chat_id,
             text,
             reply_markup=reply_markup,
@@ -481,7 +481,7 @@ def share_with_moderator(update: Update, context: CallbackContext[RecommendAdmin
                  'submission {} with {}'.format(bot_subject.username, moderator.plaintext))
 
 @track_activity('menu', 'edit bot category', Statistic.DETAILED)
-def edit_bot_category(update: Update, context: CallbackContext[BotCallbackActionModel]):
+def edit_bot_category(update: Update, context: FlowContext[BotCallbackActionModel]):
     next_action = context.view_model.next_action
     to_edit = context.view_model.bot
 
@@ -496,14 +496,14 @@ def edit_bot_category(update: Update, context: CallbackContext[BotCallbackAction
 
     markup = InlineKeyboardMarkup(util.build_menu(buttons, 2))
 
-    return context.bot.formatter.send_or_edit(
+    return context.bot.send_or_edit(
         update.effective_user.id,
         util.action_hint("Please select a category" + (" for {}".format(to_edit) if to_edit else '')),
         to_edit=update.effective_message.message_id,
         reply_markup=markup)
 
 @restricted
-def accept_bot_submission(update: Update, context: CallbackContext[BotCategoryModel]):
+def accept_bot_submission(update: Update, context: FlowContext[BotCategoryModel]):
     uid = update.effective_user.id
     message_id = update.effective_message.message_id
     user = User.from_update(update)
@@ -523,7 +523,7 @@ def accept_bot_submission(update: Update, context: CallbackContext[BotCategoryMo
                                              {'id': to_accept.id}))]]
         reply_markup = InlineKeyboardMarkup(buttons)
 
-        context.bot.formatter.send_or_edit(uid, "{} has been accepted to the Botlist. ".format(
+        context.bot.send_or_edit(uid, "{} has been accepted to the Botlist. ".format(
             to_accept, settings.BOT_ACCEPTED_IDLE_TIME
         ), to_edit=message_id, reply_markup=reply_markup)
 
@@ -544,10 +544,10 @@ def accept_bot_submission(update: Update, context: CallbackContext[BotCategoryMo
 
         log.info(log_msg)
     except:
-        context.bot.formatter.send_failure(uid, "An error has occured. Bot not added.")
+        context.bot.send_failure(uid, "An error has occured. Bot not added.")
 
 @track_activity('request', 'list of offline bots')
-def send_offline(update: Update, context: CallbackContext):
+def send_offline(update: Update, context: FlowContext):
     chat_id = update.effective_user.id
     offline = Bot.select().where(
         Bot.offline == True, Bot.disabled == False
@@ -568,10 +568,10 @@ def send_offline(update: Update, context: CallbackContext):
         ) for b in offline])
     else:
         text = "No bots are offline."
-    context.bot.formatter.send_message(chat_id, text)
+    context.bot.send_message(chat_id, text)
 
 @restricted
-def reject_bot_submission(update: Update, context: CallbackContext[RejectBotSubmissionModel]):
+def reject_bot_submission(update: Update, context: FlowContext[RejectBotSubmissionModel]):
     uid = update.effective_user.id
     context.view_model.admin_user = User.from_update(update)
     to_reject = context.view_model.to_reject
@@ -609,7 +609,7 @@ def reject_bot_submission(update: Update, context: CallbackContext[RejectBotSubm
         if to_reject.approved is True:
             msg = "{} has already been accepted, so it cannot be rejected anymore.".format(
                 username)
-            context.bot.sendMessage(uid, util.failure(msg))
+            context.bot.send_message(uid, util.failure(msg))
             return
 
     Statistic.of(update, 'reject', to_reject.username)
@@ -617,12 +617,12 @@ def reject_bot_submission(update: Update, context: CallbackContext[RejectBotSubm
     to_reject.delete_instance()
 
     if context.view_model.verbose:
-        context.bot.sendMessage(uid, text)
+        context.bot.send_message(uid, text)
 
     if update.callback_query:
         update.callback_query.answer(text=text)
 
-def notify_submittant_rejected(update: Update, context: CallbackContext[RejectBotSubmissionModel]):
+def notify_submittant_rejected(update: Update, context: FlowContext[RejectBotSubmissionModel]):
     model = context.view_model
 
     notification_successful = False
@@ -638,7 +638,7 @@ def notify_submittant_rejected(update: Update, context: CallbackContext[RejectBo
                     )
                 )
             else:
-                context.bot.sendMessage(model.to_reject.submitted_by.chat_id,
+                context.bot.send_message(model.to_reject.submitted_by.chat_id,
                                         util.failure(
                                             messages.REJECTION_PRIVATE_MESSAGE.format(model.to_reject.username)))
             msg += "\nUser {} was notified.".format(str(model.to_reject.submitted_by))
@@ -660,7 +660,7 @@ def notify_submittant_rejected(update: Update, context: CallbackContext[RejectBo
     return msg
 
 @restricted
-def ban_handler(update: Update, context: CallbackContext[BanModel]):
+def ban_handler(update: Update, context: FlowContext[BanModel]):
     if context.args:
         query = ' '.join(context.args) if isinstance(context.args, list) else context.args
 
@@ -679,7 +679,7 @@ def ban_handler(update: Update, context: CallbackContext[BanModel]):
     return ConversationHandler.END
 
 @restricted
-def ban_user(update: Update, context: CallbackContext[BanEntityModel]):
+def ban_user(update: Update, context: FlowContext[BanEntityModel]):
     user = context.view_model.entity
     ban_state = context.view_model.ban_state
 
@@ -720,7 +720,7 @@ def ban_user(update: Update, context: CallbackContext[BanEntityModel]):
     user.save()
 
 @restricted
-def ban_bot(update: Update, context: CallbackContext[BanEntityModel]):
+def ban_bot(update: Update, context: FlowContext[BanEntityModel]):
     to_ban = context.view_model.entity
     ban_state = context.view_model.ban_state
 
@@ -777,7 +777,7 @@ def last_update_job(bot, job: Job):
                     pass
 
 @restricted
-def apply_all_changes(update: Update, context: CallbackContext[BotViewModel]):
+def apply_all_changes(update: Update, context: FlowContext[BotViewModel]):
     user = User.from_update(update)
     to_edit = context.view_model.bot
 
@@ -790,7 +790,7 @@ def apply_all_changes(update: Update, context: CallbackContext[BotViewModel]):
     return RerouteToAction(Actions.EDIT_BOT, BotViewModel(refreshed_bot))
 
 @track_activity('menu', 'pending bots for next update', Statistic.ANALYSIS)
-def pending_update(update: Update, context: CallbackContext):
+def pending_update(update: Update, context: FlowContext):
     uid = update.effective_chat.id
     bots = Bot.select_pending_update()
 
@@ -806,11 +806,11 @@ def pending_update(update: Update, context: CallbackContext):
     else:
         txt += '\n'.join([str(b) for b in bots])
 
-    context.bot.formatter.send_message(uid, txt)
+    context.bot.send_message(uid, txt)
 
 @track_activity('request', 'runtime files', Statistic.ANALYSIS)
 @restricted
-def send_runtime_files(update: Update, context: CallbackContext):
+def send_runtime_files(update: Update, context: FlowContext):
     def send_file(path):
         try:
             uid = update.effective_user.id
@@ -847,7 +847,7 @@ def send_runtime_files(update: Update, context: CallbackContext):
 
 @track_activity('request', 'activity logs', Statistic.ANALYSIS)
 @restricted
-def send_activity_logs(update: Update, context: CallbackContext, level=Statistic.INFO):
+def send_activity_logs(update: Update, context: FlowContext, level=Statistic.INFO):
     num = 200
     if context.args:
         try:
@@ -864,10 +864,10 @@ def send_activity_logs(update: Update, context: CallbackContext, level=Statistic
         items = recent_statistic[i: i + step_size]
         text = '\n'.join(x.md_str() for x in items)
 
-        context.bot.formatter.send_message(uid, text)
+        context.bot.send_message(uid, text)
 
 @restricted
-def send_statistic(update: Update, context: CallbackContext):
+def send_statistic(update: Update, context: FlowContext):
     interesting_actions = [
         'explore', 'menu', 'command', 'request',
         'made changes to their suggestion:', 'issued deletion of conversation in BotListChat',
@@ -880,10 +880,10 @@ def send_statistic(update: Update, context: CallbackContext):
                      for
                      s in
                      stats)
-    context.bot.formatter.send_message(update.effective_chat.id, text, parse_mode='markdown')
+    context.bot.send_message(update.effective_chat.id, text, parse_mode='markdown')
 
 @track_activity('menu', 'short approve list', Statistic.ANALYSIS)
-def short_approve_list(update: Update, context: CallbackContext):
+def short_approve_list(update: Update, context: FlowContext):
     uid = update.effective_chat.id
     bots = Bot.select_unapproved()
 
@@ -899,11 +899,11 @@ def short_approve_list(update: Update, context: CallbackContext):
     else:
         txt += '\n'.join([str(b) for b in bots])
 
-    context.bot.formatter.send_message(uid, txt)
+    context.bot.send_message(uid, txt)
 
 @track_activity('menu', 'manybots', Statistic.ANALYSIS)
 @restricted
-def manybots(update: Update, context: CallbackContext):
+def manybots(update: Update, context: FlowContext):
     uid = update.effective_chat.id
     bots = Bot.select().where(
         Bot.approved == True & Bot.botbuilder == True & Bot.disabled == False)
@@ -916,4 +916,4 @@ def manybots(update: Update, context: CallbackContext):
     # else:
     txt += '\n'.join([str(b) for b in bots])
 
-    context.bot.formatter.send_message(uid, txt)
+    context.bot.send_message(uid, txt)

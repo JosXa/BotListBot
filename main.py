@@ -5,39 +5,28 @@ from logzero import logger as log
 from multiprocessing import Process
 from signal import SIGABRT, SIGINT, SIGTERM, signal
 
+from botlistbot import BotListBot
 import appglobals
 import routing
 import settings
-import util
 from components import admin
 from components.userbot import botchecker
 from components.userbot.botchecker import BotChecker
 from lib import context
 from lib.markdownformatter import MarkdownFormatter
-from telegram import Bot as TelegramBot
-from telegram.ext import Updater
+from telegram.ext import Updater, PicklePersistence
 from flow.callbackmanager import DictCallbackManager
 from telegram.utils.request import Request
 
 
-class BotListBot(TelegramBot):
-    def send_notification(self, message, **kwargs):
-        self.send_message(
-            settings.BOTLIST_NOTIFICATIONS_ID,
-            util.escape_markdown(message),
-            parse_mode='markdown',
-            timeout=20,
-            **kwargs
-        )
-        log.info(message)
+class BotListUpdater(Updater):
 
-
-# class BotListDispatcher(Dispatcher):
-#     def process_update(self, update):
-#         user = User.from_update(update)
-#         update.callback_manager = CallbackManager(appglobals.redis, user)
-#         update.callback_data = {}
-#         return super(BotListDispatcher, self).process_update(update)
+    def __init__(self, token=None, base_url=None, workers=4, bot=None, private_key=None, private_key_password=None,
+                 user_sig_handler=None, request_kwargs=None, persistence=None, use_context=False,
+                 callback_manager=None):
+        super().__init__(token, base_url, workers, bot, private_key, private_key_password, user_sig_handler,
+                         request_kwargs, persistence, use_context)
+        self.callback_manager = callback_manager
 
 
 def main():
@@ -47,7 +36,9 @@ def main():
 
     botchecker_context = {}
 
-    bot_token = str(settings.BOT_TOKEN)
+    persistence = PicklePersistence(filename=settings.PERSISTENCE_FILE)
+
+    bot_token = settings.BOT_TOKEN
 
     callback_manager = DictCallbackManager()
 
@@ -56,10 +47,11 @@ def main():
         connect_timeout=7,
         con_pool_size=settings.WORKER_COUNT + 4,
     ), callback_manager=callback_manager)
-    updater = Updater(
+    updater = BotListUpdater(
         bot=botlistbot,
         workers=settings.WORKER_COUNT,
         use_context=True,
+        persistence=persistence,
         callback_manager=callback_manager
     )
 
