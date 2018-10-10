@@ -47,8 +47,8 @@ API_URL = "localhost" if DEV else "josxa.jumpingcrab.com"
 API_PORT = 6060
 
 ### BOTCHECKER
-USE_USERBOT = True
 RUN_BOTCHECKER = config("RUN_BOTCHECKER", True, cast=bool)
+USE_USERBOT = RUN_BOTCHECKER
 API_ID = config("API_ID", cast=int)
 API_HASH = config("API_HASH")
 USERBOT_SESSION = config("USERBOT_SESSION")
