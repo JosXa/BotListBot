@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import flow
 import threading
 import time
 from logzero import logger as log
@@ -15,7 +16,7 @@ from components.userbot.botchecker import BotChecker
 from lib import context
 from lib.markdownformatter import MarkdownFormatter
 from telegram.ext import Updater, PicklePersistence
-from flow.callbackmanager import DictCallbackManager
+from flow import DictCallbackManager
 from telegram.utils.request import Request
 
 
@@ -33,6 +34,7 @@ def main():
     # Start API
     # thread = threading.Thread(target=botlistapi.start_server)
     # thread.start()
+    flow.patch()
 
     botchecker_context = {}
 
@@ -68,6 +70,7 @@ def main():
 
     # Get the dispatcher to on_mount handlers
     dp = updater.dispatcher
+    print(type(dp))
 
     # message_queue = MessageQueue()
     # message_queue._is_messages_queued_default = True

@@ -73,3 +73,4 @@ files/ical
 /.env
 /unknown_errors.txt
 /prod.env
+.vscode

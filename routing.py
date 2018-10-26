@@ -88,6 +88,7 @@ def reply_router(update: Update, context: FlowContext):
 
 def register(dp: Dispatcher, bot_checker: BotChecker):
     # admin.register(dp)
+    print(type(dp))
     basic.register(dp)
 
     # botlist.register(dp)

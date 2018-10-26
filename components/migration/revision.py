@@ -6,7 +6,7 @@ from playhouse.sqlite_ext import SqliteExtDatabase
 
 from models.revision import Revision
 
-db_path = config('DATABASE_URI', default=os.path.expanduser('~/botlistbot.sqlite3'))
+db_path = config('DATABASE_URL', default=os.path.expanduser('~/botlistbot.sqlite3'))
 db = SqliteExtDatabase(db_path)
 
 migrator = SqliteMigrator(db)
