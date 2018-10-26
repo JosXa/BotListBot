@@ -42,7 +42,7 @@ class Suggestion(BaseModel):
     user = ForeignKeyField(User)
     date = DateField()
     subject = ForeignKeyField(Bot)
-    _value = CharField(null=True, db_column='value')
+    _value = TextField(null=True, db_column='value')
     executed = BooleanField(default=False)
     action = CharField(choices=ACTIONS)
 

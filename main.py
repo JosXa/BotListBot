@@ -132,14 +132,9 @@ def main():
     updater.bot.send_message(settings.ADMINS[0], "Ready to rock", timeout=10)
 
     # Idling
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        # botchecker_context.get('stop').set()
-        updater.stop()
-        log.info('Disconnecting...')
-        appglobals.disconnect()
+    updater.idle()
+    updater.stop()
+    log.info('Disconnecting...')
 
 
 if __name__ == '__main__':

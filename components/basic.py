@@ -104,6 +104,7 @@ def restart(bot, update):
 
 
 def error(bot, update, error):
+    update.message.reply_text("Sorry, an error occured.")
     print(error)
     log.error(error)
 

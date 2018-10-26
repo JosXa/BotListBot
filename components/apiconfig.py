@@ -12,7 +12,7 @@ import const
 import mdformat
 import util
 from util import private_chat_only
-from bot import log
+from main import log
 from const import *
 from const import BotStates, CallbackActions
 from custemoji import Emoji

@@ -6,6 +6,6 @@ from models.basemodel import BaseModel
 
 class Notifications(BaseModel):
     id = PrimaryKeyField()
-    chat_id = IntegerField(unique=True)
+    chat_id = BigIntegerField(unique=True)
     enabled = BooleanField(default=True)
     last_notification = DateField(null=True)

@@ -3,6 +3,7 @@ import re
 import traceback
 from functools import partial
 from logzero import logger as log
+
 from telegram.ext import CallbackQueryHandler, ChosenInlineResultHandler, CommandHandler, \
     ConversationHandler, Dispatcher, DispatcherHandlerStop, Filters, InlineQueryHandler, \
     MessageHandler, RegexHandler
@@ -19,12 +20,16 @@ from components.botlistchat import HINTS
 from components.explore import select_category, send_bot_details, send_category, show_new_bots
 from components.misc import access_token, set_notifications, t3chnostats
 from components.search import search_handler, search_query
-from components.userbot import BotChecker
 from const import BotStates, CallbackActions
 from dialog import messages
 from lib import InlineCallbackHandler
 from misc import manage_subscription
 from models import Bot, Category, Country, Favorite, Keyword, Statistic, Suggestion, User
+
+try:
+    from components.userbot import BotChecker
+except:
+    pass
 
 
 def callback_router(bot, update, chat_data, user_data, job_queue):
@@ -293,7 +298,7 @@ def reply_router(bot, update, chat_data):
         admin.ban_handler(bot, update, query, chat_data, False)
 
 
-def register(dp: Dispatcher, bot_checker: BotChecker):
+def register(dp: Dispatcher, bot_checker: 'BotChecker'):
     def add(*args, **kwargs):
         dp.add_handler(*args, **kwargs)
 

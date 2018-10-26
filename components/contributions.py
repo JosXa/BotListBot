@@ -12,11 +12,15 @@ import settings
 import util
 from appglobals import loop
 from components.admin import notify_submittant_rejected
-from components.userbot import BotChecker
-from components.userbot.botchecker import add_keywords, download_profile_picture
 from models import Bot, Country, Suggestion, User
 from models.revision import Revision
 from util import track_groups
+
+try:
+    from components.userbot import BotChecker
+    from components.userbot.botchecker import add_keywords, download_profile_picture
+except:
+    log.warning("Not using BotChecker in contribuions.py")
 
 
 def extract_bot_mentions(message: TelegramMessage):
@@ -183,7 +187,7 @@ def new_bot_submission(bot, update, chat_data, args=None, bot_checker=None):
 
 
 @run_async
-def check_submission(bot, bot_checker: BotChecker, to_check: Bot):
+def check_submission(bot, bot_checker: 'BotChecker', to_check: Bot):
     # TODO: make this method async
     if bot_checker is None:
         return

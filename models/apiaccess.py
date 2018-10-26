@@ -8,6 +8,6 @@ from models.basemodel import BaseModel
 
 class APIAccess(BaseModel):
     user = ForeignKeyField(User)
-    token = CharField(32)
+    token = CharField(64)
     webhook_url = CharField(null=True)
 

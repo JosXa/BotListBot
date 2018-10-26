@@ -1,4 +1,4 @@
-export APP_NAME="bot.py"
+export APP_NAME="main.py"
 export WORKSPACE=`pwd`
 # Create/Activate virtualenv
 virtualenv -p /usr/bin/python3 venv

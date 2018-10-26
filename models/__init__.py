@@ -14,6 +14,7 @@ from models.statistic import Statistic
 from models.statistic import track_activity
 from models.revision import Revision
 
+
 if __name__ == "__main__":
     Category.create_table(fail_silently=True)
     Bot.create_table(fail_silently=True)
