@@ -11,8 +11,6 @@ import routing
 import settings
 import util
 from components import admin, basic
-from components.userbot import botchecker
-from components.userbot.botchecker import BotChecker
 from lib.markdownformatter import MarkdownFormatter
 
 
@@ -97,6 +95,9 @@ def main():
     bot_checker = None
 
     if settings.USE_USERBOT:
+        from components.userbot import botchecker
+        from components.userbot.botchecker import BotChecker
+
         bot_checker = BotChecker(
             event_loop=appglobals.loop,
             session_name=settings.USERBOT_SESSION,
