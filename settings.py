@@ -6,24 +6,24 @@ from datetime import timedelta
 
 DEV = config("DEV", default=False, cast=bool)
 
-### BOT CONFIGURATION ###
+# BOT CONFIGURATION
 BOT_TOKEN = config('BOT_TOKEN', default=None) or (sys.argv[1] if len(sys.argv) > 1 else None)
 LOG_DIR = config('LOG_DIR', default=os.path.dirname(os.path.abspath(__file__)))
 BOT_THUMBNAIL_DIR = config('BOT_THUMBNAIL_DIR',
                            default=os.path.expanduser(
                                '/home/joscha/data/botlistbot/bot-profile-pictures'))
 MODERATORS = [
-    62056065,  # JosXa
-    918962,  # T3CHNO
-    7679610,
-    278941742,
-    127782573,
-    43740047,
-    317434635,  # jfowl
-    2591224,  # OWL
-    473862645,  # Lulzx
-    200344026,  # the scientist
-    234480941  # the one and only twitface
+    # 127782573,  # UNKNOWN - delete sometime
+    # 43740047,   # UNKNOWN - delete sometime
+    62056065,     # JosXa
+    918962,       # T3CHNO
+    7679610,      # Fabian Pastor
+    278941742,    # riccardo
+    317434635,    # jfowl
+    2591224,      # OWL
+    473862645,    # Lulzx
+    200344026,    # the scientist
+    234480941,    # the one and only twitface
 ]
 ADMINS = [62056065, 918962]
 BOT_CONSIDERED_NEW = 1  # Revision difference

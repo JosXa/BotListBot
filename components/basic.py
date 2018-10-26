@@ -5,8 +5,8 @@ import os
 import signal
 import time
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, \
-    ReplyKeyboardMarkup, ReplyKeyboardRemove
-from telegram.ext import CommandHandler, ConversationHandler, Filters, MessageHandler, RegexHandler
+    ReplyKeyboardMarkup, ReplyKeyboardRemove, Bot, Update, Message
+from telegram.ext import CommandHandler, ConversationHandler, Filters, MessageHandler, RegexHandler, JobQueue
 
 import appglobals
 import captions
@@ -181,8 +181,19 @@ def add_thank_you_button(bot, update, cid, mid):
     bot.edit_message_reply_markup(cid, mid, reply_markup=thank_you_markup(0))
 
 
-def ping(bot, update):
-    update.message.reply_text("pong")
+def ping(_, update: Update, job_queue: JobQueue):
+    msg: Message = update.effective_message
+    sent = msg.reply_text("🏓 Pong!", quote=True)
+    del_timeout = 4
+
+    def delete_msgs(_1, _2):
+        sent.delete()
+        try:
+            msg.delete()
+        except:
+            pass
+
+    job_queue.run_once(delete_msgs, del_timeout, name='delete ping pong messages')
 
 
 @track_groups
@@ -204,3 +215,5 @@ def register(dp):
         MessageHandler(Filters.text & Filters.group, plaintext_group, pass_chat_data=True,
                        pass_update_queue=True))
     dp.add_handler(CommandHandler("removekeyboard", remove_keyboard))
+    dp.add_handler(CommandHandler("ping", ping, pass_job_queue=True))
+

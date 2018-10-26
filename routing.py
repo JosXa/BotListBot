@@ -480,7 +480,6 @@ def register(dp: Dispatcher, bot_checker: 'BotChecker'):
         add(RegexHandler(r'{}.*'.format(hashtag), botlistchat.hint_handler), group=1)
     add(CommandHandler(('hint', 'hints'), botlistchat.show_available_hints))
 
-    add(CommandHandler('ping', basic.ping))
     add(RegexHandler('^{}$'.format(settings.REGEX_BOT_ONLY), send_bot_details,
                      pass_chat_data=True))
 
