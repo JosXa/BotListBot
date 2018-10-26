@@ -186,7 +186,7 @@ def ping(_, update: Update, job_queue: JobQueue):
     sent = msg.reply_text("🏓 Pong!", quote=True)
     del_timeout = 4
 
-    def delete_msgs(_1, _2):
+    def delete_msgs(*_):
         sent.delete()
         try:
             msg.delete()

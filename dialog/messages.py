@@ -3,6 +3,26 @@ import random
 import captions
 import mdformat
 
+
+# region functions
+from dialog import emojis
+
+
+def rand_call_to_action():
+    choices = ["Check out", "You might like", "What about", "You should try", "Have a look at", "Why don't you try"]
+    return random.choice(choices)
+
+
+def rand_thank_you_slang():
+    choices = ["👍🏼 Wow great, thank you!", "👍🏼 Good Job!", "❤️ Nice! Thanks", "❤️ Cool!", "❤️ Awesome!",
+               "😍 Excellent!",
+               "👌 You da man!", "👌 That's just perfect!", "👌 Well done!", "🙏 Good one!", "🙏 Great, keep it up!",
+               "👏 I like it!", "👏 Orng Nice!"]
+    return random.choice(choices)
+
+
+# endregion
+
 PROMOTION_MESSAGE = "*ᴊᴏɪɴ ᴛʜᴇ* @BotList 💙\n*sʜᴀʀᴇ* ʏᴏᴜʀ ʙᴏᴛs ɪɴ @BotListChat"
 HELP_MESSAGE_ENGLISH = """I'm the bot in charge of maintaining the @BotList channel, the *most reliable and unbiased bot catalog* out there. I was built to simplify navigation and to automate the process of submitting, reviewing and publishing bots by the @BotListChat community.
 
@@ -106,16 +126,9 @@ ADD_FAVORITE = mdformat.action_hint("Please send me the @username of a bot to ad
 
 BOTPROPERTY_STARTSWITH = "Please send me a "
 SET_BOTPROPERTY = "Please send me a {} for {} ― `{}` to clear"
-
-
-
-def rand_call_to_action():
-    choices = ["Check out", "You might like", "What about", "You should try", "Have a look at", "Why don't you try"]
-    return random.choice(choices)
-
-
-def rand_thank_you_slang():
-    choices = ["👍🏼 Wow great, thank you!", "👍🏼 Good Job!", "❤️ Nice! Thanks", "❤️ Cool!", "❤️ Awesome!", "😍 Excellent!",
-               "👌 You da man!", "👌 That's just perfect!", "👌 Well done!", "🙏 Good one!", "🙏 Great, keep it up!",
-               "👏 I like it!", "👏 Orng Nice!"]
-    return random.choice(choices)
+SELECT_BOT_TO_ACCEPT = f"""Please select a bot you want to accept for the BotList.
+👍 Accept with notification
+👎 Reject with notification
+🗑 Drop without notice
+{emojis.RECOMMEND_MODERATOR} Recommend another moderator for this submission
+"""

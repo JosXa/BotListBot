@@ -21,7 +21,7 @@ from components.lookup import lookup_entity
 from const import *
 from const import BotStates, CallbackActions
 from custemoji import Emoji
-from dialog import messages
+from dialog import messages, emojis
 from models import Bot, Category, Revision, Statistic, Suggestion, User, track_activity
 from util import restricted
 
@@ -387,7 +387,7 @@ def approve_bots(bot, update, page=0, override_list=None):
                 CallbackActions.REJECT_BOT, {'id': x.id, 'page': page, 'ntfc': True})),
             InlineKeyboardButton('🗑', callback_data=util.callback_for_action(
                 CallbackActions.REJECT_BOT, {'id': x.id, 'page': page, 'ntfc': False})),
-            InlineKeyboardButton('👥🔀', callback_data=util.callback_for_action(
+            InlineKeyboardButton(emojis.RECOMMEND_MODERATOR, callback_data=util.callback_for_action(
                 CallbackActions.RECOMMEND_MODERATOR, {'id': x.id, 'page': page}))
         ]
         if len(unapproved) > 1:
@@ -424,7 +424,7 @@ def approve_bots(bot, update, page=0, override_list=None):
 
     reply_markup = InlineKeyboardMarkup(buttons)
     text = "What to do with {}?".format(util.escape_markdown(unapproved[0].username)) if len(
-        unapproved) == 1 else "Please select a bot you want to accept for the BotList"
+        unapproved) == 1 else messages.SELECT_BOT_TO_ACCEPT
     bot.formatter.send_or_edit(chat_id,
                                util.action_hint(text),
                                reply_markup=reply_markup, to_edit=util.mid_from_update(update))
