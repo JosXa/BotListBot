@@ -19,9 +19,11 @@ MODERATORS = [
     278941742,
     127782573,
     43740047,
-    317434635,
+    317434635,  # jfowl
     2591224,  # OWL
-    473862645  # Lulzx
+    473862645,  # Lulzx
+    200344026,  # the scientist
+    234480941  # the one and only twitface
 ]
 ADMINS = [62056065, 918962]
 BOT_CONSIDERED_NEW = 1  # Revision difference
@@ -81,5 +83,3 @@ BOT_UNDER_TEST = TEST_BOT_NAME if DEV else LIVE_BOT_NAME
 TEST_USERBOT_PHONE = config('TEST_USERBOT_PHONE', default=None)
 TEST_USERBOT_SESSION = config('TEST_USERBOT_SESSION', default=None)
 TEST_GROUP_ID = 1118582923
-
-
