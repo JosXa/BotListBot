@@ -87,7 +87,7 @@ It does not suffice the standards we impose for inclusion in the @BotList for on
 ▫NO MANYBOTS!!! 👺
 
 For further information, please ask in the @BotListChat."""
-ACCEPTANCE_PRIVATE_MESSAGE = """Congratulations, your bot submission {} has been accepted for the @BotList. You can already see it by using the /category command, and it is going to be in the @BotList in the next two weeks.\n\nCategory: {}"""
+ACCEPTANCE_PRIVATE_MESSAGE = """Congratulations, your bot submission {} has been accepted for the @BotList. You will be able to see it shortly by using the /category command, and it is going to be in the @BotList in the next two weeks.\n\nCategory: {}"""
 BOTLIST_UPDATE_NOTIFICATION = """⚠️@BotList *update!*
 There are {n_bots} new bots:
 
