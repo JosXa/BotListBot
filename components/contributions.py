@@ -6,6 +6,7 @@ from peewee import fn
 from pprint import pprint
 from pyrogram.api.errors import UsernameNotOccupied
 from telegram import Message as TelegramMessage, ParseMode
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ConversationHandler, run_async
 
 import settings
@@ -15,6 +16,7 @@ from components.admin import notify_submittant_rejected
 from models import Bot, Country, Suggestion, User
 from models.revision import Revision
 from util import track_groups
+from const import CallbackActions
 
 try:
     from components.userbot import BotChecker
@@ -177,6 +179,20 @@ def new_bot_submission(bot, update, chat_data, args=None, bot_checker=None):
         msg = update.message.reply_text(
             util.success("You submitted {} for approval.{}".format(new_bot, description_notify)),
             parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
+
+    buttons = [
+        InlineKeyboardButton('👍', callback_data=util.callback_for_action(
+            CallbackActions.ACCEPT_BOT, {'id': new_bot.id})),
+        InlineKeyboardButton('👎', callback_data=util.callback_for_action(
+            CallbackActions.REJECT_BOT, {'id': new_bot.id, 'page': page, 'ntfc': True})),
+        InlineKeyboardButton('🗑', callback_data=util.callback_for_action(
+            CallbackActions.REJECT_BOT, {'id': new_bot.id, 'page': page, 'ntfc': False}))
+    ]
+
+    reply_markup = InlineKeyboardMarkup(buttons)
+    text = 'New submission: {}'.format(new_bot.username)
+    text += '\n\n{}'.format(new_bot.description) if new_bot.description else ''
+    bot.formatter.send_message(settings.BLSF_ID, util.action_hint(text), reply_markup=reply_markup)
 
     try:
         check_submission(bot, bot_checker, new_bot)
