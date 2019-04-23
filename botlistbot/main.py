@@ -31,7 +31,8 @@ def main():
     # Start API
     # thread = threading.Thread(target=botlistapi.start_server)
     # thread.start()
-    sentry_sdk.init(settings.SENTRY_URL)
+    if settings.is_sentry_enabled():
+        sentry_sdk.init(settings.SENTRY_URL, environment=settings.SENTRY_ENVIRONMENT)
 
     botchecker_context = {}
 
