@@ -108,6 +108,7 @@ def main():
     # Idling
     updater.idle()
     updater.stop()
+
     log.info('Disconnecting...')
 
 
