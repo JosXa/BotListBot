@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import sentry_sdk
 import threading
 import time
 from logzero import logger as log
@@ -14,27 +15,6 @@ from components import admin, basic
 from lib.markdownformatter import MarkdownFormatter
 
 
-# def setup_logger():
-#     logger = logging.getLogger('botlistbot')
-#     logger.setLevel(logging.INFO)
-#
-#     console_formatter = logging.Formatter("%(name)-12s: %(levelname)-8s %(message)s")
-#     file_formatter = logging.Formatter(
-#         "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
-#
-#     # create console handler and set level to info
-#     handler = logging.StreamHandler()
-#     handler.setLevel(logging.INFO)
-#     handler.setFormatter(console_formatter)
-#     logger.addHandler(handler)
-#
-#     # create debug file handler and set level to debug
-#     handler = logging.FileHandler(settings.DEBUG_LOG_FILE, "w", encoding=None, delay="true")
-#     handler.setLevel(logging.DEBUG)
-#     handler.setFormatter(file_formatter)
-#     logger.addHandler(handler)
-
-
 class BotListBot(TelegramBot):
     def send_notification(self, message, **kwargs):
         self.send_message(
@@ -47,18 +27,11 @@ class BotListBot(TelegramBot):
         log.info(message)
 
 
-# class BotListDispatcher(Dispatcher):
-#     def process_update(self, update):
-#         user = User.from_update(update)
-#         update.callback_manager = CallbackManager(appglobals.redis, user)
-#         update.callback_data = {}
-#         return super(BotListDispatcher, self).process_update(update)
-
-
 def main():
     # Start API
     # thread = threading.Thread(target=botlistapi.start_server)
     # thread.start()
+    sentry_sdk.init(settings.SENTRY_URL)
 
     botchecker_context = {}
 

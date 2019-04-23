@@ -4,7 +4,6 @@ import re
 from logzero import logger as log
 from peewee import fn
 from pprint import pprint
-from pyrogram.api.errors import UsernameNotOccupied
 from telegram import Message as TelegramMessage, ParseMode
 from telegram.ext import ConversationHandler, run_async
 
@@ -20,7 +19,7 @@ try:
     from components.userbot import BotChecker
     from components.userbot.botchecker import add_keywords, download_profile_picture
 except:
-    log.warning("Not using BotChecker in contribuions.py")
+    log.warning("Not using BotChecker in contributions.py")
 
 
 def extract_bot_mentions(message: TelegramMessage):

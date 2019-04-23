@@ -28,6 +28,7 @@ tgcrypto = "*"
 "psycopg2" = "*"
 cryptography = "*"
 tornado = "*"
+sentry-sdk = "==0.7.11"
 
 [dev-packages]
 pytest = "*"

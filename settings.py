@@ -70,6 +70,7 @@ BOTBUILDER_DETERMINERS = ["use /off to pause your subscription", "use /stop to u
                           "manybot", "chatfuelbot"]
 FORBIDDEN_KEYWORDS = config('FORBIDDEN_KEYWORDS', cast=Csv(), default=[])
 
+SENTRY_URL = config('SENTRY_URL')
 DEBUG_LOG_FILE = "botlistbot.log"
 
 BOTLIST_REQUESTS_CHANNEL = None
@@ -83,3 +84,4 @@ BOT_UNDER_TEST = TEST_BOT_NAME if DEV else LIVE_BOT_NAME
 TEST_USERBOT_PHONE = config('TEST_USERBOT_PHONE', default=None)
 TEST_USERBOT_SESSION = config('TEST_USERBOT_SESSION', default=None)
 TEST_GROUP_ID = 1118582923
+
