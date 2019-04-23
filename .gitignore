@@ -74,3 +74,4 @@ files/ical
 /unknown_errors.txt
 /prod.env
 /.vscode/launch.json
+.vscode/settings.json
