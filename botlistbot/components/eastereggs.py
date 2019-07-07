@@ -14,16 +14,14 @@ import captions
 from models import track_activity
 
 
-@track_activity('easteregg', '"crappy troll markup"')
 def _crapPy_Tr0ll_kbmarkup(rows=None):
     if rows is None:
         rows = 4
     first = ['Gay', 'Pony', 'Dick', 'Telegram', 'Milk', 'WhatsApp', 'Daniils', 'T3CHNOs', 'Adult', 'ThirdWorld',
-             'Asian', 'Mexican', 'SM', 'Russian', 'Chinese', 'Gonzo', 'Anime']
+             'Asian', 'Mexican', 'SM', 'Russian', 'Chinese', 'Gonzo', 'Anime', 'JosXas', 'Twitfaces']
     second = ['Tales', 'Porn', 'Rice', 'Bugs', 'Whores', 'Pigs', 'Alternatives', 'Pics', 'Penetrator', 'Addiction',
-
-              'Ducks', 'Slaves']
-    third = ['Collection', 'Channel', 'Bot', 'Radio', 'Chat', 'Discuss ion', 'Conversation', 'Voting', 'ForPresident']
+              'Ducks', 'Slaves', 'Tiddies', 'Awesome']
+    third = ['Collection', 'Channel', 'Bot', 'Radio', 'Chat', 'Discussion', 'Conversation', 'Voting', 'ForPresident']
 
     def compound():
         choices = [
@@ -36,6 +34,7 @@ def _crapPy_Tr0ll_kbmarkup(rows=None):
     return buttons
 
 
+@track_activity('easteregg', '"crappy troll markup"')
 def send_next(bot, update, args=None):
     uid = util.uid_from_update(update)
     rows = None
