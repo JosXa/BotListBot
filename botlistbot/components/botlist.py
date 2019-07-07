@@ -7,6 +7,7 @@ import traceback
 from time import sleep
 from typing import List
 
+import appglobals
 import helpers
 import mdformat
 import settings
@@ -34,10 +35,11 @@ def _format_category_bots(category):
 
 
 class BotList:
-    NEW_BOTS_FILE = 'files/new_bots_list.txt'
-    CATEGORY_LIST_FILE = 'files/category_list.txt'
-    ENGLISH_INTRO_TEXT = 'files/intro_en.txt'
-    SPANISH_INTRO_TEXT = 'files/intro_es.txt'
+    FILES_ROOT = appglobals.ROOT_DIR + '/files/'
+    NEW_BOTS_FILE = FILES_ROOT + 'new_bots_list.txt'
+    CATEGORY_LIST_FILE = FILES_ROOT + 'category_list.txt'
+    ENGLISH_INTRO_TEXT = FILES_ROOT + 'intro_en.txt'
+    SPANISH_INTRO_TEXT = FILES_ROOT + 'intro_es.txt'
 
     def __init__(self, bot, update, channel, resend, silent):
         if not channel:

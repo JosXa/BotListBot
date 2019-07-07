@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import datetime
+from pathlib import Path
+
 import emoji
 import os
 import re
@@ -11,6 +13,7 @@ from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup, Key
 from telegram.ext import ConversationHandler, DispatcherHandlerStop, Job, run_async
 from typing import Dict
 
+import appglobals
 import captions
 import helpers
 import mdformat
@@ -807,20 +810,23 @@ def pending_update(bot, update):
 @track_activity('request', 'runtime files', Statistic.ANALYSIS)
 @restricted
 def send_runtime_files(bot, update):
-    def send_file(path):
+    def send_file(path: Path):
+        path = str(path)
         try:
             uid = update.effective_user.id
             bot.sendDocument(uid, open(path, 'rb'), filename=os.path.split(path)[-1])
         except:
             pass
 
-    send_file('files/intro_en.txt')
-    send_file('files/intro_es.txt')
-    send_file('files/new_bots_list.txt')
-    send_file('files/category_list.txt')
-    send_file('files/commands.txt')
-    send_file('error.log')
-    send_file('debug.log')
+    root = Path(appglobals.ROOT_DIR) / 'botlistbot'
+
+    send_file(root / 'files/intro_en.txt')
+    send_file(root / 'files/intro_es.txt')
+    send_file(root / 'files/new_bots_list.txt')
+    send_file(root / 'files/category_list.txt')
+    send_file(root / 'files/commands.txt')
+    send_file(root / 'error.log')
+    send_file(root / 'debug.log')
 
 
 # def _merge_statistic_logs(statistic, file, level):
