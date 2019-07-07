@@ -249,6 +249,7 @@ def edit_bot(bot, update, chat_data, to_edit=None):
 @restricted(strict=True)
 def prepare_transmission(bot, update, chat_data):
     chat_id = util.uid_from_update(update)
+    pending_update(bot, update)
     text = mdformat.action_hint(
         "Notify subscribers about this update?")
     reply_markup = InlineKeyboardMarkup([[

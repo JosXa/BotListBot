@@ -213,7 +213,7 @@ def new_bot_submission(bot, update, chat_data, args=None, bot_checker=None):
         from components.explore import send_bot_details
         send_bot_details(bot, update, chat_data, new_bot)
     else:
-        msg = update.message.reply_text(
+        update.message.reply_text(
             util.success("You submitted {} for approval.{}".format(new_bot, description_notify)),
             parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
 

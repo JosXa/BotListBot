@@ -23,9 +23,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import BadRequest, TelegramError
 from telegram.ext.dispatcher import run_async
 from util import restricted
-
-logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
-log = logging.getLogger(__name__)
+from logzero import logger as log
 
 
 def _format_category_bots(category):
@@ -195,13 +193,14 @@ class BotList:
             self.sent['category_list'] = "Category Links sent"
         self._save_channel()
 
-    def update_categories(self, categories: List):
+    def update_categories(self, categories: List[Category]):
         self.notify_admin(
             "Updating BotList categories to Revision {}...".format(Revision.get_instance().nr))
 
         for cat in categories:
             text = _format_category_bots(cat)
 
+            log.info(f"Updating category {cat.name}...")
             msg = self.send_or_edit(text, cat.current_message_id)
             if msg:
                 cat.current_message_id = msg.message_id
@@ -235,6 +234,8 @@ class BotList:
                     url=BotList.create_hyperlink(categories[i + 1].current_message_id)))
 
             reply_markup = InlineKeyboardMarkup([buttons])
+
+            log.info(f"Adding buttons to message with category {categories[i].name}...")
             self.bot.edit_message_reply_markup(
                 self.channel.chat_id,
                 categories[i].current_message_id,
@@ -248,7 +249,7 @@ class BotList:
         footer = '\n```'
         footer += '\n' + mdformat.centered(
             "• @BotList •\n{}\n{} bots".format(
-                datetime.date.today().strftime("%d-%m-%Y"),
+                datetime.date.today().strftime("%Y-%m-%d"),
                 num_bots
             ))
         footer += '```'
