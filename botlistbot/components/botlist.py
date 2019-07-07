@@ -36,6 +36,7 @@ def _format_category_bots(category):
 
 class BotList:
     FILES_ROOT = appglobals.ROOT_DIR + '/files/'
+    INTRO_GIF = appglobals.ROOT_DIR + "/assets/gif/animation.gif"
     NEW_BOTS_FILE = FILES_ROOT + 'new_bots_list.txt'
     CATEGORY_LIST_FILE = FILES_ROOT + 'category_list.txt'
     ENGLISH_INTRO_TEXT = FILES_ROOT + 'intro_en.txt'
@@ -134,7 +135,7 @@ class BotList:
     def update_intro(self):
         if self.resend:
             self.notify_admin("Sending intro GIF...")
-            self.bot.sendDocument(self.channel.chat_id, open("botlistbot/assets/gif/animation.gif", 'rb'),
+            self.bot.sendDocument(self.channel.chat_id, open(self.INTRO_GIF, 'rb'),
                                   timeout=120)
             sleep(1)
 
