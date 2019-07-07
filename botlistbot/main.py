@@ -71,12 +71,6 @@ def main():
     basic.register(dp)
 
     updater.job_queue.run_repeating(admin.last_update_job, interval=3600 * 24)
-
-    updater.start_webhook(
-        listen='0.0.0.0',
-        port=80,
-
-    )
     updater.start_polling()
 
     log.info('Listening...')
