@@ -5,6 +5,7 @@ from decouple import config, Csv
 from datetime import timedelta
 
 DEV = config("DEV", default=False, cast=bool)
+PORT = config("PORT", default=8443, cast=int)
 
 # region BOT CONFIGURATION
 BOT_TOKEN = config('BOT_TOKEN', default=None) or (sys.argv[1] if len(sys.argv) > 1 else None)

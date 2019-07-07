@@ -2,6 +2,8 @@
 import sentry_sdk
 import threading
 import time
+
+from decouple import config
 from logzero import logger as log
 from telegram import Bot as TelegramBot
 from telegram.ext import Updater
@@ -71,7 +73,14 @@ def main():
     basic.register(dp)
 
     updater.job_queue.run_repeating(admin.last_update_job, interval=3600 * 24)
-    updater.start_polling()
+
+    if settings.DEV:
+        updater.start_polling()
+    else:
+        updater.start_webhook(listen="0.0.0.0",
+                              port=settings.PORT,
+                              url_path=settings.BOT_TOKEN)
+        updater.bot.set_webhook(f"https://botlistbot.herokuapp.com/{settings.BOT_TOKEN}")
 
     log.info('Listening...')
     updater.bot.send_message(settings.ADMINS[0], "Ready to rock", timeout=10)
