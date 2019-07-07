@@ -17,7 +17,7 @@ from util import track_groups
 
 try:
     from components.userbot import BotChecker
-    from components.userbot.botchecker import add_keywords, download_profile_picture
+    from botcheckerworker.botchecker import add_keywords, download_profile_picture
 except:
     log.warning("Not using BotChecker in contributions.py")
 
@@ -30,6 +30,53 @@ def extract_bot_mentions(message: TelegramMessage):
 
     # If it ends in "bot", we can be sure it's a bot.
     # Other ones will be thrown away, assuming that we already have all the verified bots
+
+
+def notify_bot_offline(bot, update, args=None):
+    tg_user = update.message.from_user
+    user = User.from_telegram_object(tg_user)
+    reply_to = util.original_reply_id(update)
+
+    if args:
+        text = ' '.join(args)
+    else:
+        text = update.message.text
+        command_no_args = len(re.findall(r'^/new\s*$', text)) > 0 or text.lower().strip() == '/offline@botlistbot'
+        if command_no_args:
+            update.message.reply_text(
+                util.action_hint("Please use this command with an argument. For example:\n/offline @mybot"),
+                reply_to_message_id=reply_to)
+            return
+
+    # `#offline` is already checked by handler
+    try:
+        username = re.match(settings.REGEX_BOT_IN_TEXT, text).groups()[0]
+        if username == '@' + settings.SELF_BOT_NAME:
+            log.info("Ignoring {}".format(text))
+            return
+    except AttributeError:
+        if args:
+            update.message.reply_text(util.failure("Sorry, but you didn't send me a bot `@username`."), quote=True,
+                                      parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
+        else:
+            log.info("Ignoring {}".format(text))
+            # no bot username, ignore update
+            pass
+        return
+
+    try:
+        offline_bot = Bot.get(fn.lower(Bot.username) ** username.lower(), Bot.approved == True)
+        try:
+            Suggestion.get(action="offline", subject=offline_bot)
+        except Suggestion.DoesNotExist:
+            suggestion = Suggestion(user=user, action="offline", date=datetime.date.today(), subject=offline_bot)
+            suggestion.save()
+        update.message.reply_text(util.success("Thank you! We will review your suggestion and set the bot offline.",
+                                               ), reply_to_message_id=reply_to)
+    except Bot.DoesNotExist:
+        update.message.reply_text(
+            util.action_hint("The bot you sent me is not in the @BotList."), reply_to_message_id=reply_to)
+    return ConversationHandler.END
 
 
 def notify_bot_spam(bot, update, args=None):
@@ -84,13 +131,6 @@ def notify_bot_spam(bot, update, args=None):
         update.message.reply_text(util.action_hint("The bot you sent me is not in the @BotList."),
                                   reply_to_message_id=reply_to)
     return ConversationHandler.END
-
-
-def notify_bot_offline(bot, update, args=None):
-    tg_user = update.message.from_user
-    update.message.reply_text(
-        "Thanks, but the BotList now automatically detects when a bot goes offline 😇😍")
-    return
 
 
 @track_groups

@@ -104,7 +104,8 @@ class Suggestion(BaseModel):
 
     @staticmethod
     def select_all(exclude_user=None):
-        Suggestion.delete_missing()
+        # TODO: check if delete_missing is needed anymore
+        # Suggestion.delete_missing()
         if exclude_user:
             return Suggestion.select().where(Suggestion.executed == False, Suggestion.user != exclude_user)
         else:

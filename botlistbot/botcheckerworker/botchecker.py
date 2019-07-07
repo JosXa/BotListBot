@@ -13,13 +13,12 @@ import time
 import traceback
 from datetime import datetime, timedelta
 from logzero import logger as log
-from pyrogram.api.errors import FloodWait, QueryTooShort, UnknownError, UsernameInvalid, \
-    UsernameNotOccupied
 from pyrogram.api.functions.contacts import Search
 from pyrogram.api.functions.messages import DeleteHistory
 from pyrogram.api.functions.users import GetUsers
 from pyrogram.api.types import InputPeerUser
 from pyrogram.api.types.contacts import ResolvedPeer
+from pyrogram.errors import *
 from telegram import Bot as TelegramBot, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import BadRequest
 from tgintegration import InlineResultContainer, InteractionClientAsync, Response
@@ -65,10 +64,10 @@ os.makedirs(TMP_DIR)
 #
 #
 # class StopBotchecker(Exception):
-#     """ Raised when botchecker is over limit """
+#     """ Raised when botcheckerworker is over limit """
 #
 #
-# stats = Stats('~/.run/botlistbot/botchecker-stats.json')
+# stats = Stats('~/.run/botlistbot/botcheckerworker-stats.json')
 
 def zero_width_encoding(encoded_string):
     if not encoded_string:
@@ -83,7 +82,7 @@ def zero_width_encoding(encoded_string):
 
 
 class BotChecker(InteractionClientAsync):
-    def __init__(self, event_loop, session_name, api_id, api_hash, phone_number):
+    def __init__(self, event_loop, session_name, api_id, api_hash, phone_number, workdir=None):
 
         self.event_loop = event_loop
         self.username_flood_until = None
@@ -97,12 +96,13 @@ class BotChecker(InteractionClientAsync):
             api_hash,
             workers=4,
             phone_number=phone_number,
+            workdir=workdir
         )
         self.logger.setLevel(logging.WARNING)
 
     async def schedule_conversation_deletion(self, peer, delay=5):
         await asyncio.sleep(delay)
-        self.send(DeleteHistory(self.resolve_peer(peer), max_id=999999999, just_clear=True))
+        self.send(DeleteHistory(await self.resolve_peer(peer), max_id=999999999, just_clear=True))
         log.debug("Deleted conversation with {}".format(peer))
 
     # def delete_all_conversations(self):
@@ -301,11 +301,11 @@ async def check_bot(
             timeout=30,
             try_inline=to_check.inlinequeries)
     except UnknownError as e:
-        result_queue.put(e.MESSAGE)
+        await result_queue.put(e.MESSAGE)
         return
     except Exception as e:
         log.exception(e)
-        result_queue.put(str(e))
+        await result_queue.put(str(e))
         return
 
     for _ in range(2):

@@ -1,11 +1,13 @@
 import asyncio
 import os
+from pathlib import Path
 
 from decouple import config
 from peewee import Proxy
 from playhouse.db_url import connect
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+ACCOUNTS_DIR = Path(ROOT_DIR) / "accounts"
 
 _db_path = config('DATABASE_URL')
 
