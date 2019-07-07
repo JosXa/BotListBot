@@ -10,7 +10,7 @@ from telegram.ext import ConversationHandler, run_async
 import settings
 import util
 from appglobals import loop
-from components.admin import notify_submittant_rejected
+from components.admin import notify_submittant_rejected, edit_bot
 from models import Bot, Country, Suggestion, User
 from models.revision import Revision
 from util import track_groups
@@ -38,26 +38,36 @@ def notify_bot_offline(bot, update, args=None):
     reply_to = util.original_reply_id(update)
 
     if args:
-        text = ' '.join(args)
+        text = " ".join(args)
     else:
         text = update.message.text
-        command_no_args = len(re.findall(r'^/new\s*$', text)) > 0 or text.lower().strip() == '/offline@botlistbot'
+        command_no_args = (
+            len(re.findall(r"^/new\s*$", text)) > 0
+            or text.lower().strip() == "/offline@botlistbot"
+        )
         if command_no_args:
             update.message.reply_text(
-                util.action_hint("Please use this command with an argument. For example:\n/offline @mybot"),
-                reply_to_message_id=reply_to)
+                util.action_hint(
+                    "Please use this command with an argument. For example:\n/offline @mybot"
+                ),
+                reply_to_message_id=reply_to,
+            )
             return
 
     # `#offline` is already checked by handler
     try:
         username = re.match(settings.REGEX_BOT_IN_TEXT, text).groups()[0]
-        if username == '@' + settings.SELF_BOT_NAME:
+        if username == "@" + settings.SELF_BOT_NAME:
             log.info("Ignoring {}".format(text))
             return
     except AttributeError:
         if args:
-            update.message.reply_text(util.failure("Sorry, but you didn't send me a bot `@username`."), quote=True,
-                                      parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
+            update.message.reply_text(
+                util.failure("Sorry, but you didn't send me a bot `@username`."),
+                quote=True,
+                parse_mode=ParseMode.MARKDOWN,
+                reply_to_message_id=reply_to,
+            )
         else:
             log.info("Ignoring {}".format(text))
             # no bot username, ignore update
@@ -65,17 +75,30 @@ def notify_bot_offline(bot, update, args=None):
         return
 
     try:
-        offline_bot = Bot.get(fn.lower(Bot.username) ** username.lower(), Bot.approved == True)
+        offline_bot = Bot.get(
+            fn.lower(Bot.username) ** username.lower(), Bot.approved == True
+        )
         try:
             Suggestion.get(action="offline", subject=offline_bot)
         except Suggestion.DoesNotExist:
-            suggestion = Suggestion(user=user, action="offline", date=datetime.date.today(), subject=offline_bot)
+            suggestion = Suggestion(
+                user=user,
+                action="offline",
+                date=datetime.date.today(),
+                subject=offline_bot,
+            )
             suggestion.save()
-        update.message.reply_text(util.success("Thank you! We will review your suggestion and set the bot offline.",
-                                               ), reply_to_message_id=reply_to)
+        update.message.reply_text(
+            util.success(
+                "Thank you! We will review your suggestion and set the bot offline."
+            ),
+            reply_to_message_id=reply_to,
+        )
     except Bot.DoesNotExist:
         update.message.reply_text(
-            util.action_hint("The bot you sent me is not in the @BotList."), reply_to_message_id=reply_to)
+            util.action_hint("The bot you sent me is not in the @BotList."),
+            reply_to_message_id=reply_to,
+        )
     return ConversationHandler.END
 
 
@@ -87,29 +110,36 @@ def notify_bot_spam(bot, update, args=None):
     reply_to = util.original_reply_id(update)
 
     if args:
-        text = ' '.join(args)
+        text = " ".join(args)
     else:
         text = update.message.text
-        command_no_args = len(
-            re.findall(r'^/spam\s*$', text)) > 0 or text.lower().strip() == '/spam@botlistbot'
+        command_no_args = (
+            len(re.findall(r"^/spam\s*$", text)) > 0
+            or text.lower().strip() == "/spam@botlistbot"
+        )
         if command_no_args:
             update.message.reply_text(
                 util.action_hint(
-                    "Please use this command with an argument. For example:\n/spam @mybot"),
-                reply_to_message_id=reply_to)
+                    "Please use this command with an argument. For example:\n/spam @mybot"
+                ),
+                reply_to_message_id=reply_to,
+            )
             return
 
     # `#spam` is already checked by handler
     try:
         username = re.match(settings.REGEX_BOT_IN_TEXT, text).groups()[0]
-        if username == '@' + settings.SELF_BOT_NAME:
+        if username == "@" + settings.SELF_BOT_NAME:
             log.info("Ignoring {}".format(text))
             return
     except AttributeError:
         if args:
             update.message.reply_text(
-                util.failure("Sorry, but you didn't send me a bot `@username`."), quote=True,
-                parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
+                util.failure("Sorry, but you didn't send me a bot `@username`."),
+                quote=True,
+                parse_mode=ParseMode.MARKDOWN,
+                reply_to_message_id=reply_to,
+            )
         else:
             log.info("Ignoring {}".format(text))
             # no bot username, ignore update
@@ -117,19 +147,27 @@ def notify_bot_spam(bot, update, args=None):
         return
 
     try:
-        spam_bot = Bot.get(fn.lower(Bot.username) ** username.lower(), Bot.approved == True)
+        spam_bot = Bot.get(
+            fn.lower(Bot.username) ** username.lower(), Bot.approved == True
+        )
         try:
             Suggestion.get(action="spam", subject=spam_bot)
         except Suggestion.DoesNotExist:
-            suggestion = Suggestion(user=user, action="spam", date=datetime.date.today(),
-                                    subject=spam_bot)
+            suggestion = Suggestion(
+                user=user, action="spam", date=datetime.date.today(), subject=spam_bot
+            )
             suggestion.save()
         update.message.reply_text(
-            util.success("Thank you! We will review your suggestion and mark the bot as spammy."),
-            reply_to_message_id=reply_to)
+            util.success(
+                "Thank you! We will review your suggestion and mark the bot as spammy."
+            ),
+            reply_to_message_id=reply_to,
+        )
     except Bot.DoesNotExist:
-        update.message.reply_text(util.action_hint("The bot you sent me is not in the @BotList."),
-                                  reply_to_message_id=reply_to)
+        update.message.reply_text(
+            util.action_hint("The bot you sent me is not in the @BotList."),
+            reply_to_message_id=reply_to,
+        )
     return ConversationHandler.END
 
 
@@ -142,28 +180,36 @@ def new_bot_submission(bot, update, chat_data, args=None, bot_checker=None):
     reply_to = util.original_reply_id(update)
 
     if args:
-        text = ' '.join(args)
+        text = " ".join(args)
     else:
         text = update.message.text
-        command_no_args = len(
-            re.findall(r'^/new\s*$', text)) > 0 or text.lower().strip() == '/new@botlistbot'
+        command_no_args = (
+            len(re.findall(r"^/new\s*$", text)) > 0
+            or text.lower().strip() == "/new@botlistbot"
+        )
         if command_no_args:
-            update.message.reply_text(util.action_hint(
-                "Please use this command with an argument. For example:\n/new @mybot 🔎"),
-                reply_to_message_id=reply_to)
+            update.message.reply_text(
+                util.action_hint(
+                    "Please use this command with an argument. For example:\n/new @mybot 🔎"
+                ),
+                reply_to_message_id=reply_to,
+            )
             return
 
     # `#new` is already checked by handler
     try:
         username = re.match(settings.REGEX_BOT_IN_TEXT, text).groups()[0]
-        if username.lower() == '@' + settings.SELF_BOT_NAME.lower():
+        if username.lower() == "@" + settings.SELF_BOT_NAME.lower():
             log.info("Ignoring {}".format(text))
             return
     except AttributeError:
         if args:
             update.message.reply_text(
-                util.failure("Sorry, but you didn't send me a bot `@username`."), quote=True,
-                parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
+                util.failure("Sorry, but you didn't send me a bot `@username`."),
+                quote=True,
+                parse_mode=ParseMode.MARKDOWN,
+                reply_to_message_id=reply_to,
+            )
         log.info("Ignoring {}".format(text))
         # no bot username, ignore update
         return
@@ -173,22 +219,36 @@ def new_bot_submission(bot, update, chat_data, args=None, bot_checker=None):
         if new_bot.disabled:
             update.message.reply_text(
                 util.failure(
-                    "{} is banned from the @BotList.".format(new_bot.username)),
-                reply_to_message_id=reply_to)
+                    "{} is banned from the @BotList.".format(new_bot.username)
+                ),
+                reply_to_message_id=reply_to,
+            )
         elif new_bot.approved:
             update.message.reply_text(
                 util.action_hint(
-                    "Sorry fool, but {} is already in the @BotList 😉".format(new_bot.username)),
-                reply_to_message_id=reply_to)
+                    "Sorry fool, but {} is already in the @BotList 😉".format(
+                        new_bot.username
+                    )
+                ),
+                reply_to_message_id=reply_to,
+            )
         else:
             update.message.reply_text(
-                util.action_hint("{} has already been submitted. Please have patience...".format(
-                    new_bot.username)),
-                reply_to_message_id=reply_to)
+                util.action_hint(
+                    "{} has already been submitted. Please have patience...".format(
+                        new_bot.username
+                    )
+                ),
+                reply_to_message_id=reply_to,
+            )
         return
     except Bot.DoesNotExist:
-        new_bot = Bot(revision=Revision.get_instance().next, approved=False, username=username,
-                      submitted_by=user)
+        new_bot = Bot(
+            revision=Revision.get_instance().next,
+            approved=False,
+            username=username,
+            submitted_by=user,
+        )
 
     new_bot.inlinequeries = "🔎" in text
     new_bot.official = "🔹" in text
@@ -201,21 +261,38 @@ def new_bot_submission(bot, update, chat_data, args=None, bot_checker=None):
 
     new_bot.date_added = datetime.date.today()
 
-    description_reg = re.match(settings.REGEX_BOT_IN_TEXT + ' -\s?(.*)', text)
-    description_notify = ''
+    description_reg = re.match(settings.REGEX_BOT_IN_TEXT + " -\s?(.*)", text)
+    description_notify = ""
     if description_reg:
         description = description_reg.group(2)
         new_bot.description = description
-        description_notify = ' Your description was included.'
+        description_notify = " Your description was included."
 
     new_bot.save()
-    if util.is_private_message(update) and util.uid_from_update(update) in settings.MODERATORS:
+
+    if (
+        util.is_private_message(update)
+        and util.uid_from_update(update) in settings.MODERATORS
+    ):
         from components.explore import send_bot_details
+
         send_bot_details(bot, update, chat_data, new_bot)
     else:
         update.message.reply_text(
-            util.success("You submitted {} for approval.{}".format(new_bot, description_notify)),
-            parse_mode=ParseMode.MARKDOWN, reply_to_message_id=reply_to)
+            util.success(
+                "You submitted {} for approval.{}".format(new_bot, description_notify)
+            ),
+            parse_mode=ParseMode.MARKDOWN,
+            reply_to_message_id=reply_to,
+        )
+
+        # Ask the user to fill in the bot details
+        util.send_md_message(
+            bot,
+            update.effective_user.id,
+            "Congratulations, you just submitted a bot to the @BotList. Please help us fill in the details below:",
+        )
+        edit_bot(bot, update, chat_data, to_edit=new_bot)
 
     try:
         check_submission(bot, bot_checker, new_bot)
@@ -226,7 +303,7 @@ def new_bot_submission(bot, update, chat_data, args=None, bot_checker=None):
 
 
 @run_async
-def check_submission(bot, bot_checker: 'BotChecker', to_check: Bot):
+def check_submission(bot, bot_checker: "BotChecker", to_check: Bot):
     # TODO: make this method async
     if bot_checker is None:
         return
@@ -242,7 +319,7 @@ def check_submission(bot, bot_checker: 'BotChecker', to_check: Bot):
             botlistbot_user,
             notify_submittant=True,
             reason=reason,
-            to_reject=to_check
+            to_reject=to_check,
         )
         bot.formatter.send_message(settings.BOTLIST_NOTIFICATIONS_ID, msg)
 
@@ -250,31 +327,35 @@ def check_submission(bot, bot_checker: 'BotChecker', to_check: Bot):
         peer = bot_checker.resolve_bot(to_check)
     except UsernameNotOccupied:
         to_check.delete_instance()
-        reject("The entity you submitted either does not exist or is not a Telegram bot.")
+        reject(
+            "The entity you submitted either does not exist or is not a Telegram bot."
+        )
         return
 
     bot_checker.update_bot_details(to_check, peer)
 
     if to_check.userbot:
-        reject("You submitted the name of a Telegram user, not one of a bot. If you're trying to "
-               "submit a userbot, please contact the BLSF directly ("
-               "@BotListChat).")
+        reject(
+            "You submitted the name of a Telegram user, not one of a bot. If you're trying to "
+            "submit a userbot, please contact the BLSF directly ("
+            "@BotListChat)."
+        )
         return
 
     # Check online state
     response = loop.run_until_complete(
         bot_checker.get_ping_response(
-            to_check,
-            timeout=18,
-            try_inline=to_check.inlinequeries
+            to_check, timeout=18, try_inline=to_check.inlinequeries
         )
     )
 
     is_offline = not bool(response)
 
     if is_offline:
-        reject("The bot you sent seems to be offline, unfortunately. Feel free to submit it again "
-               "when it's back up 😙")
+        reject(
+            "The bot you sent seems to be offline, unfortunately. Feel free to submit it again "
+            "when it's back up 😙"
+        )
         return
 
     now = datetime.datetime.now()
