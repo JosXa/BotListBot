@@ -9,6 +9,7 @@ from functools import wraps
 from pprint import pprint
 from typing import List
 
+import appglobals
 import const
 import settings
 from custemoji import Emoji
@@ -61,7 +62,7 @@ def restricted(func=None, strict=False, silent=False):
             try:
                 print("Unauthorized access denied for {}.".format(chat_id))
                 if not silent:
-                    bot.sendPhoto(chat_id, open('assets/img/go_away_noob.png', 'rb'),
+                    bot.sendPhoto(chat_id, open(appglobals.ROOT_DIR + '/assets/img/go_away_noob.png', 'rb'),
                                   caption="Moderator Area. Unauthorized.")
                 return
             except (TelegramError, AttributeError):
