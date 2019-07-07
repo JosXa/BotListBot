@@ -134,7 +134,7 @@ class BotList:
     def update_intro(self):
         if self.resend:
             self.notify_admin("Sending intro GIF...")
-            self.bot.sendDocument(self.channel.chat_id, open("assets/gif/animation.gif", 'rb'),
+            self.bot.sendDocument(self.channel.chat_id, open("botlistbot/assets/gif/animation.gif", 'rb'),
                                   timeout=120)
             sleep(1)
 
