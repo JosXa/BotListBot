@@ -75,8 +75,10 @@ def main():
     updater.job_queue.run_repeating(admin.last_update_job, interval=3600 * 24)
 
     if settings.DEV:
+        log.info("Starting using long polling...")
         updater.start_polling()
     else:
+        log.info("Starting using webhooks...")
         updater.start_webhook(listen="0.0.0.0",
                               port=settings.PORT,
                               url_path=settings.BOT_TOKEN)

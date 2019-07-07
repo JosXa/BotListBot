@@ -8,7 +8,7 @@ from peewee import fn
 from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, \
     ReplyKeyboardMarkup, \
     TelegramError
-from telegram.ext import ConversationHandler, DispatcherHandlerStop, Job
+from telegram.ext import ConversationHandler, DispatcherHandlerStop, Job, run_async
 from typing import Dict
 
 import captions
@@ -26,6 +26,7 @@ from models import Bot, Category, Revision, Statistic, Suggestion, User, track_a
 from util import restricted
 
 
+@run_async
 @track_activity('menu', 'Administration', Statistic.ANALYSIS)
 @restricted
 def menu(bot, update):
