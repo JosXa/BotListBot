@@ -1,1 +1,1 @@
-worker: python botlistbot/main.py
+web: python botlistbot/main.py
