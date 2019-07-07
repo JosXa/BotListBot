@@ -59,6 +59,7 @@ def main():
     # Get the dispatcher to on_mount handlers
     dp = updater.dispatcher
 
+
     # message_queue = MessageQueue()
     # message_queue._is_messages_queued_default = True
     # updater.bot._is_messages_queued_default = True
@@ -70,6 +71,12 @@ def main():
     basic.register(dp)
 
     updater.job_queue.run_repeating(admin.last_update_job, interval=3600 * 24)
+
+    updater.start_webhook(
+        listen='0.0.0.0',
+        port=80,
+
+    )
     updater.start_polling()
 
     log.info('Listening...')
