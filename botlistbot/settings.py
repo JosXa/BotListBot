@@ -21,6 +21,7 @@ MODERATORS = [
     7679610,  # Fabian Pastor
     278941742,  # riccardo
     317434635,  # jfowl
+    522605269,  # n9ghtLY
     2591224,  # OWL
     691609650,  # Lulzx
     200344026,  # the scientist
