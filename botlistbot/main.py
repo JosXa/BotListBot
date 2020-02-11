@@ -36,6 +36,7 @@ def main():
     if settings.is_sentry_enabled():
         sentry_sdk.init(settings.SENTRY_URL, environment=settings.SENTRY_ENVIRONMENT)
         log.info("Logging to sentry.")
+    log.error("Testing Sentry...")
 
     botchecker_context = {}
 
