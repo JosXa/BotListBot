@@ -2,7 +2,6 @@ import logging
 import re
 
 import maya
-from PIL import Image
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 
 import captions
@@ -110,6 +109,8 @@ def reroute_private_chat(bot, update, quote, action, message, redirect_message=N
 
 
 def make_sticker(filename, out_file, max_height=512, transparent=True):
+    return  # TODO: fix
+    from PIL import Image
     image = Image.open(filename)
 
     # resize sticker to match new max height
