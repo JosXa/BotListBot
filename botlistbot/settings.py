@@ -1,4 +1,6 @@
 import os
+from typing import Optional
+from decouple import Csv
 
 import sys
 from decouple import config, Csv
@@ -28,6 +30,7 @@ MODERATORS = [
     234480941,  # the one and only twitface
 ]
 ADMINS = [62056065, 918962]
+DEVELOPER_ID = config("DEVELOPER_ID", default=62056065)
 BOT_CONSIDERED_NEW = 1  # Revision difference
 WORKER_COUNT = 5 if DEV else 20
 TEST_BOT_NAME = "gottesgebot"
@@ -55,8 +58,8 @@ API_PORT = 6060
 # region BOTCHECKER
 RUN_BOTCHECKER = config("RUN_BOTCHECKER", True, cast=bool)
 USE_USERBOT = RUN_BOTCHECKER
-API_ID = config("API_ID", cast=int)
-API_HASH = config("API_HASH")
+API_ID = config("API_ID", cast=lambda v: int(v) if v else None, default=None)
+API_HASH = config("API_HASH", default=None)
 USERBOT_SESSION = config("USERBOT_SESSION")
 USERBOT_PHONE = config("USERBOT_PHONE")
 PING_MESSAGES = ["/start", "/help"]

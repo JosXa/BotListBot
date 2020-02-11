@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 import sentry_sdk
 import threading
+import logging
 import time
 
 from decouple import config
 from logzero import logger as log
+from sentry_sdk.integrations.logging import LoggingIntegration
 from telegram import Bot as TelegramBot
 from telegram.ext import Updater
 from telegram.utils.request import Request
@@ -29,14 +31,24 @@ class BotListBot(TelegramBot):
         log.info(message)
 
 
+def setup_logging():
+    sentry_logging = LoggingIntegration(
+        level=logging.INFO,  # Capture info and above as breadcrumbs
+        event_level=logging.WARNING,  # Send errors as events
+    )
+    sentry_sdk.init(
+        settings.SENTRY_URL,
+        integrations=[sentry_logging],
+        environment=settings.SENTRY_ENVIRONMENT
+    )
+
+
 def main():
     # Start API
     # thread = threading.Thread(target=botlistapi.start_server)
     # thread.start()
     if settings.is_sentry_enabled():
         sentry_sdk.init(settings.SENTRY_URL, environment=settings.SENTRY_ENVIRONMENT)
-        log.info("Logging to sentry.")
-    log.error("Testing Sentry...")
 
     botchecker_context = {}
 
@@ -63,7 +75,6 @@ def main():
     # Get the dispatcher to on_mount handlers
     dp = updater.dispatcher
 
-
     # message_queue = MessageQueue()
     # message_queue._is_messages_queued_default = True
     # updater.bot._is_messages_queued_default = True
@@ -87,7 +98,7 @@ def main():
         updater.bot.set_webhook(f"https://botlistbot.herokuapp.com/{settings.BOT_TOKEN}")
 
     log.info('Listening...')
-    updater.bot.send_message(settings.ADMINS[0], "Ready to rock", timeout=10)
+    updater.bot.send_message(settings.DEVELOPER_ID, "Ready to rock", timeout=10)
 
     # Idling
     updater.idle()
