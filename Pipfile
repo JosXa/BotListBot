@@ -16,7 +16,6 @@ python-decouple = "==3.1.0"
 maya = "==0.3.2"
 asyncpool = "*"
 redis-collections = "*"
-Pillow = "==4.2.1"
 Flask = "*"
 Flask-Autodoc = "*"
 Flask-Security = "*"
@@ -36,4 +35,7 @@ pytest = "*"
 pytest-asyncio = "*"
 
 [requires]
-python_version = "3.6"
+python_version = "3.7"
+
+[pipenv]
+allow_prereleases = true
