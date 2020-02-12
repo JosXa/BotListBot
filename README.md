@@ -19,6 +19,7 @@ JosXa/BotListBot is licensed under the MIT License.
 - Python 3.7.x
 - A PostgreSQL database instance
 - Pipenv installed globally (`pip install pipenv`)
+- Your own bot token for local development
 
 #### Optional
 
