@@ -237,7 +237,7 @@ def callback_router(bot, update, chat_data, user_data, job_queue):
         # get the callback action in plaintext
         actions = dict(CallbackActions.__dict__)
         a = next(k for k, v in actions.items() if v == obj.get('a'))
-        util.send_md_message(bot, settings.ADMINS[0],
+        util.send_md_message(bot, settings.DEVELOPER_ID,
                              "Exception in callback query for {}:\n{}\n\nWith CallbackAction {}\n\nWith data:\n{}".format(
                                  user.markdown_short,
                                  util.escape_markdown(e),

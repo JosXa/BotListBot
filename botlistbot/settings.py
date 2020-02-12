@@ -60,8 +60,8 @@ RUN_BOTCHECKER = config("RUN_BOTCHECKER", True, cast=bool)
 USE_USERBOT = RUN_BOTCHECKER
 API_ID = config("API_ID", cast=lambda v: int(v) if v else None, default=None)
 API_HASH = config("API_HASH", default=None)
-USERBOT_SESSION = config("USERBOT_SESSION")
-USERBOT_PHONE = config("USERBOT_PHONE")
+USERBOT_SESSION = config("USERBOT_SESSION", default=None)
+USERBOT_PHONE = config("USERBOT_PHONE", default=None)
 PING_MESSAGES = ["/start", "/help"]
 PING_INLINEQUERIES = ["", "abc", "/test"]
 BOTCHECKER_CONCURRENT_COUNT = 20
