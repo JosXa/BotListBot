@@ -127,7 +127,11 @@ class Suggestion(BaseModel):
             return None
 
     @staticmethod
-    def over_limit(user):
+    def over_limit(user: User) -> bool:
+        if user.chat_id in settings.MODERATORS:
+            # Moderators are never over limit
+            return False
+
         return Suggestion.select().where(
             Suggestion.user == user,
             Suggestion.executed == False
