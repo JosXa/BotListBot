@@ -9,9 +9,9 @@ from playhouse.db_url import connect
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 ACCOUNTS_DIR = Path(ROOT_DIR) / "accounts"
 
-_db_path = config('DATABASE_URL')
+DATABASE_PATH = config('DATABASE_URL')
 
-_auto_typed_db = connect(_db_path)
+_auto_typed_db = connect(DATABASE_PATH)
 _auto_typed_db.autorollback = True
 
 db = Proxy()
