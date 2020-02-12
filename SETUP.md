@@ -35,3 +35,9 @@
 1. Modify the variables in `template.env` and save the file as just `.env` in the root folder of the checkout.
 </details>  
 
+
+### Further details on configuration
+
+If you have a look at [settings.py](https://github.com/JosXa/BotListBot/blob/master/botlistbot/settings.py), you can 
+see a bunch of environment variables that are being retrieved via `decouple.config(...)` calls.
+Those settings can be controlled via the `.env` file you created at the root folder.
