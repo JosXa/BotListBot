@@ -193,7 +193,7 @@ def inlinequery_handler(bot, update, chat_data):
                               is_personal=True)
         return
 
-    msg, reply_markup, key = botlistchat.get_hint_message_and_markup(query)
+    msg, reply_markup, key = botlistchat.get_hint_data(query)
     if msg is not None:
         results_list.append(hint_article(msg, reply_markup, key))
         bot.answer_inline_query(update.inline_query.id, results=results_list, cache_time=600)

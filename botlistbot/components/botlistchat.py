@@ -20,17 +20,19 @@ from logzero import logger as log
 
 HINTS = {
     "#inline": {
-        "message": "Consider using me in inline-mode 😇\n`@BotListBot {query}`",
+        "message": "*Consider using me in inline-mode* 😎\n`@BotListBot {query}`",
         "default": "Your search terms",
         "buttons": [{"text": "🔎 Try it out", "switch_inline_query": "{query}"}],
         "help": "Give a query that will be used for a `switch_to_inline`-button",
+        "should_reply": False,
     },
     "#rules": {
         "message": messages.BOTLISTCHAT_RULES,
         "help": "Send the rules of @BotListChat",
+        "should_reply": False,
     },
     "#manybot": {
-        "message": "We (the @BotList moderators) set a *high standard for bots on the* @BotList. "
+        "message": "The @BotList moderators aim to set a *high standard for bots on the* @BotList. "
         "Bots built with bot builders like @Manybot or @Chatfuelbot certainly have "
         "their place, but usually *lack the quality* we impose for inclusion to the "
         "list. We prefer when bot makers actually take their time and effort to "
@@ -38,9 +40,10 @@ HINTS = {
         "above. Don't get us wrong, there are great tools out there built with these "
         "bot builders, and if you feel like the BotList is lacking some feature that "
         "this bot brings, feel free to submit it. But as a rule of thumb, Manybots are "
-        "*generally too spammy, not very useful and not worth the effort*. "
-        "Thank you 🙏🏻",
+        "*generally too spammy, not very useful and not worth another look*. "
+        "\nThank you 🙏🏻",
         "help": "Send our Manybot policy",
+        "should_reply": True,
     },
     "#private": {
         "message": "Please don't spam the group with {query}, and go to a private "
@@ -53,11 +56,13 @@ HINTS = {
             }
         ],
         "help": "Tell a member to stop spamming and switch to a private chat",
+        "should_reply": True,
     },
     "#userbot": {
         "message": "Refer to [this article](http://telegra.ph/How-a-"
         "Userbot-superacharges-your-Telegram-Bot-07-09) to learn more about *Userbots*.",
         "help": "@JosXa's article about Userbots",
+        "should_reply": True,
     },
     "#devlist": {
         "message": "There exists a list of developers at @Devlist where you can surely find someone to build your "
@@ -65,6 +70,7 @@ HINTS = {
         "is good enough, maybe you can convince them that they're going to make life easier for the "
         "whole Telegram community. Good luck with your project!",
         "help": "Where to find a bot developer?",
+        "should_reply": True,
     },
 }
 
@@ -170,19 +176,21 @@ def _delete_multiple_delayed(bot, chat_id, immediately=None, delayed=None):
 
 @run_async
 def show_available_hints(bot, update):
-    message = (
-        "In @BotListChat, you can use the following hashtags to guide new members:\n\n"
-    )
-    message += "\n".join(
-        "🗣 {tag} ➖ {help}".format(tag=k, help=v["help"]) for k, v in HINTS.items()
-    )
-    message += "\n\nMake sure to reply to another message, so I know who to refer to."
+    message = "In @BotListChat, you can use the following hashtag hints to guide new members:\n\n"
+    parts = []
+    for k, v in HINTS.items():
+        query_appendix = f" _text_" if v.get("default") else ""
+        parts.append(f"🗣 {k}{query_appendix} ➖ {v['help']}")
+
+    message += "\n".join(parts)
+
+    message += "\n\nMake sure to reply to another message, so the person knows they're being referred to."
     update.effective_message.reply_text(
         message, parse_mode="markdown", disable_web_page_preview=True
     )
 
 
-def get_hint_message_and_markup(text):
+def get_hint_data(text):
     for k, v in HINTS.items():
         if k not in text:
             continue
@@ -214,32 +222,36 @@ def hint_handler(bot, update, job_queue: JobQueue):
     text = update.message.text
     reply_to = update.message.reply_to_message
     user = User.from_update(update)
+    msg, reply_markup, hashtag = get_hint_data(text)
 
-    def _send_hint():
-        msg, reply_markup, _ = get_hint_message_and_markup(text)
+    def _send_hint(hint_text):
+        if hint_text is None:
+            return
+        if reply_to:
+            hint_text = f"{user.markdown_short} hints: {hint_text}"
 
-        if msg is not None:
-            bot.formatter.send_message(
-                chat_id,
-                msg,
-                reply_markup=reply_markup,
-                reply_to_message_id=reply_to.message_id if reply_to else None,
-            )
-            update.effective_message.delete()
+        bot.formatter.send_message(
+            chat_id,
+            hint_text,
+            reply_markup=reply_markup,
+            reply_to_message_id=reply_to.message_id if reply_to else None,
+        )
+        update.effective_message.delete()
 
-    if not reply_to:
+    should_reply: bool = HINTS.get(hashtag)["should_reply"]
+    if should_reply and not reply_to:
         del_markup = append_free_delete_button(update, InlineKeyboardMarkup([[]]))
+        _send_hint(msg)
         ntfc_msg = update.effective_message.reply_text(
             f"Hey {user.markdown_short}, next time reply to someone 🙃",
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=del_markup,
             quote=False,
-            disable_web_page_preview=True
+            disable_web_page_preview=True,
         )
-        job_queue.run_once(lambda *_: ntfc_msg.delete(), 4, name="delete notification")
-        job_queue.run_once(lambda *_: _send_hint(), 4, name="delete notification")
+        job_queue.run_once(lambda *_: ntfc_msg.delete(), 7, name="delete notification")
     else:
-        _send_hint()
+        _send_hint(msg)
 
 
 @run_async

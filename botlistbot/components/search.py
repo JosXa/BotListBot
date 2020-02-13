@@ -19,7 +19,7 @@ import search
 import settings
 import util
 from components import basic, botlistchat
-from components.botlistchat import get_hint_message_and_markup
+from components.botlistchat import get_hint_data
 from components.explore import send_bot_details
 from dialog import messages
 from models import User
@@ -84,7 +84,7 @@ def search_query(bot, update: Update, chat_data, query, send_errors=True):
                 callback(msg)
                 update.effective_message.delete()
             except TelegramError:
-                hint_msg, hint_reply_markup, _ = get_hint_message_and_markup("#private")
+                hint_msg, hint_reply_markup, _ = get_hint_data("#private")
                 bot.formatter.send_message(
                     update.effective_chat.id,
                     hint_msg,
