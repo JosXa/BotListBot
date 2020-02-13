@@ -301,14 +301,7 @@ def callback_router(bot, update, chat_data, user_data, job_queue):
             ),
         )
     finally:
-        log.error(
-            f"Unhandled callback query action received: {update.callback_query.data}"
-        )
-        bot.answer_callback_query(
-            update.callback_query.id,
-            text="Sorry, not so sure what to do here...",
-            show_alert=False,
-        )
+        bot.answerCallbackQuery(update.callback_query.id)
         return ConversationHandler.END
 
 
