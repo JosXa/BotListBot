@@ -126,7 +126,7 @@ def send_next(bot, update, job_queue: JobQueue, args=None):
             num_rows = None
 
     reply_markup = ReplyKeyboardMarkup(
-        _crapPy_Tr0ll_kbmarkup(num_rows), one_time_keyboard=True, per_user=True
+        _crapPy_Tr0ll_kbmarkup(num_rows), one_time_keyboard=False, per_user=True
     )
     text = "ɹoʇɐɹǝuǝb ǝɯɐuɹǝsn ɯɐɹbǝןǝʇ"
     util.send_md_message(bot, uid, text, reply_markup=reply_markup)
