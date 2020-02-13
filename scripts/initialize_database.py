@@ -25,7 +25,7 @@ database.initialize(connection)
 
 postgresql_migrator = PostgresqlMigrator(database)
 
-models = [
+create_order = [
     Country,
     User,
     APIAccess,
@@ -41,7 +41,23 @@ models = [
     Suggestion,
 ]
 
-for model in models:
+delete_order = [
+    APIAccess,
+    Revision,
+    Channel,
+    Favorite,
+    Group,
+    Keyword,
+    Notifications,
+    Statistic,
+    Suggestion,
+    Bot,
+    Country,
+    Category,
+    User,
+]
+
+for model in create_order:
     # noinspection PyProtectedMember
     model._meta.database = database
 
@@ -49,7 +65,7 @@ for model in models:
 def delete_models():
     sure = input("Deleting all existing models... Are you sure? (y/n) ")
     if sure == "y":
-        for m in models:
+        for m in delete_order:
             m.drop_table(safe=True)
         print("All models drop.")
     else:
@@ -57,7 +73,7 @@ def delete_models():
 
 
 def try_create_models():
-    for m in models:
+    for m in create_order:
         m.create_table(safe=True)
     print("Created models if they did not exist yet.")
 
