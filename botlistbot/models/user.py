@@ -36,13 +36,7 @@ class User(BaseModel):
 
     @staticmethod
     def from_update(update):
-        user = update.effective_user
-        try:
-            u = User.get(User.chat_id == user.id)
-        except User.DoesNotExist:
-            u = User(chat_id=user.id, username=user.username, first_name=user.first_name, last_name=user.last_name)
-            u.save()
-        return u
+        return User.from_telegram_object(update.effective_user)
 
     @property
     def has_favorites(self):
