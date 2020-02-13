@@ -551,7 +551,7 @@ def register(dp: Dispatcher, bot_checker: "BotChecker"):
     )
     add(CommandHandler("t3chno", t3chnostats))
     add(CommandHandler("random", eastereggs.send_random_bot))
-    add(CommandHandler("easteregg", eastereggs.send_next, pass_args=True))
+    add(CommandHandler("easteregg", eastereggs.send_next, pass_args=True, pass_job_queue=True))
 
     add(CommandHandler("subscribe", manage_subscription))
     add(CommandHandler("newbots", show_new_bots, pass_chat_data=True))

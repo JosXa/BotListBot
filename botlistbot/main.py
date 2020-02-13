@@ -50,10 +50,11 @@ class BotListBot(TelegramBot):
         switch_pm_text=None,
         switch_pm_parameter=None,
         timeout=None,
+        safe=True,
         **kwargs,
     ):
         return self._wrap_safe(
-            lambda: super().answer_inline_query(
+            lambda: super(BotListBot, self).answer_inline_query(
                 inline_query_id,
                 results,
                 cache_time,
@@ -63,12 +64,14 @@ class BotListBot(TelegramBot):
                 switch_pm_parameter,
                 timeout,
                 **kwargs,
-            )
+            ),
+            safe=safe
         )
 
     def delete_message(self, chat_id, message_id, timeout=None, safe=False, **kwargs):
         return self._wrap_safe(
-            lambda: super().delete_message(chat_id, message_id, timeout, **kwargs)
+            lambda: super(BotListBot, self).delete_message(chat_id, message_id, timeout, **kwargs),
+            safe=safe
         )
 
 
