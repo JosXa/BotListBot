@@ -19,7 +19,7 @@ from models import track_activity
 def _crapPy_Tr0ll_kbmarkup(rows=None):
     if rows is None:
         rows = 4
-    first = [
+    first = [  # adjectives
         "Gay",
         "Pony",
         "Dick",
@@ -39,22 +39,45 @@ def _crapPy_Tr0ll_kbmarkup(rows=None):
         "Anime",
         "JosXas",
         "Twitfaces",
+        "N9ghtLY",
+        "Super",
+        "Disturbing",
+        "Unnecessary",
+        "Mighty",
+        "Wanktastic",
+        "Rag",
+        "CrossEyed",
+        "FritzlAdmiring",
+        "Dumb"
     ]
-    second = [
+    second = [  # nouns (plural)
+        "Shit",
         "Tales",
         "Porn",
         "Rice",
+        "FluShot",
         "Bugs",
         "Whores",
         "Pigs",
         "Alternatives",
         "Pics",
+        "CornCake",
+        "Candlestick",
+        "Coffee",
+        "Women",
+        "Karate",
+        "Love",
+        "Dragons",
         "Penetrator",
         "Addiction",
         "Ducks",
         "Slaves",
+        "Sucking",
         "Tiddies",
         "Awesome",
+        "ArseBiscuit",
+        "Suck",
+        "Voyeurism"
     ]
     third = [
         "Collection",
@@ -66,6 +89,12 @@ def _crapPy_Tr0ll_kbmarkup(rows=None):
         "Conversation",
         "Voting",
         "ForPresident",
+        "Group",
+        "SelfHelpGroup",
+        "Enterprise",
+        "Therapy",
+        "Lobby",
+        "ForKids",
     ]
 
     def compound():
