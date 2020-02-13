@@ -18,7 +18,7 @@ from models import track_activity
 
 def _crapPy_Tr0ll_kbmarkup(rows=None):
     if rows is None:
-        rows = 4
+        rows = 3
     first = [  # adjectives
         "Gay",
         "Pony",
@@ -111,20 +111,22 @@ def _crapPy_Tr0ll_kbmarkup(rows=None):
         return random.choice(choices)
 
     buttons = [[KeyboardButton(compound()) for x in range(2)] for y in range(rows)]
+    buttons.insert(0, [KeyboardButton("/easteregg")])
     return buttons
 
 
 @track_activity("easteregg", '"crappy troll markup"')
 def send_next(bot, update, job_queue: JobQueue, args=None):
     uid = util.uid_from_update(update)
-    rows = None
+    num_rows = None
     if args:
         try:
-            rows = int(args[0])
+            num_rows = int(args[0])
         except:
-            rows = None
+            num_rows = None
+
     reply_markup = ReplyKeyboardMarkup(
-        _crapPy_Tr0ll_kbmarkup(rows), one_time_keyboard=True, per_user=True
+        _crapPy_Tr0ll_kbmarkup(num_rows), one_time_keyboard=True, per_user=True
     )
     text = "ɹoʇɐɹǝuǝb ǝɯɐuɹǝsn ɯɐɹbǝןǝʇ"
     util.send_md_message(bot, uid, text, reply_markup=reply_markup)
