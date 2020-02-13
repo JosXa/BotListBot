@@ -1,5 +1,12 @@
 import time
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, ReplyMarkup
+from telegram import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+    ReplyMarkup,
+    ParseMode,
+)
+from telegram.ext import JobQueue
 from telegram.ext.dispatcher import run_async
 
 import captions
@@ -7,7 +14,7 @@ import settings
 import util
 from const import CallbackActions
 from dialog import messages
-from models import track_activity
+from models import track_activity, User
 from typing import *
 from logzero import logger as log
 
@@ -52,10 +59,17 @@ HINTS = {
         "Userbot-superacharges-your-Telegram-Bot-07-09) to learn more about *Userbots*.",
         "help": "@JosXa's article about Userbots",
     },
+    "#devlist": {
+        "message": "There exists a list of developers at @Devlist where you can surely find someone to build your "
+        "bot.\nNote that most of them expect some amount of payment for their services, but if your idea "
+        "is good enough, maybe you can convince them that they're going to make life easier for the "
+        "whole Telegram community. Good luck with your project!",
+        "help": "Where to find a bot developer?",
+    },
 }
 
 
-def append_delete_button(
+def append_restricted_delete_button(
     update, chat_data, reply_markup
 ) -> Tuple[Optional[ReplyMarkup], Callable[[Message], None]]:
     uid = update.effective_user.id
@@ -64,10 +78,10 @@ def append_delete_button(
     if not util.is_group_message(update) or not isinstance(
         reply_markup, InlineKeyboardMarkup
     ):
-        return reply_markup, callable
+        return reply_markup, lambda _: None
 
     def append_callback(message):
-        if message is None:
+        if message is None:  # No message was saved
             return
         if isinstance(message, Message):
             mid = message.message_id
@@ -93,6 +107,28 @@ def append_delete_button(
     return reply_markup, append_callback
 
 
+def append_free_delete_button(update, reply_markup) -> Optional[ReplyMarkup]:
+    if not util.is_group_message(update) or not isinstance(
+        reply_markup, InlineKeyboardMarkup
+    ):
+        return reply_markup
+
+    buttons = reply_markup.inline_keyboard
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                captions.random_done_delete(),
+                callback_data=util.callback_for_action(
+                    CallbackActions.DELETE_CONVERSATION
+                ),
+            )
+        ]
+    )
+
+    reply_markup.inline_keyboard = buttons
+    return reply_markup
+
+
 @track_activity("issued deletion of conversation in BotListChat")
 def delete_conversation(bot, update, chat_data):
     cid = update.effective_chat.id
@@ -100,13 +136,9 @@ def delete_conversation(bot, update, chat_data):
     mid = util.mid_from_update(update)
 
     deletions_pending = chat_data.get("deletions_pending", dict())
-    context = deletions_pending.get(mid)
+    context: Optional[dict] = deletions_pending.get(mid)
 
-    if not context:
-        log.error("No context received in delete_conversation.")
-        return
-
-    if uid != context["user_id"]:
+    if context and uid != context.get("user_id"):
         if uid not in settings.MODERATORS:
             bot.answerCallbackQuery(
                 update.callback_query.id, text="✋️ You didn't prompt this message."
@@ -175,27 +207,39 @@ def get_hint_message_and_markup(text):
 
 
 @run_async
-def hint_handler(bot, update):
+def hint_handler(bot, update, job_queue: JobQueue):
     chat_id = update.message.chat_id
-    if chat_id not in [
-        settings.BOTLISTCHAT_ID,
-        settings.BOTLIST_NOTIFICATIONS_ID,
-        settings.BLSF_ID,
-    ]:
+    if not util.is_group_message(update):
         return
     text = update.message.text
     reply_to = update.message.reply_to_message
+    user = User.from_update(update)
 
-    msg, reply_markup, _ = get_hint_message_and_markup(text)
+    def _send_hint():
+        msg, reply_markup, _ = get_hint_message_and_markup(text)
 
-    if msg is not None:
-        bot.formatter.send_message(
-            chat_id,
-            msg,
-            reply_markup=reply_markup,
-            reply_to_message_id=reply_to.message_id if reply_to else None,
+        if msg is not None:
+            bot.formatter.send_message(
+                chat_id,
+                msg,
+                reply_markup=reply_markup,
+                reply_to_message_id=reply_to.message_id if reply_to else None,
+            )
+            update.effective_message.delete()
+
+    if not reply_to:
+        del_markup = append_free_delete_button(update, InlineKeyboardMarkup([[]]))
+        ntfc_msg = update.effective_message.reply_text(
+            f"Hey {user.markdown_short}, next time reply to someone 🙃",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=del_markup,
+            quote=False,
+            disable_web_page_preview=True
         )
-        update.effective_message.delete()
+        job_queue.run_once(lambda *_: ntfc_msg.delete(), 4, name="delete notification")
+        job_queue.run_once(lambda *_: _send_hint(), 4, name="delete notification")
+    else:
+        _send_hint()
 
 
 @run_async

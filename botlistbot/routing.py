@@ -551,7 +551,11 @@ def register(dp: Dispatcher, bot_checker: "BotChecker"):
     )
     add(CommandHandler("t3chno", t3chnostats))
     add(CommandHandler("random", eastereggs.send_random_bot))
-    add(CommandHandler("easteregg", eastereggs.send_next, pass_args=True, pass_job_queue=True))
+    add(
+        CommandHandler(
+            "easteregg", eastereggs.send_next, pass_args=True, pass_job_queue=True
+        )
+    )
 
     add(CommandHandler("subscribe", manage_subscription))
     add(CommandHandler("newbots", show_new_bots, pass_chat_data=True))
@@ -620,7 +624,12 @@ def register(dp: Dispatcher, bot_checker: "BotChecker"):
     )
 
     for hashtag in HINTS.keys():
-        add(RegexHandler(r"{}.*".format(hashtag), botlistchat.hint_handler), group=1)
+        add(
+            RegexHandler(
+                r"{}.*".format(hashtag), botlistchat.hint_handler, pass_job_queue=True
+            ),
+            group=1,
+        )
     add(CommandHandler(("hint", "hints"), botlistchat.show_available_hints))
 
     add(

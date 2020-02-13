@@ -71,7 +71,7 @@ def search_query(bot, update: Update, chat_data, query, send_errors=True):
                     reply_markup=reply_markup,
                     disable_web_page_preview=True,
                 )
-                reply_markup, callback = botlistchat.append_delete_button(
+                reply_markup, callback = botlistchat.append_restricted_delete_button(
                     update, chat_data, InlineKeyboardMarkup([[]])
                 )
                 msg = bot.formatter.send_message(
@@ -110,7 +110,7 @@ def search_query(bot, update: Update, chat_data, query, send_errors=True):
         if send_errors:
             callback = None
             if util.is_group_message(update):
-                reply_markup, callback = botlistchat.append_delete_button(
+                reply_markup, callback = botlistchat.append_restricted_delete_button(
                     update, chat_data, InlineKeyboardMarkup([[]])
                 )
             msg = update.message.reply_text(

@@ -100,7 +100,7 @@ def _select_category_buttons(callback_action=None):
 def select_category(bot, update, chat_data, callback_action=None):
     chat_id = update.effective_chat.id
     reply_markup = InlineKeyboardMarkup(_select_category_buttons(callback_action))
-    reply_markup, callback = botlistchat.append_delete_button(update, chat_data, reply_markup)
+    reply_markup, callback = botlistchat.append_restricted_delete_button(update, chat_data, reply_markup)
     msg = bot.formatter.send_or_edit(chat_id, util.action_hint(messages.SELECT_CATEGORY),
                                      to_edit=util.mid_from_update(update),
                                      reply_markup=reply_markup)
@@ -124,7 +124,7 @@ def show_new_bots(bot, update, chat_data, back_button=False):
                                                       CallbackActions.SELECT_CATEGORY
                                                   )))
     reply_markup = InlineKeyboardMarkup(buttons)
-    reply_markup, callback = botlistchat.append_delete_button(update, chat_data, reply_markup)
+    reply_markup, callback = botlistchat.append_restricted_delete_button(update, chat_data, reply_markup)
     msg = bot.formatter.send_or_edit(chat_id, _new_bots_text(),
                                      to_edit=util.mid_from_update(update),
                                      reply_markup=reply_markup,
@@ -168,7 +168,7 @@ def send_category(bot, update, chat_data, category):
         txt += "\n\n" + util.action_hint("Press a button below to get a detailed description.")
 
     reply_markup = InlineKeyboardMarkup(menu)
-    reply_markup, callback = botlistchat.append_delete_button(update, chat_data, reply_markup)
+    reply_markup, callback = botlistchat.append_restricted_delete_button(update, chat_data, reply_markup)
     msg = bot.formatter.send_or_edit(cid, txt, to_edit=util.mid_from_update(update),
                                      reply_markup=reply_markup)
     callback(msg)
@@ -252,7 +252,7 @@ def send_bot_details(bot, update, chat_data, item=None, header_msg: Optional[str
     else:
         reply_markup = None
 
-    reply_markup, callback = botlistchat.append_delete_button(update, chat_data, reply_markup)
+    reply_markup, callback = botlistchat.append_restricted_delete_button(update, chat_data, reply_markup)
 
     # Should we ever decide to show thumbnails *shrug*
     # if os.path.exists(item.thumbnail_file):
