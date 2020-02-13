@@ -7,7 +7,7 @@ import time
 from decouple import config
 from logzero import logger as log
 from sentry_sdk.integrations.logging import LoggingIntegration
-from telegram import Bot as TelegramBot
+from telegram import Bot as TelegramBot, TelegramError
 from telegram.ext import Updater
 from telegram.utils.request import Request
 
@@ -29,6 +29,14 @@ class BotListBot(TelegramBot):
             **kwargs
         )
         log.info(message)
+
+    def delete_message(self, chat_id, message_id, timeout=None, safe=False, **kwargs):
+        if not safe:
+            return super().delete_message(chat_id, message_id, timeout, **kwargs)
+        try:
+            return super().delete_message(chat_id, message_id, timeout, **kwargs)
+        except TelegramError:
+            return None
 
 
 def setup_logging():

@@ -85,10 +85,10 @@ class User(BaseModel):
     @property
     def plaintext(self):
         text = '👤 '  # emoji
-        text += ' '.join([
-            self.first_name if self.first_name else '',
-            self.last_name if self.last_name else ''
-        ])
+        if self.first_name:
+            text += self.first_name
+        if self.last_name:
+            text += " " + self.last_name
         return text.encode('utf-8').decode('utf-8')
 
 

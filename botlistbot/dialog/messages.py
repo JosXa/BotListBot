@@ -95,7 +95,7 @@ There are {n_bots} new bots:
 
 Share your bots in @BotListChat"""
 SEARCH_MESSAGE = mdformat.action_hint("What would you like to search for?")
-SEARCH_RESULTS = """I found *{num_results} bot{plural}* in the @BotList for *{query}*:\n
+SEARCH_RESULTS = """I found *{num_results} bot{plural}* in the @BotList for "{query}":\n
 {bots}
 """
 KEYWORD_BEST_PRACTICES = """The following rules for keywords apply:

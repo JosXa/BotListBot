@@ -1,5 +1,5 @@
 import time
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, ReplyMarkup
 from telegram.ext.dispatcher import run_async
 
 import captions
@@ -8,6 +8,7 @@ import util
 from const import CallbackActions
 from dialog import messages
 from models import track_activity
+from typing import *
 
 HINTS = {
     '#inline': {
@@ -54,13 +55,11 @@ HINTS = {
 }
 
 
-def append_delete_button(update, chat_data, reply_markup):
+def append_delete_button(update, chat_data, reply_markup) -> Tuple[Optional[ReplyMarkup], Callable[[Message], None]]:
     uid = update.effective_user.id
-    cid = update.effective_chat.id
     command_mid = update.effective_message.message_id
-    if not isinstance(reply_markup, InlineKeyboardMarkup):
-        return reply_markup, callable
-    if cid != settings.BOTLISTCHAT_ID:
+
+    if not util.is_group_message(update) or not isinstance(reply_markup, InlineKeyboardMarkup):
         return reply_markup, callable
 
     def append_callback(message):
@@ -102,8 +101,8 @@ def delete_conversation(bot, update, chat_data):
                                     text="✋️ You didn't prompt this message.")
             return
 
-    bot.delete_message(cid, mid)
-    bot.delete_message(cid, context['command_id'])
+    bot.delete_message(cid, mid, safe=True)
+    bot.delete_message(cid, context['command_id'], safe=True)
 
 
 BROADCAST_REPLACEMENTS = {
@@ -178,7 +177,7 @@ def hint_handler(bot, update):
     if msg is not None:
         bot.formatter.send_message(chat_id, msg, reply_markup=reply_markup,
                                    reply_to_message_id=reply_to.message_id if reply_to else None)
-        update.effective_message.disable()
+        update.effective_message.delete()
 
 
 @run_async
