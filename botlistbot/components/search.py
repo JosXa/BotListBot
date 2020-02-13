@@ -26,9 +26,10 @@ from models import User
 
 
 def search_query(bot, update: Update, chat_data, query, send_errors=True):
-    cid = update.effective_chat.id
-    user = User.from_update(update)
-    is_admin = cid in settings.MODERATORS
+    cid: int = update.effective_chat.id
+    user: User = User.from_update(update)
+    is_admin: bool = cid in settings.MODERATORS
+    replied_to_message_id: Optional[int] = util.original_reply_id(update)
 
     results = search.search_bots(query)
 
@@ -39,7 +40,9 @@ def search_query(bot, update: Update, chat_data, query, send_errors=True):
     )
     if results:
         if len(results) == 1:
-            return send_bot_details(bot, update, chat_data, results[0])
+            update.effective_message.delete()
+            header = f"{user.markdown_short} found the following bot for you:"
+            return send_bot_details(bot, update, chat_data, results[0], header_msg=header)
         too_many_results = len(results) > settings.MAX_SEARCH_RESULTS
 
         bots_list = ""
@@ -90,8 +93,6 @@ def search_query(bot, update: Update, chat_data, query, send_errors=True):
                     disable_web_page_preview=True,
                 )
             return ConversationHandler.END
-
-        replied_to_message_id: Optional[int] = util.original_reply_id(update)
 
         if replied_to_message_id:
             bots_list = f"{user.markdown_short} suggests to search and {bots_list}"

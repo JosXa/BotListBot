@@ -16,6 +16,7 @@ from dialog import messages
 from lib import InlineCallbackButton
 from models import Bot, Category, Favorite, Keyword, Statistic, User, track_activity
 from util import track_groups
+from typing import *
 
 log = logging.getLogger()
 
@@ -174,7 +175,7 @@ def send_category(bot, update, chat_data, category):
     Statistic.of(update, 'menu', 'of category {}'.format(str(category)), Statistic.ANALYSIS)
 
 
-def send_bot_details(bot, update, chat_data, item=None):
+def send_bot_details(bot, update, chat_data, item=None, header_msg: Optional[str] = None):
     is_group = util.is_group_message(update)
     cid = update.effective_chat.id
     user = User.from_update(update)
@@ -201,7 +202,8 @@ def send_bot_details(bot, update, chat_data, item=None):
             item, Bot.DisabledReason.to_str(item.disabled_reason))
     elif item.approved:
         # bot is already in the botlist => show information
-        txt = item.detail_text
+        txt = f'{header_msg}\n\n{item.detail_text}' if header_msg else item.detail_text
+
         if item.description is None and not Keyword.select().where(
                 Keyword.entity == item).exists():
             txt += ' is in the @BotList.'

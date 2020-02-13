@@ -48,7 +48,7 @@ def _crapPy_Tr0ll_kbmarkup(rows=None):
         "Rag",
         "CrossEyed",
         "FritzlAdmiring",
-        "Dumb"
+        "Dumb",
     ]
     second = [  # nouns (plural)
         "Shit",
@@ -77,7 +77,7 @@ def _crapPy_Tr0ll_kbmarkup(rows=None):
         "Awesome",
         "ArseBiscuit",
         "Suck",
-        "Voyeurism"
+        "Voyeurism",
     ]
     third = [
         "Collection",
