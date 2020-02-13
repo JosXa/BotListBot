@@ -69,7 +69,7 @@ class User(BaseModel):
     def markdown_short(self):
         displayname = ''
         if self.first_name:
-            displayname = util.escape_markdown(self.first_name)
+            displayname = util.escape_markdown(self.first_name.encode('utf-8').decode('utf-8'))
         if self.username:
             text = '[👤 {}](https://t.me/{})'.format(displayname, util.escape_markdown(self.username))
         else:
