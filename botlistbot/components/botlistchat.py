@@ -9,57 +9,61 @@ from const import CallbackActions
 from dialog import messages
 from models import track_activity
 from typing import *
+from logzero import logger as log
 
 HINTS = {
-    '#inline': {
-        'message': "Consider using me in inline-mode 😇\n`@BotListBot {query}`",
-        'default': "Your search terms",
-        'buttons': [{
-            'text': '🔎 Try it out',
-            'switch_inline_query': '{query}'
-        }],
-        'help': 'Give a query that will be used for a `switch_to_inline`-button'
+    "#inline": {
+        "message": "Consider using me in inline-mode 😇\n`@BotListBot {query}`",
+        "default": "Your search terms",
+        "buttons": [{"text": "🔎 Try it out", "switch_inline_query": "{query}"}],
+        "help": "Give a query that will be used for a `switch_to_inline`-button",
     },
-    '#rules': {
-        'message': messages.BOTLISTCHAT_RULES,
-        'help': 'Send the rules of @BotListChat'
+    "#rules": {
+        "message": messages.BOTLISTCHAT_RULES,
+        "help": "Send the rules of @BotListChat",
     },
-    '#manybot': {
-        'message': "We (the @BotList moderators) set a *high standard for bots on the* @BotList. "
-                   "Bots built with bot builders like @Manybot or @Chatfuelbot certainly have "
-                   "their place, but usually *lack the quality* we impose for inclusion to the "
-                   "list. We prefer when bot makers actually take their time and effort to "
-                   "program bots without using a sandbox kindergarten tool as the ones mentioned "
-                   "above. Don't get us wrong, there are great tools out there built with these "
-                   "bot builders, and if you feel like the BotList is lacking some feature that "
-                   "this bot brings, feel free to submit it. But as a rule of thumb, Manybots are "
-                   "*generally too spammy, not very useful and not worth the effort*. "
-                   "Thank you 🙏🏻",
-        'help': 'Send our Manybot policy'
+    "#manybot": {
+        "message": "We (the @BotList moderators) set a *high standard for bots on the* @BotList. "
+        "Bots built with bot builders like @Manybot or @Chatfuelbot certainly have "
+        "their place, but usually *lack the quality* we impose for inclusion to the "
+        "list. We prefer when bot makers actually take their time and effort to "
+        "program bots without using a sandbox kindergarten tool as the ones mentioned "
+        "above. Don't get us wrong, there are great tools out there built with these "
+        "bot builders, and if you feel like the BotList is lacking some feature that "
+        "this bot brings, feel free to submit it. But as a rule of thumb, Manybots are "
+        "*generally too spammy, not very useful and not worth the effort*. "
+        "Thank you 🙏🏻",
+        "help": "Send our Manybot policy",
     },
-    '#private': {
-        'message': "Please don't spam the group with {query}, and go to a private "
-                   "chat with me instead. Thanks a lot, the other members will appreciate it 😊",
-        'default': 'searches or commands',
-        'buttons': [{
-            'text': captions.SWITCH_PRIVATE,
-            'url': "https://t.me/{}".format(settings.SELF_BOT_NAME)
-        }],
-        'help': 'Tell a member to stop spamming and switch to a private chat'
+    "#private": {
+        "message": "Please don't spam the group with {query}, and go to a private "
+        "chat with me instead. Thanks a lot, the other members will appreciate it 😊",
+        "default": "searches or commands",
+        "buttons": [
+            {
+                "text": captions.SWITCH_PRIVATE,
+                "url": "https://t.me/{}".format(settings.SELF_BOT_NAME),
+            }
+        ],
+        "help": "Tell a member to stop spamming and switch to a private chat",
     },
-    '#userbot': {
-        'message': "Refer to [this article](http://telegra.ph/How-a-"
-                   "Userbot-superacharges-your-Telegram-Bot-07-09) to learn more about *Userbots*.",
-        'help': "@JosXa's article about Userbots"
-    }
+    "#userbot": {
+        "message": "Refer to [this article](http://telegra.ph/How-a-"
+        "Userbot-superacharges-your-Telegram-Bot-07-09) to learn more about *Userbots*.",
+        "help": "@JosXa's article about Userbots",
+    },
 }
 
 
-def append_delete_button(update, chat_data, reply_markup) -> Tuple[Optional[ReplyMarkup], Callable[[Message], None]]:
+def append_delete_button(
+    update, chat_data, reply_markup
+) -> Tuple[Optional[ReplyMarkup], Callable[[Message], None]]:
     uid = update.effective_user.id
     command_mid = update.effective_message.message_id
 
-    if not util.is_group_message(update) or not isinstance(reply_markup, InlineKeyboardMarkup):
+    if not util.is_group_message(update) or not isinstance(
+        reply_markup, InlineKeyboardMarkup
+    ):
         return reply_markup, callable
 
     def append_callback(message):
@@ -69,47 +73,51 @@ def append_delete_button(update, chat_data, reply_markup) -> Tuple[Optional[Repl
             mid = message.message_id
         else:
             mid = message
-        deletions_pending = chat_data.get('deletions_pending', dict())
+        deletions_pending = chat_data.get("deletions_pending", dict())
         if not deletions_pending.get(mid):
             deletions_pending[mid] = dict(user_id=uid, command_id=command_mid)
-            chat_data['deletions_pending'] = deletions_pending
+            chat_data["deletions_pending"] = deletions_pending
 
     buttons = reply_markup.inline_keyboard
-    buttons.append([
-        InlineKeyboardButton(captions.random_done_delete(), callback_data=util.callback_for_action(
-            CallbackActions.DELETE_CONVERSATION))
-    ])
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                captions.random_done_delete(),
+                callback_data=util.callback_for_action(
+                    CallbackActions.DELETE_CONVERSATION
+                ),
+            )
+        ]
+    )
     reply_markup.inline_keyboard = buttons
     return reply_markup, append_callback
 
 
-@track_activity('issued deletion of conversation in BotListChat')
+@track_activity("issued deletion of conversation in BotListChat")
 def delete_conversation(bot, update, chat_data):
     cid = update.effective_chat.id
     uid = update.effective_user.id
     mid = util.mid_from_update(update)
 
-    deletions_pending = chat_data.get('deletions_pending', dict())
+    deletions_pending = chat_data.get("deletions_pending", dict())
     context = deletions_pending.get(mid)
 
     if not context:
+        log.error("No context received in delete_conversation.")
         return
 
-    if uid != context['user_id']:
+    if uid != context["user_id"]:
         if uid not in settings.MODERATORS:
-            bot.answerCallbackQuery(update.callback_query.id,
-                                    text="✋️ You didn't prompt this message.")
+            bot.answerCallbackQuery(
+                update.callback_query.id, text="✋️ You didn't prompt this message."
+            )
             return
 
     bot.delete_message(cid, mid, safe=True)
-    bot.delete_message(cid, context['command_id'], safe=True)
+    bot.delete_message(cid, context["command_id"], safe=True)
 
 
-BROADCAST_REPLACEMENTS = {
-    'categories': '📚 ᴄᴀᴛɢᴏʀɪᴇs',
-    'bots': '🤖 *bots*',
-    '- ': '👉 '
-}
+BROADCAST_REPLACEMENTS = {"categories": "📚 ᴄᴀᴛɢᴏʀɪᴇs", "bots": "🤖 *bots*", "- ": "👉 "}
 
 
 @run_async
@@ -130,15 +138,16 @@ def _delete_multiple_delayed(bot, chat_id, immediately=None, delayed=None):
 
 @run_async
 def show_available_hints(bot, update):
-    message = "In @BotListChat, you can use the following hashtags to guide new members:\n\n"
-    message += '\n'.join(
-        '🗣 {tag} ➖ {help}'.format(
-            tag=k, help=v['help']
-        ) for k, v in HINTS.items()
+    message = (
+        "In @BotListChat, you can use the following hashtags to guide new members:\n\n"
+    )
+    message += "\n".join(
+        "🗣 {tag} ➖ {help}".format(tag=k, help=v["help"]) for k, v in HINTS.items()
     )
     message += "\n\nMake sure to reply to another message, so I know who to refer to."
-    update.effective_message.reply_text(message, parse_mode='markdown',
-                                        disable_web_page_preview=True)
+    update.effective_message.reply_text(
+        message, parse_mode="markdown", disable_web_page_preview=True
+    )
 
 
 def get_hint_message_and_markup(text):
@@ -146,19 +155,21 @@ def get_hint_message_and_markup(text):
         if k not in text:
             continue
 
-        text = text.replace(k, '')
+        text = text.replace(k, "")
         query = text.strip()
 
         reply_markup = None
-        if v.get('buttons'):
+        if v.get("buttons"):
             # Replace 'query' placeholder and expand kwargs
-            buttons = [InlineKeyboardButton(
-                **{k: v.format(query=query) for k, v in b.items()}
-            ) for b in v.get('buttons')]
+            buttons = [
+                InlineKeyboardButton(**{k: v.format(query=query) for k, v in b.items()})
+                for b in v.get("buttons")
+            ]
             reply_markup = InlineKeyboardMarkup(util.build_menu(buttons, 1))
 
-        msg = v['message'].format(
-            query=query if query else v['default'] if v.get('default') else '')
+        msg = v["message"].format(
+            query=query if query else v["default"] if v.get("default") else ""
+        )
         return msg, reply_markup, k
     return None, None, None
 
@@ -166,8 +177,11 @@ def get_hint_message_and_markup(text):
 @run_async
 def hint_handler(bot, update):
     chat_id = update.message.chat_id
-    if chat_id not in [settings.BOTLISTCHAT_ID, settings.BOTLIST_NOTIFICATIONS_ID,
-                       settings.BLSF_ID]:
+    if chat_id not in [
+        settings.BOTLISTCHAT_ID,
+        settings.BOTLIST_NOTIFICATIONS_ID,
+        settings.BLSF_ID,
+    ]:
         return
     text = update.message.text
     reply_to = update.message.reply_to_message
@@ -175,8 +189,12 @@ def hint_handler(bot, update):
     msg, reply_markup, _ = get_hint_message_and_markup(text)
 
     if msg is not None:
-        bot.formatter.send_message(chat_id, msg, reply_markup=reply_markup,
-                                   reply_to_message_id=reply_to.message_id if reply_to else None)
+        bot.formatter.send_message(
+            chat_id,
+            msg,
+            reply_markup=reply_markup,
+            reply_to_message_id=reply_to.message_id if reply_to else None,
+        )
         update.effective_message.delete()
 
 
