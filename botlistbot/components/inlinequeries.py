@@ -153,7 +153,7 @@ def inlinequery_handler(bot, update, chat_data):
     # query for new bots
     if query == messages.NEW_BOTS_INLINEQUERY.lower() or query == 'new':
         results_list.append(new_bots_article())
-        bot.answerInlineQuery(update.inline_query.id, results=results_list)
+        bot.answer_inline_query(update.inline_query.id, results=results_list)
         return
 
     if query in CONTRIBUTING_QUERIES:
@@ -163,7 +163,7 @@ def inlinequery_handler(bot, update, chat_data):
             input_message_content=InputTextMessageContent(message_text=messages.CONTRIBUTING,
                                                           parse_mode="Markdown"),
         ))
-        bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=600)
+        bot.answer_inline_query(update.inline_query.id, results=results_list, cache_time=600)
         return
 
     if query in EXAMPLES_QUERIES:
@@ -173,7 +173,7 @@ def inlinequery_handler(bot, update, chat_data):
             input_message_content=InputTextMessageContent(message_text=messages.EXAMPLES,
                                                           parse_mode="Markdown"),
         ))
-        bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=600)
+        bot.answer_inline_query(update.inline_query.id, results=results_list, cache_time=600)
         return
 
     if query in (const.DeepLinkingActions.RULES, '#rules'):
@@ -184,19 +184,19 @@ def inlinequery_handler(bot, update, chat_data):
                                                           parse_mode="Markdown",
                                                           disable_web_page_preview=True),
         ))
-        bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=600)
+        bot.answer_inline_query(update.inline_query.id, results=results_list, cache_time=600)
         return
 
     if query == const.DeepLinkingActions.FAVORITES and user.has_favorites:
         results_list.append(favorites_article(user))
-        bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=0,
+        bot.answer_inline_query(update.inline_query.id, results=results_list, cache_time=0,
                               is_personal=True)
         return
 
     msg, reply_markup, key = botlistchat.get_hint_message_and_markup(query)
     if msg is not None:
         results_list.append(hint_article(msg, reply_markup, key))
-        bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=600)
+        bot.answer_inline_query(update.inline_query.id, results=results_list, cache_time=600)
         return
 
     invalid_search_term = query_too_short and not cat_results
@@ -213,12 +213,12 @@ def inlinequery_handler(bot, update, chat_data):
             results_list.append(bot_article(b))
 
         if len(bot_results) > 0:
-            bot.answerInlineQuery(update.inline_query.id, results=results_list,
+            bot.answer_inline_query(update.inline_query.id, results=results_list,
                                   switch_pm_text="See all results" if too_many_results else "Search in private chat",
                                   switch_pm_parameter=util.encode_base64(query), cache_time=0,
                                   is_personal=True)
         else:
-            bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=0,
+            bot.answer_inline_query(update.inline_query.id, results=results_list, cache_time=0,
                                   is_personal=True)
     else:
         if user.has_favorites:
@@ -229,10 +229,10 @@ def inlinequery_handler(bot, update, chat_data):
             results_list.append(category_article(c))
 
         if invalid_search_term or not input_given:
-            bot.answerInlineQuery(update.inline_query.id, results=results_list, cache_time=0,
+            bot.answer_inline_query(update.inline_query.id, results=results_list, cache_time=0,
                                   is_personal=True)
         else:
-            bot.answerInlineQuery(update.inline_query.id, results=results_list,
+            bot.answer_inline_query(update.inline_query.id, results=results_list,
                                   switch_pm_text="No results. Contribute a bot?",
                                   switch_pm_parameter='contributing', cache_time=0,
                                   is_personal=True)

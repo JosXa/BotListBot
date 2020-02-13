@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from typing import Callable
+
 import sentry_sdk
 import threading
 import logging
@@ -24,19 +26,50 @@ class BotListBot(TelegramBot):
         self.send_message(
             settings.BOTLIST_NOTIFICATIONS_ID,
             util.escape_markdown(message),
-            parse_mode='markdown',
+            parse_mode="markdown",
             timeout=20,
-            **kwargs
+            **kwargs,
         )
         log.info(message)
 
-    def delete_message(self, chat_id, message_id, timeout=None, safe=False, **kwargs):
+    def _wrap_safe(self, action: Callable, safe: bool):
         if not safe:
-            return super().delete_message(chat_id, message_id, timeout, **kwargs)
+            return action()
         try:
-            return super().delete_message(chat_id, message_id, timeout, **kwargs)
+            return action()
         except TelegramError:
             return None
+
+    def answer_inline_query(
+        self,
+        inline_query_id,
+        results,
+        cache_time=300,
+        is_personal=None,
+        next_offset=None,
+        switch_pm_text=None,
+        switch_pm_parameter=None,
+        timeout=None,
+        **kwargs,
+    ):
+        return self._wrap_safe(
+            lambda: super().answer_inline_query(
+                inline_query_id,
+                results,
+                cache_time,
+                is_personal,
+                next_offset,
+                switch_pm_text,
+                switch_pm_parameter,
+                timeout,
+                **kwargs,
+            )
+        )
+
+    def delete_message(self, chat_id, message_id, timeout=None, safe=False, **kwargs):
+        return self._wrap_safe(
+            lambda: super().delete_message(chat_id, message_id, timeout, **kwargs)
+        )
 
 
 def setup_logging():
@@ -47,7 +80,7 @@ def setup_logging():
     sentry_sdk.init(
         settings.SENTRY_URL,
         integrations=[sentry_logging],
-        environment=settings.SENTRY_ENVIRONMENT
+        environment=settings.SENTRY_ENVIRONMENT,
     )
 
 
@@ -62,15 +95,13 @@ def main():
 
     bot_token = str(settings.BOT_TOKEN)
 
-    botlistbot = BotListBot(bot_token, request=Request(
-        read_timeout=8,
-        connect_timeout=7,
-        con_pool_size=settings.WORKER_COUNT + 4
-    ))
-    updater = Updater(
-        bot=botlistbot,
-        workers=settings.WORKER_COUNT,
+    botlistbot = BotListBot(
+        bot_token,
+        request=Request(
+            read_timeout=8, connect_timeout=7, con_pool_size=settings.WORKER_COUNT + 4
+        ),
     )
+    updater = Updater(bot=botlistbot, workers=settings.WORKER_COUNT)
     # updater.dispatcher = BotListDispatcher(
     #     botlistbot,
     #     updater.update_queue,
@@ -100,20 +131,22 @@ def main():
         updater.start_polling()
     else:
         log.info("Starting using webhooks...")
-        updater.start_webhook(listen="0.0.0.0",
-                              port=settings.PORT,
-                              url_path=settings.BOT_TOKEN)
-        updater.bot.set_webhook(f"https://botlistbot.herokuapp.com/{settings.BOT_TOKEN}")
+        updater.start_webhook(
+            listen="0.0.0.0", port=settings.PORT, url_path=settings.BOT_TOKEN
+        )
+        updater.bot.set_webhook(
+            f"https://botlistbot.herokuapp.com/{settings.BOT_TOKEN}"
+        )
 
-    log.info('Listening...')
+    log.info("Listening...")
     updater.bot.send_message(settings.DEVELOPER_ID, "Ready to rock", timeout=10)
 
     # Idling
     updater.idle()
     updater.stop()
 
-    log.info('Disconnecting...')
+    log.info("Disconnecting...")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
