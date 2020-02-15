@@ -11,7 +11,7 @@ from telegram import (
     Update,
     TelegramError,
 )
-from telegram.ext import ConversationHandler
+from telegram.ext import ConversationHandler, run_async
 
 import appglobals
 import captions
@@ -131,6 +131,7 @@ def search_query(bot, update: Update, chat_data, query, send_errors=True):
     return ConversationHandler.END
 
 
+@run_async
 def search_handler(bot, update, chat_data, args=None):
     if args:
         search_query(bot, update, chat_data, " ".join(args))

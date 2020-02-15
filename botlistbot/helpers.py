@@ -1,4 +1,7 @@
+from random import random
+
 import logging
+from decorator import contextmanager
 from telegram.ext import JobQueue, Job, run_async
 from typing import *
 import re
@@ -176,3 +179,4 @@ def try_delete_after(
             bot.delete_message(m.chat_id, m.message_id, timeout=10, safe=True)
 
     job_queue.run_once(delete_messages, delay, name="try_delete_after")
+

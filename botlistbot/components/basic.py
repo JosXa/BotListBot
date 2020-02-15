@@ -1,3 +1,6 @@
+from random import random
+from datetime import datetime
+
 import sys
 
 import logging
@@ -18,6 +21,7 @@ from components import help
 from components.botlist import new_channel_post
 from components.search import search_handler, search_query
 from dialog import messages
+from helpers import try_delete_after
 from models import Category, User
 from models.statistic import Statistic, track_activity
 from util import track_groups
@@ -114,6 +118,10 @@ def remove_keyboard(bot, update):
 
 
 def delete_botlistchat_promotions(bot, update, chat_data, update_queue):
+    """
+    TODO: don't think we need this anymore, it never worked. Nice idea, but no way to achieve it...
+    """
+    return
     cid = update.effective_chat.id
 
     if chat_data.get('delete_promotion_retries') >= 3:
@@ -138,19 +146,18 @@ def delete_botlistchat_promotions(bot, update, chat_data, update_queue):
 
 
 def plaintext_group(bot, update, chat_data, update_queue):
-    # check if an inlinequery was sent to BotListChat
-
-    # pprint(update.message.to_dict())
     if update.channel_post:
         return new_channel_post(bot, update)
 
-        # if util.is_private_message(update):
-        #     if len(update.message.text) > 3:
-        #         search_query(bot, update, update.message.text, send_errors=False)
+    msg: Message = update.effective_message
 
-    # potentially longer operation
-    chat_data['delete_promotion_retries'] = 0
-    delete_botlistchat_promotions(bot, update, chat_data, update_queue)
+    if datetime.now() < datetime(2020, 2, 18):
+        if "bot" in msg.text and "boot" not in msg.text:
+            if random() > 0.7:
+                msg = update.effective_message.reply_text(
+                    "*boot"
+                )
+                try_delete_after(appglobals.job_queue, msg, 20)
 
 
 def cancel(bot, update):
