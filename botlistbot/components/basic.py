@@ -7,9 +7,24 @@ import logging
 import os
 import signal
 import time
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, \
-    ReplyKeyboardMarkup, ReplyKeyboardRemove, Bot, Update, Message
-from telegram.ext import CommandHandler, ConversationHandler, Filters, MessageHandler, RegexHandler, JobQueue
+from telegram import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
+    Bot,
+    Update,
+    Message,
+)
+from telegram.ext import (
+    CommandHandler,
+    ConversationHandler,
+    Filters,
+    MessageHandler,
+    RegexHandler,
+    JobQueue,
+)
 
 import appglobals
 import captions
@@ -29,7 +44,7 @@ from util import track_groups
 log = logging.getLogger(__name__)
 
 
-@track_activity('command', 'start')
+@track_activity("command", "start")
 @track_groups
 def start(bot, update, chat_data, args):
     tg_user = update.message.from_user
@@ -43,11 +58,12 @@ def start(bot, update, chat_data, args):
         try:
             cat = Category.get(Category.id == args[0])
             from components.explore import send_category
+
             return send_category(bot, update, chat_data, cat)
         except (ValueError, Category.DoesNotExist):
             pass
 
-        query = ' '.join(args).lower()
+        query = " ".join(args).lower()
 
         # SPECIFIC DEEP-LINKED QUERIES
         if query == const.DeepLinkingActions.CONTRIBUTING:
@@ -63,9 +79,15 @@ def start(bot, update, chat_data, args):
         search_query(bot, update, chat_data, query)
 
     else:
-        bot.sendSticker(chat_id,
-                        open(os.path.join(appglobals.ROOT_DIR, 'assets', 'sticker',
-                                          'greetings-humanoids.webp'), 'rb'))
+        bot.sendSticker(
+            chat_id,
+            open(
+                os.path.join(
+                    appglobals.ROOT_DIR, "assets", "sticker", "greetings-humanoids.webp"
+                ),
+                "rb",
+            ),
+        )
         help.help(bot, update)
         util.wait(bot, update)
         if util.is_private_message(update):
@@ -75,8 +97,11 @@ def start(bot, update, chat_data, args):
 
 def main_menu_buttons(admin=False):
     buttons = [
-        [KeyboardButton(captions.CATEGORIES), KeyboardButton(captions.EXPLORE),
-         KeyboardButton(captions.FAVORITES)],
+        [
+            KeyboardButton(captions.CATEGORIES),
+            KeyboardButton(captions.EXPLORE),
+            KeyboardButton(captions.FAVORITES),
+        ],
         [KeyboardButton(captions.NEW_BOTS), KeyboardButton(captions.SEARCH)],
         [KeyboardButton(captions.HELP)],
     ]
@@ -85,17 +110,23 @@ def main_menu_buttons(admin=False):
     return buttons
 
 
-@track_activity('menu', 'main menu', Statistic.ANALYSIS)
+@track_activity("menu", "main menu", Statistic.ANALYSIS)
 def main_menu(bot, update):
     chat_id = update.effective_chat.id
     is_admin = chat_id in settings.MODERATORS
-    reply_markup = ReplyKeyboardMarkup(main_menu_buttons(is_admin),
-                                       resize_keyboard=True,
-                                       one_time_keyboard=True) if util.is_private_message(
-        update) else ReplyKeyboardRemove()
+    reply_markup = (
+        ReplyKeyboardMarkup(
+            main_menu_buttons(is_admin), resize_keyboard=True, one_time_keyboard=True
+        )
+        if util.is_private_message(update)
+        else ReplyKeyboardRemove()
+    )
 
-    bot.sendMessage(chat_id, mdformat.action_hint("What would you like to do?"),
-                    reply_markup=reply_markup)
+    bot.sendMessage(
+        chat_id,
+        mdformat.action_hint("What would you like to do?"),
+        reply_markup=reply_markup,
+    )
 
 
 @util.restricted
@@ -111,7 +142,7 @@ def error(bot, update, error):
     log.error(error)
 
 
-@track_activity('remove', 'keyboard')
+@track_activity("remove", "keyboard")
 def remove_keyboard(bot, update):
     update.message.reply_text("Keyboard removed.", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
@@ -124,7 +155,7 @@ def delete_botlistchat_promotions(bot, update, chat_data, update_queue):
     return
     cid = update.effective_chat.id
 
-    if chat_data.get('delete_promotion_retries') >= 3:
+    if chat_data.get("delete_promotion_retries") >= 3:
         return
 
     if messages.PROMOTION_MESSAGE not in update.effective_message.text_markdown:
@@ -133,14 +164,14 @@ def delete_botlistchat_promotions(bot, update, chat_data, update_queue):
     if update.effective_chat.id != settings.BOTLISTCHAT_ID:
         return
 
-    sent_inlinequery = chat_data.get('sent_inlinequery')
+    sent_inlinequery = chat_data.get("sent_inlinequery")
     if sent_inlinequery:
         text = sent_inlinequery.text
-        text = text.replace(messages.PROMOTION_MESSAGE, '')
+        text = text.replace(messages.PROMOTION_MESSAGE, "")
         bot.edit_message_text(text, cid, sent_inlinequery)
-        del chat_data['sent_inlinequery']
+        del chat_data["sent_inlinequery"]
     else:
-        chat_data['delete_promotion_retries'] += 1
+        chat_data["delete_promotion_retries"] += 1
         time.sleep(2)  # TODO
         update_queue.put(update)
 
@@ -154,9 +185,7 @@ def plaintext_group(bot, update, chat_data, update_queue):
     if datetime.now() < datetime(2020, 2, 18):
         if "bot" in msg.text and "boot" not in msg.text:
             if random() > 0.7:
-                msg = update.effective_message.reply_text(
-                    "*boot"
-                )
+                msg = update.effective_message.reply_text("*boot")
                 try_delete_after(appglobals.job_queue, msg, 20)
 
 
@@ -166,14 +195,13 @@ def cancel(bot, update):
 
 def thank_you_markup(count=0):
     assert isinstance(count, int)
-    count_caption = '' if count == 0 else mdformat.number_as_emoji(count)
-    button = InlineKeyboardButton('{} {}'.format(
-        messages.rand_thank_you_slang(),
-        count_caption
-    ), callback_data=util.callback_for_action(
-        const.CallbackActions.COUNT_THANK_YOU,
-        {'count': count + 1}
-    ))
+    count_caption = "" if count == 0 else mdformat.number_as_emoji(count)
+    button = InlineKeyboardButton(
+        "{} {}".format(messages.rand_thank_you_slang(), count_caption),
+        callback_data=util.callback_for_action(
+            const.CallbackActions.COUNT_THANK_YOU, {"count": count + 1}
+        ),
+    )
     return InlineKeyboardMarkup([[button]])
 
 
@@ -198,7 +226,7 @@ def ping(_, update: Update, job_queue: JobQueue):
         except:
             pass
 
-    job_queue.run_once(delete_msgs, del_timeout, name='delete ping pong messages')
+    job_queue.run_once(delete_msgs, del_timeout, name="delete ping pong messages")
 
 
 @track_groups
@@ -211,14 +239,18 @@ def all_handler(bot, update, chat_data):
 
 
 def register(dp):
-    dp.add_handler(CommandHandler('start', start, pass_args=True, pass_chat_data=True))
+    dp.add_handler(CommandHandler("start", start, pass_args=True, pass_chat_data=True))
     dp.add_handler(CommandHandler("menu", main_menu))
     dp.add_handler(RegexHandler(captions.EXIT, main_menu))
-    dp.add_handler(CommandHandler('r', restart))
+    dp.add_handler(CommandHandler("r", restart))
     dp.add_error_handler(error)
     dp.add_handler(
-        MessageHandler(Filters.text & Filters.group, plaintext_group, pass_chat_data=True,
-                       pass_update_queue=True))
+        MessageHandler(
+            Filters.text & Filters.group,
+            plaintext_group,
+            pass_chat_data=True,
+            pass_update_queue=True,
+        )
+    )
     dp.add_handler(CommandHandler("removekeyboard", remove_keyboard))
     dp.add_handler(CommandHandler("ping", ping, pass_job_queue=True))
-
