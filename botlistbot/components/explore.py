@@ -303,7 +303,7 @@ def send_bot_details(
             item.description is None
             and not Keyword.select().where(Keyword.entity == item).exists()
         ):
-            txt += " is in the @BotList."
+            txt += " is in the @BotList, but has no description or keywords yet."
         btn = InlineCallbackButton(
             captions.BACK_TO_CATEGORY,
             CallbackActions.SELECT_BOT_FROM_CATEGORY,

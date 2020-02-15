@@ -13,6 +13,7 @@ from telegram import (
 )
 from telegram.ext import ConversationHandler
 
+import appglobals
 import captions
 import const
 import search
@@ -22,6 +23,7 @@ from components import basic, botlistchat
 from components.botlistchat import get_hint_data
 from components.explore import send_bot_details
 from dialog import messages
+from helpers import try_delete_after
 from models import User
 
 
@@ -136,7 +138,7 @@ def search_handler(bot, update, chat_data, args=None):
         # no search term
         if util.is_group_message(update):
             action = const.DeepLinkingActions.SEARCH
-            update.message.reply_text(
+            sent_msg = update.message.reply_text(
                 "Please use the search command with arguments, inlinequeries or continue in private. "
                 "Example: `/search awesome bot`",
                 quote=True,
@@ -157,6 +159,7 @@ def search_handler(bot, update, chat_data, args=None):
                     ]
                 ),
             )
+            try_delete_after(appglobals.job_queue, [sent_msg, update.effective_message], delay=10)
         else:
             update.message.reply_text(
                 messages.SEARCH_MESSAGE, reply_markup=ForceReply(selective=True)

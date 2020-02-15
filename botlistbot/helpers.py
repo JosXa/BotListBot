@@ -1,12 +1,15 @@
 import logging
+from telegram.ext import JobQueue, Job, run_async
+from typing import *
 import re
 
 import maya
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode, Message, Bot
 
 import captions
 import settings
 import util
+from custom_botlistbot import BotListBot
 from dialog import messages
 from settings import SELF_CHANNEL_USERNAME
 
@@ -41,8 +44,8 @@ def format_name(entity):
 def validate_username(username: str):
     if len(username) < 3:
         return False
-    if username[0] != '@':
-        username = '@' + username
+    if username[0] != "@":
+        username = "@" + username
     match = re.match(settings.REGEX_BOT_ONLY, username)
     return username if match else False
 
@@ -50,9 +53,9 @@ def validate_username(username: str):
 def get_commands():
     commands = ""
     try:
-        with open('files/commands.txt', 'rb') as file:
+        with open("files/commands.txt", "rb") as file:
             for command in file.readlines():
-                commands += '/' + command.decode("utf-8")
+                commands += "/" + command.decode("utf-8")
         return commands
     except FileNotFoundError:
         log.error("File could not be opened.")
@@ -60,6 +63,7 @@ def get_commands():
 
 def get_channel():
     from models import Channel
+
     try:
         return Channel.get(Channel.username == SELF_CHANNEL_USERNAME)
     except Channel.DoesNotExist:
@@ -67,20 +71,23 @@ def get_channel():
 
 
 def botlist_url_for_category(category):
-    return 'http://t.me/{}/{}'.format(get_channel().username, category.current_message_id)
+    return "http://t.me/{}/{}".format(
+        get_channel().username, category.current_message_id
+    )
 
 
 def format_keyword(kw):
-    kw = kw[1:] if kw[0] == '#' else kw
-    kw = kw.replace(' ', '_')
-    kw = kw.replace('-', '_')
-    kw = kw.replace('\'', '_')
+    kw = kw[1:] if kw[0] == "#" else kw
+    kw = kw.replace(" ", "_")
+    kw = kw.replace("-", "_")
+    kw = kw.replace("'", "_")
     kw = kw.lower()
     return kw
 
 
-def reroute_private_chat(bot, update, quote, action, message, redirect_message=None,
-                         reply_markup=None):
+def reroute_private_chat(
+    bot, update, quote, action, message, redirect_message=None, reply_markup=None
+):
     cid = update.effective_chat.id
     mid = util.mid_from_update(update)
     if redirect_message is None:
@@ -92,39 +99,53 @@ def reroute_private_chat(bot, update, quote, action, message, redirect_message=N
             quote=quote,
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton(
-                    captions.SWITCH_PRIVATE,
-                    url="https://t.me/{}?start={}".format(
-                        settings.SELF_BOT_NAME,
-                        action)),
-                    InlineKeyboardButton('🔎 Switch to inline', switch_inline_query=action)
-                ]]
-            ))
+                [
+                    [
+                        InlineKeyboardButton(
+                            captions.SWITCH_PRIVATE,
+                            url="https://t.me/{}?start={}".format(
+                                settings.SELF_BOT_NAME, action
+                            ),
+                        ),
+                        InlineKeyboardButton(
+                            "🔎 Switch to inline", switch_inline_query=action
+                        ),
+                    ]
+                ]
+            ),
+        )
     else:
         if mid:
             bot.formatter.send_or_edit(cid, message, mid, reply_markup=reply_markup)
         else:
-            update.message.reply_text(message, quote=quote, parse_mode=ParseMode.MARKDOWN,
-                                      reply_markup=reply_markup)
+            update.message.reply_text(
+                message,
+                quote=quote,
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=reply_markup,
+            )
 
 
 def make_sticker(filename, out_file, max_height=512, transparent=True):
     return  # TODO: fix
     from PIL import Image
+
     image = Image.open(filename)
 
     # resize sticker to match new max height
     # optimize image dimensions for stickers
     if max_height == 512:
         resize_ratio = min(512 / image.width, 512 / image.height)
-        image = image.resize((int(image.width * resize_ratio), int(image.height * resize_ratio)))
+        image = image.resize(
+            (int(image.width * resize_ratio), int(image.height * resize_ratio))
+        )
     else:
         image.thumbnail((512, max_height), Image.ANTIALIAS)
 
     if transparent:
-        canvas = Image.new('RGBA', (512, image.height))
+        canvas = Image.new("RGBA", (512, image.height))
     else:
-        canvas = Image.new('RGB', (512, image.height), color='white')
+        canvas = Image.new("RGB", (512, image.height), color="white")
 
     pos = (0, 0)
     try:
@@ -134,3 +155,24 @@ def make_sticker(filename, out_file, max_height=512, transparent=True):
 
     canvas.save(out_file)
     return out_file
+
+
+@run_async
+def try_delete_after(
+    job_queue: JobQueue,
+    messages: Union[List[Union[Message, int]], Union[Message, int]],
+    delay: Union[float, int],
+):
+    if isinstance(messages, (Message, int)):
+        _messages = [messages]
+    else:
+        _messages = messages
+
+    @run_async
+    def delete_messages(*args, **kwargs):
+        # noinspection PyTypeChecker
+        bot: BotListBot = job_queue.bot
+        for m in _messages:
+            bot.delete_message(m.chat_id, m.message_id, timeout=10, safe=True)
+
+    job_queue.run_once(delete_messages, delay, name="try_delete_after")
