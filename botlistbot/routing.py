@@ -273,7 +273,7 @@ def callback_router(bot, update, chat_data, user_data, job_queue):
                 re_send = obj.get("re", False)
                 botlist.send_botlist(bot, update, resend=re_send, silent=silent)
             elif action == CallbackActions.RESEND_BOTLIST:
-                botlist.send_botlist(bot, update, resend=True)
+                botlist.send_botlist(bot, update, resend=True, silent=True)
             # BROADCASTING
             elif action == "send_broadcast":
                 broadcasts.send_broadcast(bot, update, user_data)

@@ -55,7 +55,7 @@ class BotList:
         self.channel = channel
         self.resend = resend
         self.silent = silent
-        self.sent = dict()
+        self.sent = {}
         self.sent['category'] = list()
         self.chat_id = update.effective_chat.id
         self.message_id = util.mid_from_update(update)
@@ -204,7 +204,7 @@ class BotList:
             text = _format_category_bots(cat)
 
             log.info(f"Updating category {cat.name}...")
-            msg = self.send_or_edit(text, cat.current_message_id)
+            msg = self.send_or_edit(text[:4096], cat.current_message_id)
             if msg:
                 cat.current_message_id = msg.message_id
                 self.sent['category'].append("{} {}".format(
