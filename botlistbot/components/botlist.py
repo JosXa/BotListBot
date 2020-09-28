@@ -21,7 +21,7 @@ from models import Statistic
 from models.channel import Channel
 from models.revision import Revision
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.error import BadRequest, TelegramError
+from telegram.error import BadRequest, RetryAfter, TelegramError
 from telegram.ext.dispatcher import run_async
 from util import restricted
 from logzero import logger as log
@@ -100,37 +100,43 @@ class BotList:
             return f.read()
 
     def send_or_edit(self, text, message_id, reply_markup=None):
+        text = text[:4096]  # hotfix - we can't send as multiple message because the list expects a unique message id
         sleep(3)
-        try:
-            if self.resend:
-                return util.send_md_message(self.bot, self.channel.chat_id, text, timeout=120,
-                                            disable_notification=True, reply_markup=reply_markup)
-            else:
-                if reply_markup:
-                    return self.bot.formatter.send_or_edit(self.channel.chat_id, text,
-                                                           to_edit=message_id,
-                                                           timeout=120,
-                                                           disable_web_page_preview=True,
-                                                           disable_notification=True,
-                                                           reply_markup=reply_markup)
+        while True:
+            try:
+                if self.resend:
+                    return util.send_md_message(self.bot, self.channel.chat_id, text, timeout=120,
+                                                disable_notification=True, reply_markup=reply_markup)
                 else:
-                    return self.bot.formatter.send_or_edit(self.channel.chat_id, text,
-                                                           to_edit=message_id,
-                                                           timeout=120,
-                                                           disable_web_page_preview=True,
-                                                           disable_notification=True)
-        except BadRequest as e:
-            if 'chat not found' in e.message.lower():
-                self.notify_admin_err(
-                    "I can't reach BotList Bot with chat-id `{}` (CHAT NOT FOUND error). "
-                    "There's probably something wrong with the database.".format(
-                        self.channel.chat_id))
-                raise e
-            if 'message not modified' in e.message.lower():
-                return None
-            else:
-                log.error(e)
-                raise e
+                    if reply_markup:
+                        return self.bot.formatter.send_or_edit(self.channel.chat_id, text,
+                                                               to_edit=message_id,
+                                                               timeout=120,
+                                                               disable_web_page_preview=True,
+                                                               disable_notification=True,
+                                                               reply_markup=reply_markup)
+                    else:
+                        return self.bot.formatter.send_or_edit(self.channel.chat_id, text,
+                                                               to_edit=message_id,
+                                                               timeout=120,
+                                                               disable_web_page_preview=True,
+                                                               disable_notification=True)
+            except BadRequest as e:
+                if 'chat not found' in e.message.lower():
+                    self.notify_admin_err(
+                        "I can't reach BotList Bot with chat-id `{}` (CHAT NOT FOUND error). "
+                        "There's probably something wrong with the database.".format(
+                            self.channel.chat_id))
+                    raise e
+                if 'message not modified' in e.message.lower():
+                    return None
+                else:
+                    log.error(e)
+                    raise e
+            except RetryAfter as e:
+                log.warning(f"Retrying after {e.retry_after} seconds...")
+                sleep(e.retry_after)
+                continue
 
     def update_intro(self):
         if self.resend:
@@ -204,7 +210,7 @@ class BotList:
             text = _format_category_bots(cat)
 
             log.info(f"Updating category {cat.name}...")
-            msg = self.send_or_edit(text[:4096], cat.current_message_id)
+            msg = self.send_or_edit(text, cat.current_message_id)
             if msg:
                 cat.current_message_id = msg.message_id
                 self.sent['category'].append("{} {}".format(
