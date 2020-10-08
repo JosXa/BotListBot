@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+    db:
+        image: postgres
+        restart: always
+        ports:
+            - 5432:5432
+        environment:
+            - POSTGRES_USER=botlistbot
+            - POSTGRES_DB=botlistbot
+            - POSTGRES_PASSWORD=botlistbot
+        volumes:
+            - db:/var/lib/postgresql/data
+
+volumes:
+    db:
