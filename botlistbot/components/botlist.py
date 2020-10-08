@@ -318,8 +318,8 @@ class BotList:
 
     def delete_full_botlist(self):
         all_cats = Category.select_all()
-        start = all_cats[0].current_message_id - 3  # Some wiggle room and GIF
-        end = all_cats[-1].current_message_id + 4  # Some wiggle room
+        start = (all_cats[0].current_message_id or 0) - 3  # Some wiggle room and GIF
+        end = (all_cats[-1].current_message_id or 0) + 4  # Some wiggle room
         self.notify_admin("Deleting all messages...")
         for m in range(start, end):
             try:
