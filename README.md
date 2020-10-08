@@ -54,7 +54,6 @@ arguments list, and run it again. This will fill the database with some initial,
 
 1. Install Docker
 1. Run `docker-compose up -d`
-1. Set the `DATABASE_URL` variable in the `.env` file to `postgres://botlistbot:botlistbot@localhost:5432/botlistbot`
 1. Create and seed the database via `pipenv run python scripts/initialize_database.py seed`
 1. To stop the database, run `docker-compose down`
 </details>
