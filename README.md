@@ -17,7 +17,7 @@ JosXa/BotListBot is licensed under the MIT License.
 #### Mandatory
 
 - Python 3.7.x
-- A PostgreSQL database instance
+- A PostgreSQL database instance or Docker ([see below](#development-setup))
 - Pipenv installed globally (`pip install pipenv`)
 - Your own bot token for local development
 
@@ -48,6 +48,15 @@ arguments list, and run it again. This will fill the database with some initial,
 1. Create and seed the database via `pipenv run python scripts/initialize_database.py seed`
 1. Run the project via `pipenv run python botlistbot/main.py`
 </details>  
+
+<details>
+<summary>Setup a PostgreSQL database instance with Docker</summary>
+
+1. Install Docker
+1. Run `docker-compose up -d`
+1. Create and seed the database via `pipenv run python scripts/initialize_database.py seed`
+1. To stop the database, run `docker-compose down`
+</details>
 
 
 #### Further details on configuration

@@ -16,7 +16,7 @@ BOT_TOKEN = config("BOT_TOKEN", cast=lambda v: str(v) if v else None, default=No
 LOG_DIR = config("LOG_DIR", default=os.path.dirname(os.path.abspath(__file__)))
 BOT_THUMBNAIL_DIR = config(
     "BOT_THUMBNAIL_DIR",
-    default=os.path.expanduser("/home/joscha/data/botlistbot/bot-profile-pictures"),
+    default="./bot-profile-pictures",
 )
 
 ADMINS = [62056065, 918962]
