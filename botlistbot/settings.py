@@ -19,14 +19,15 @@ BOT_THUMBNAIL_DIR = config(
     default="./bot-profile-pictures",
 )
 
-ADMINS = [62056065, 918962]
+ADMINS = [
+    62056065,  # JosXa
+    918962,  # T3CHNO
+    522605269,  # n9ghtLY
+]
 MODERATORS = [
-    # 127782573,  # UNKNOWN - delete sometime
-    # 43740047,   # UNKNOWN - delete sometime
     7679610,  # Fabian Pastor
     278941742,  # riccardo
     317434635,  # jfowl
-    522605269,  # n9ghtLY
     2591224,  # OWL
     691609650,  # Lulzx
     200344026,  # the scientist
