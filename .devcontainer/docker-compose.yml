@@ -5,7 +5,7 @@ services:
     # Using a Dockerfile is optional, but included for completeness.
     build: 
       context: ..
-      dockerfile: Dockerfile
+      dockerfile: ./Dockerfile
       
     volumes:
       # This is where VS Code should expect to find your project's source code and the value of "workspaceFolder" in .devcontainer/devcontainer.json
