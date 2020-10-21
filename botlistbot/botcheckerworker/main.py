@@ -5,8 +5,8 @@ from pathlib import Path
 
 from pyrogram import Client
 
-import appglobals
-import settings
+from botlistbot import appglobals
+from botlistbot import settings
 from logzero import logger as log
 
 from botcheckerworker.botchecker import BotChecker

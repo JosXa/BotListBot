@@ -1,7 +1,7 @@
 import random
 from pprint import pprint
 
-from custemoji import Emoji
+from botlistbot.custemoji import Emoji
 
 TEST = "{} Test".format(Emoji.ANCHOR)
 BACK_TO_MENU = "{} Back to Menu".format(Emoji.LEFTWARDS_BLACK_ARROW)

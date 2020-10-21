@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from peewee import *
 from telegram import User as TelegramUser
-import util
-from models.user import User
-from models.basemodel import BaseModel
+from botlistbot import util
+from botlistbot.models.user import User
+from botlistbot.models.basemodel import BaseModel
 
 
 class APIAccess(BaseModel):

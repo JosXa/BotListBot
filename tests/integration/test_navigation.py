@@ -1,4 +1,4 @@
-import captions
+from botlistbot import captions
 from tgintegration import BotIntegrationClient
 
 

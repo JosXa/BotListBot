@@ -27,6 +27,6 @@
 		"ckolkman.vscode-postgres"
 	],
 
-    // Use dependency manager to install packages using the container's python version
-	"postCreateCommand": "pipenv install --dev --python /usr/local/bin/python"
+    // Use pipenv to install packages INTO the container's global python
+	"postCreateCommand": "pipenv install --dev --system --python /usr/local/bin/python"
 }

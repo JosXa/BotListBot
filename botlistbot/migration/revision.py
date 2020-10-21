@@ -4,7 +4,7 @@ from decouple import config
 from playhouse.migrate import SqliteMigrator, IntegerField, migrate
 from playhouse.sqlite_ext import SqliteExtDatabase
 
-from models.revision import Revision
+from botlistbot.models.revision import Revision
 
 db_path = config('DATABASE_URL', default=os.path.expanduser('~/botlistbot.sqlite3'))
 db = SqliteExtDatabase(db_path)

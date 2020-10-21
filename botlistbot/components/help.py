@@ -1,17 +1,17 @@
-import captions
-import const
-import helpers
-import settings
-import util
-from dialog import messages
-from helpers import reroute_private_chat
+from botlistbot import captions
+from botlistbot import const
+from botlistbot import helpers
+from botlistbot import settings
+from botlistbot import util
+from botlistbot.dialog import messages
+from botlistbot.helpers import reroute_private_chat
 from telegram import InlineKeyboardButton
 from telegram import InlineKeyboardMarkup
 from telegram import ParseMode
 from telegram.ext import ConversationHandler
 
-from models import track_activity
-from util import track_groups
+from botlistbot.models import track_activity
+from botlistbot.util import track_groups
 
 
 def available_commands(bot, update):

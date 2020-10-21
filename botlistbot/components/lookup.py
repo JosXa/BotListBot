@@ -1,4 +1,4 @@
-from models import User, Bot
+from botlistbot.models import User, Bot
 
 
 def lookup_entity(query, exact=True):

@@ -1,7 +1,7 @@
 import re
 
-import settings
-from models import Bot
+from botlistbot import settings
+from botlistbot.models import Bot
 from tgintegration import BotIntegrationClient
 
 

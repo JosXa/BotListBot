@@ -8,19 +8,19 @@ from telegram import InlineKeyboardButton
 from telegram import InlineKeyboardMarkup, ReplyKeyboardMarkup
 from telegram.ext import ConversationHandler
 
-import captions
-import mdformat
-import const
-import settings
-import util
-from dialog import messages
-from layouts import Layouts
-from models import Bot
-from models import Favorite
-from models import Statistic
-from models import User
-from const import CallbackActions, DeepLinkingActions
-from models import track_activity
+from botlistbot import captions
+from botlistbot import mdformat
+from botlistbot import const
+from botlistbot import settings
+from botlistbot import util
+from botlistbot.dialog import messages
+from botlistbot.layouts import Layouts
+from botlistbot.models import Bot
+from botlistbot.models import Favorite
+from botlistbot.models import Statistic
+from botlistbot.models import User
+from botlistbot.const import CallbackActions, DeepLinkingActions
+from botlistbot.models import track_activity
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ log = logging.getLogger(__name__)
 
 def add_favorite_handler(bot, update, args=None):
     uid = util.uid_from_update(update)
-    from components.basic import main_menu_buttons
+    from botlistbot.components.basic import main_menu_buttons
     main_menu_markup = ReplyKeyboardMarkup(main_menu_buttons(uid in settings.MODERATORS))
 
     if args:
@@ -71,7 +71,7 @@ def add_favorite(bot, update, item: Bot, callback_alert=None):
     user = User.from_update(update)
     uid = util.uid_from_update(update)
     mid = util.mid_from_update(update)
-    from components.basic import main_menu_buttons
+    from botlistbot.components.basic import main_menu_buttons
     main_menu_markup = ReplyKeyboardMarkup(main_menu_buttons(uid in settings.MODERATORS))
 
     fav, created = Favorite.add(user=user, item=item)
@@ -238,7 +238,7 @@ def add_custom(bot, update, username):
     uid = util.uid_from_update(update)
     user = User.from_update(update)
     mid = util.mid_from_update(update)
-    from components.basic import main_menu_buttons
+    from botlistbot.components.basic import main_menu_buttons
     main_menu_markup = ReplyKeyboardMarkup(main_menu_buttons(uid in settings.MODERATORS))
 
     try:

@@ -1,4 +1,4 @@
-from mdformat import success, failure, action_hint
+from botlistbot.mdformat import success, failure, action_hint
 from telegram import Message, constants
 from telegram import ParseMode
 from telegram import ReplyKeyboardRemove

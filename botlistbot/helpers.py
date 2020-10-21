@@ -8,12 +8,12 @@ import re
 import maya
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode, Message, Bot
 
-import captions
-import settings
-import util
-from custom_botlistbot import BotListBot
-from dialog import messages
-from settings import SELF_CHANNEL_USERNAME
+from botlistbot import captions
+from botlistbot import settings
+from botlistbot import util
+from botlistbot.custom_botlistbot import BotListBot
+from botlistbot.dialog import messages
+from botlistbot.settings import SELF_CHANNEL_USERNAME
 
 from logzero import logger as log
 
@@ -64,7 +64,7 @@ def get_commands():
 
 
 def get_channel():
-    from models import Channel
+    from botlistbot.models import Channel
 
     try:
         return Channel.get(Channel.username == SELF_CHANNEL_USERNAME)

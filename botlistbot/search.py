@@ -2,11 +2,11 @@ import re
 
 from peewee import fn
 
-import settings
-from models import Bot
-from models import Category
-from models import Keyword
-from models.revision import Revision
+from botlistbot import settings
+from botlistbot.models import Bot
+from botlistbot.models import Category
+from botlistbot.models import Keyword
+from botlistbot.models.revision import Revision
 
 
 def search_bots(query):

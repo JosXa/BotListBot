@@ -9,12 +9,12 @@ from telegram import (
 from telegram.ext import JobQueue
 from telegram.ext.dispatcher import run_async
 
-import captions
-import settings
-import util
-from const import CallbackActions
-from dialog import messages
-from models import track_activity, User
+from botlistbot import captions
+from botlistbot import settings
+from botlistbot import util
+from botlistbot.const import CallbackActions
+from botlistbot.dialog import messages
+from botlistbot.models import track_activity, User
 from typing import *
 from logzero import logger as log
 

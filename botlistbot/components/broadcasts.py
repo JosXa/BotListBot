@@ -4,16 +4,16 @@ from pprint import pprint
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ConversationHandler
 
-import captions
-import const
-import mdformat
-import settings
-import util
-from components import errors
-from components.botlistchat import BROADCAST_REPLACEMENTS, _delete_multiple_delayed
-from const import BotStates
-from models import User
-from util import restricted
+from botlistbot import captions
+from botlistbot import const
+from botlistbot import mdformat
+from botlistbot import settings
+from botlistbot import util
+from botlistbot.components import errors
+from botlistbot.components.botlistchat import BROADCAST_REPLACEMENTS, _delete_multiple_delayed
+from botlistbot.const import BotStates
+from botlistbot.models import User
+from botlistbot.util import restricted
 
 
 @restricted

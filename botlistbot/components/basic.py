@@ -26,20 +26,20 @@ from telegram.ext import (
     JobQueue,
 )
 
-import appglobals
-import captions
-import const
-import mdformat
-import settings
-import util
-from components import help
-from components.botlist import new_channel_post
-from components.search import search_handler, search_query
-from dialog import messages
-from helpers import try_delete_after
-from models import Category, User
-from models.statistic import Statistic, track_activity
-from util import track_groups
+from botlistbot import appglobals
+from botlistbot import captions
+from botlistbot import const
+from botlistbot import mdformat
+from botlistbot import settings
+from botlistbot import util
+from botlistbot.components import help
+from botlistbot.components.botlist import new_channel_post
+from botlistbot.components.search import search_handler, search_query
+from botlistbot.dialog import messages
+from botlistbot.helpers import try_delete_after
+from botlistbot.models import Category, User
+from botlistbot.models.statistic import Statistic, track_activity
+from botlistbot.util import track_groups
 
 log = logging.getLogger(__name__)
 
@@ -57,7 +57,7 @@ def start(bot, update, chat_data, args):
         # CATEGORY BY ID
         try:
             cat = Category.get(Category.id == args[0])
-            from components.explore import send_category
+            from botlistbot.components.explore import send_category
 
             return send_category(bot, update, chat_data, cat)
         except (ValueError, Category.DoesNotExist):

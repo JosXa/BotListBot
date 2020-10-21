@@ -3,7 +3,7 @@ import time
 
 import pytest
 
-from models import Bot
+from botlistbot.models import Bot
 from tgintegration import BotIntegrationClient
 
 

@@ -13,7 +13,7 @@ import time
 import traceback
 from datetime import datetime, timedelta
 from logzero import logger as log
-from pyrogram.api.functions.contacts import Search
+from pyrogram.api.functions.contacts from botlistbot import search
 from pyrogram.api.functions.messages import DeleteHistory
 from pyrogram.api.functions.users import GetUsers
 from pyrogram.api.types import InputPeerUser
@@ -24,13 +24,13 @@ from telegram.error import BadRequest
 from tgintegration import InlineResultContainer, InteractionClientAsync, Response
 from typing import Union
 
-import captions
-import helpers
-import settings
-import util
-from const import CallbackActions
-from helpers import make_sticker
-from models import Bot, Bot as BotModel, Keyword
+from botlistbot import captions
+from botlistbot import helpers
+from botlistbot import settings
+from botlistbot import util
+from botlistbot.const import CallbackActions
+from botlistbot.helpers import make_sticker
+from botlistbot.models import Bot, Bot as BotModel, Keyword
 
 logging.getLogger().setLevel(logging.WARNING)
 

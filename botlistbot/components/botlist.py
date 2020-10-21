@@ -7,23 +7,23 @@ import traceback
 from time import sleep
 from typing import List
 
-import appglobals
-import helpers
-import mdformat
-import settings
-import util
-from custemoji import Emoji
-from dialog import messages
-from models import Bot, Country
-from models import Category
-from models import Notifications
-from models import Statistic
-from models.channel import Channel
-from models.revision import Revision
+from botlistbot import appglobals
+from botlistbot import helpers
+from botlistbot import mdformat
+from botlistbot import settings
+from botlistbot import util
+from botlistbot.custemoji import Emoji
+from botlistbot.dialog import messages
+from botlistbot.models import Bot, Country
+from botlistbot.models import Category
+from botlistbot.models import Notifications
+from botlistbot.models import Statistic
+from botlistbot.models.channel import Channel
+from botlistbot.models.revision import Revision
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import BadRequest, RetryAfter, TelegramError
 from telegram.ext.dispatcher import run_async
-from util import restricted
+from botlistbot.util import restricted
 from logzero import logger as log
 
 

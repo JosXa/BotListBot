@@ -5,10 +5,10 @@ import logging
 from peewee import *
 from telegram import Update
 
-import helpers
-import util
-from models import User
-from models.basemodel import BaseModel
+from botlistbot import helpers
+from botlistbot import util
+from botlistbot.models import User
+from botlistbot.models.basemodel import BaseModel
 
 
 def track_activity(action: str, entity: str = None, level: int = logging.INFO):

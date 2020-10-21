@@ -7,16 +7,16 @@ from pprint import pprint
 from telegram import Message as TelegramMessage, ParseMode
 from telegram.ext import ConversationHandler, run_async
 
-import settings
-import util
-from appglobals import loop
-from components.admin import notify_submittant_rejected, edit_bot
-from models import Bot, Country, Suggestion, User
-from models.revision import Revision
-from util import track_groups
+from botlistbot import settings
+from botlistbot import util
+from botlistbot.appglobals import loop
+from botlistbot.components.admin import notify_submittant_rejected, edit_bot
+from botlistbot.models import Bot, Country, Suggestion, User
+from botlistbot.models.revision import Revision
+from botlistbot.util import track_groups
 
 try:
-    from components.userbot import BotChecker
+    from botlistbot.components.userbot import BotChecker
     from botcheckerworker.botchecker import add_keywords, download_profile_picture
 except:
     log.warning("Not using BotChecker in contributions.py")
@@ -274,7 +274,7 @@ def new_bot_submission(bot, update, chat_data, args=None, bot_checker=None):
         util.is_private_message(update)
         and util.uid_from_update(update) in settings.MODERATORS
     ):
-        from components.explore import send_bot_details
+        from botlistbot.components.explore import send_bot_details
 
         send_bot_details(bot, update, chat_data, new_bot)
     else:

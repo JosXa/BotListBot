@@ -18,20 +18,20 @@ from telegram import (
 from telegram.ext import ConversationHandler, DispatcherHandlerStop, Job, run_async
 from typing import Dict
 
-import appglobals
-import captions
-import helpers
-import mdformat
-import settings
-import util
-from appglobals import db
-from components.lookup import lookup_entity
-from const import *
-from const import BotStates, CallbackActions
-from custemoji import Emoji
-from dialog import messages, emojis
-from models import Bot, Category, Revision, Statistic, Suggestion, User, track_activity
-from util import restricted
+from botlistbot import appglobals
+from botlistbot import captions
+from botlistbot import helpers
+from botlistbot import mdformat
+from botlistbot import settings
+from botlistbot import util
+from botlistbot.appglobals import db
+from botlistbot.components.lookup import lookup_entity
+from botlistbot.const import *
+from botlistbot.const import BotStates, CallbackActions
+from botlistbot.custemoji import Emoji
+from botlistbot.dialog import messages, emojis
+from botlistbot.models import Bot, Category, Revision, Statistic, Suggestion, User, track_activity
+from botlistbot.util import restricted
 
 
 @run_async
@@ -742,7 +742,7 @@ def accept_bot_submission(bot, update, of_bot: Bot, category):
         bot.formatter.send_or_edit(
             uid,
             "{} has been accepted to the Botlist. ".format(
-                of_bot, settings.BOT_ACCEPTED_IDLE_TIME
+                of_bot
             ),
             to_edit=message_id,
             reply_markup=reply_markup,
@@ -1006,7 +1006,7 @@ def ban_bot(bot, update, chat_data, to_ban: Bot, ban_state: bool):
 
     to_ban.save()
 
-    from components.explore import send_bot_details
+    from botlistbot.components.explore import send_bot_details
 
     return send_bot_details(bot, update, chat_data, to_ban)
 

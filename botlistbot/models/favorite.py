@@ -4,13 +4,13 @@ from typing import List
 
 from peewee import *
 
-import helpers
-import util
-from models import Bot
-from models.basemodel import BaseModel
-from models.category import Category
-from models.country import Country
-from models.user import User
+from botlistbot import helpers
+from botlistbot import util
+from botlistbot.models import Bot
+from botlistbot.models.basemodel import BaseModel
+from botlistbot.models.category import Category
+from botlistbot.models.country import Country
+from botlistbot.models.user import User
 
 
 class Favorite(BaseModel):

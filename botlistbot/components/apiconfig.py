@@ -7,19 +7,19 @@ import emoji
 from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup, TelegramError
 from telegram.ext import ConversationHandler
 
-import captions
-import const
-import mdformat
-import util
-from util import private_chat_only
+from botlistbot import captions
+from botlistbot import const
+from botlistbot import mdformat
+from botlistbot import util
+from botlistbot.util import private_chat_only
 from main import log
-from const import *
-from const import BotStates, CallbackActions
-from custemoji import Emoji
-from models import Bot
-from models import Category
-from models import Suggestion
-from util import restricted
+from botlistbot.const import *
+from botlistbot.const import BotStates, CallbackActions
+from botlistbot.custemoji import Emoji
+from botlistbot.models import Bot
+from botlistbot.models import Category
+from botlistbot.models import Suggestion
+from botlistbot.util import restricted
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)

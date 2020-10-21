@@ -2,17 +2,17 @@ from uuid import uuid4
 
 import emoji
 
-import captions
-import const
-import mdformat
-import search
-import util
-from components import favorites, botlistchat
-from dialog import messages
-from models import Bot, Category
-from models import Favorite
-from models import Statistic
-from models import User
+from botlistbot import captions
+from botlistbot import const
+from botlistbot import mdformat
+from botlistbot import search
+from botlistbot import util
+from botlistbot.components import favorites, botlistchat
+from botlistbot.dialog import messages
+from botlistbot.models import Bot, Category
+from botlistbot.models import Favorite
+from botlistbot.models import Statistic
+from botlistbot.models import User
 from telegram import InlineKeyboardButton
 from telegram import InlineKeyboardMarkup
 from telegram import InlineQueryResultArticle
@@ -39,7 +39,7 @@ def query_too_short_article():
 
 
 def new_bots_article():
-    from components.explore import _new_bots_text
+    from botlistbot.components.explore import _new_bots_text
     msg_text = messages.PROMOTION_MESSAGE + '\n\n' + _new_bots_text()
     return InlineQueryResultArticle(
         id=uuid4(),

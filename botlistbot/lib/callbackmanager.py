@@ -3,7 +3,7 @@ from uuid import uuid4
 from redis_collections import Dict as RedisDict
 from telegram import InlineKeyboardButton
 
-from models import User
+from botlistbot.models import User
 
 
 class CallbackManager:

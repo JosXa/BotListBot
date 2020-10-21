@@ -5,17 +5,17 @@ import re
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ConversationHandler
 
-import captions
-import helpers
-import mdformat
-import settings
-import util
-from components import botlistchat
-from const import CallbackActions, CallbackStates
-from dialog import messages
-from lib import InlineCallbackButton
-from models import Bot, Category, Favorite, Keyword, Statistic, User, track_activity
-from util import track_groups
+from botlistbot import captions
+from botlistbot import helpers
+from botlistbot import mdformat
+from botlistbot import settings
+from botlistbot import util
+from botlistbot.components import botlistchat
+from botlistbot.const import CallbackActions, CallbackStates
+from botlistbot.dialog import messages
+from botlistbot.lib import InlineCallbackButton
+from botlistbot.models import Bot, Category, Favorite, Keyword, Statistic, User, track_activity
+from botlistbot.util import track_groups
 from typing import *
 
 log = logging.getLogger()

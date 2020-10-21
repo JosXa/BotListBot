@@ -1,5 +1,5 @@
-from models import User
-from models.basemodel import BaseModel
+from botlistbot.models import User
+from botlistbot.models.basemodel import BaseModel
 from peewee import *
 
 

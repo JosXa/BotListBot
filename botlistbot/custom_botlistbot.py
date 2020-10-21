@@ -4,8 +4,8 @@ from typing import Callable
 from logzero import logger as log
 from telegram import Bot as TelegramBot, TelegramError
 
-import settings
-import util
+from botlistbot import settings
+from botlistbot import util
 
 
 class BotListBot(TelegramBot):

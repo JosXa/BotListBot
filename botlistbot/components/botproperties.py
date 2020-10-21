@@ -3,18 +3,18 @@
 from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 from telegram.error import BadRequest
 
-import captions
-import helpers
-import mdformat
-import settings
-import util
-from components import admin
-from const import BotStates, CallbackActions
-from custemoji import Emoji
-from dialog import messages
-from lib import InlineCallbackButton
-from models import Bot, Country, Keyword, Statistic, Suggestion, User, track_activity
-from util import restricted
+from botlistbot import captions
+from botlistbot import helpers
+from botlistbot import mdformat
+from botlistbot import settings
+from botlistbot import util
+from botlistbot.components import admin
+from botlistbot.const import BotStates, CallbackActions
+from botlistbot.custemoji import Emoji
+from botlistbot.dialog import messages
+from botlistbot.lib import InlineCallbackButton
+from botlistbot.models import Bot, Country, Keyword, Statistic, Suggestion, User, track_activity
+from botlistbot.util import restricted
 
 CLEAR_QUERY = "x"
 

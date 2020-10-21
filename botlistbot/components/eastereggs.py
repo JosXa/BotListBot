@@ -4,16 +4,16 @@ from pprint import pprint
 from peewee import fn
 from telegram.ext import JobQueue
 
-from components import botlistchat
-from models import Bot
+from botlistbot.components import botlistchat
+from botlistbot.models import Bot
 
 from telegram import ReplyKeyboardMarkup
 
-import util
+from botlistbot import util
 from telegram import KeyboardButton
 
-import captions
-from models import track_activity
+from botlistbot import captions
+from botlistbot.models import track_activity
 
 
 def _crapPy_Tr0ll_kbmarkup(rows=None):
@@ -142,7 +142,7 @@ def send_next(bot, update, job_queue: JobQueue, args=None):
 
 
 def send_random_bot(bot, update):
-    from components.explore import send_bot_details
+    from botlistbot.components.explore import send_bot_details
 
     random_bot = (
         Bot.select()

@@ -1,8 +1,8 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ConversationHandler
 
-import util
-from const import CallbackActions
+from botlistbot import util
+from botlistbot.const import CallbackActions
 
 
 def manage_subscription(bot, update):

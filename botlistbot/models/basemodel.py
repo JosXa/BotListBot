@@ -4,7 +4,7 @@ from enum import Enum
 from peewee import *
 from playhouse.sqlite_ext import FTSModel
 
-from appglobals import db
+from botlistbot.appglobals import db
 
 
 class BaseModel(Model):

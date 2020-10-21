@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from peewee import *
 from telegram import Chat
-from models.basemodel import BaseModel
+from botlistbot.models.basemodel import BaseModel
 
 
 class Notifications(BaseModel):

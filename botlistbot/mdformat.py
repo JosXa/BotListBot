@@ -5,7 +5,7 @@ from typing import List
 
 import emoji
 
-from custemoji import Emoji
+from botlistbot.custemoji import Emoji
 
 MAX_LINE_CHARACTERS = 31
 

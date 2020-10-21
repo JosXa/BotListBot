@@ -8,12 +8,12 @@ from sentry_sdk.integrations.logging import LoggingIntegration
 from telegram.ext import Updater, JobQueue
 from telegram.utils.request import Request
 
-import appglobals
-import routing
-import settings
-from components import admin, basic
-from custom_botlistbot import BotListBot
-from lib.markdownformatter import MarkdownFormatter
+from botlistbot import appglobals
+from botlistbot import routing
+from botlistbot import settings
+from botlistbot.components import admin, basic
+from botlistbot.custom_botlistbot import BotListBot
+from botlistbot.lib.markdownformatter import MarkdownFormatter
 
 
 def setup_logging():

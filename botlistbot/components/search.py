@@ -13,18 +13,18 @@ from telegram import (
 )
 from telegram.ext import ConversationHandler, run_async
 
-import appglobals
-import captions
-import const
-import search
-import settings
-import util
-from components import basic, botlistchat
-from components.botlistchat import get_hint_data
-from components.explore import send_bot_details
-from dialog import messages
-from helpers import try_delete_after
-from models import User
+from botlistbot import appglobals
+from botlistbot import captions
+from botlistbot import const
+from botlistbot import search
+from botlistbot import settings
+from botlistbot import util
+from botlistbot.components import basic, botlistchat
+from botlistbot.components.botlistchat import get_hint_data
+from botlistbot.components.explore import send_bot_details
+from botlistbot.dialog import messages
+from botlistbot.helpers import try_delete_after
+from botlistbot.models import User
 
 
 def search_query(bot, update: Update, chat_data, query, send_errors=True):

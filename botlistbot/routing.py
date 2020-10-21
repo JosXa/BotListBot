@@ -1,6 +1,7 @@
 import json
 import traceback
 
+from peewee import DoesNotExist
 import re
 from functools import partial
 from logzero import logger as log
@@ -17,11 +18,11 @@ from telegram.ext import (
     RegexHandler,
 )
 
-import captions
-import components.botproperties
-import settings
-import util
-from components import (
+from botlistbot import captions
+from botlistbot import settings
+from botlistbot import util
+from botlistbot import components
+from botlistbot.components import (
     admin,
     basic,
     botlist,
@@ -35,21 +36,21 @@ from components import (
     help,
     inlinequeries,
 )
-from components.basic import all_handler
-from components.botlistchat import HINTS
-from components.explore import (
+from botlistbot.components.basic import all_handler
+from botlistbot.components.botlistchat import HINTS
+from botlistbot.components.explore import (
     select_category,
     send_bot_details,
     send_category,
     show_new_bots,
 )
-from components.misc import access_token, set_notifications, t3chnostats
-from components.search import search_handler, search_query
-from const import BotStates, CallbackActions
-from dialog import messages
-from lib import InlineCallbackHandler
-from misc import manage_subscription
-from models import (
+from botlistbot.components.misc import access_token, set_notifications, t3chnostats
+from botlistbot.components.search import search_handler, search_query
+from botlistbot.const import BotStates, CallbackActions
+from botlistbot.dialog import messages
+from botlistbot.lib import InlineCallbackHandler
+from botlistbot.misc import manage_subscription
+from botlistbot.models import (
     Bot,
     Category,
     Country,
@@ -61,7 +62,7 @@ from models import (
 )
 
 try:
-    from components.userbot import BotChecker
+    from botlistbot.components.userbot import BotChecker
 except:
     pass
 
@@ -318,7 +319,7 @@ def forward_router(bot, update, chat_data):
 
         send_bot_details(bot, update, chat_data, item)
 
-    except (AttributeError, TypeError, Bot.DoesNotExist):
+    except (AttributeError, TypeError, DoesNotExist):
         pass  # no valid username in forwarded message
 
 
@@ -342,9 +343,6 @@ def reply_router(bot, update, chat_data):
         bot_property = next(p for p in bot_properties if partition[2].startswith(p))
         # Reply for setting a bot property
         botproperties.set_text_property(bot, update, chat_data, bot_property)
-        print("raising...")
-        print(partition)
-        print(partition[1])
         raise DispatcherHandlerStop
     elif text == messages.BAN_MESSAGE:
         query = update.message.text

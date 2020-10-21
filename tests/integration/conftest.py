@@ -1,6 +1,6 @@
 import pytest
 
-import settings
+from botlistbot import settings
 from tgintegration import BotIntegrationClient
 
 

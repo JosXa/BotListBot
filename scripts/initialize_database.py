@@ -11,10 +11,10 @@ from peewee import Proxy
 from playhouse.db_url import connect
 from playhouse.migrate import PostgresqlMigrator
 
-import appglobals
-from models import *
-from models import Bot, User, Suggestion
-from models.keywordmodel import Keyword
+from botlistbot import appglobals
+from botlistbot.models import *
+from botlistbot.models import Bot, User, Suggestion
+from botlistbot.models.keywordmodel import Keyword
 
 connection = connect(appglobals.DATABASE_PATH)
 # connection = connect("sqlite:///:memory:")

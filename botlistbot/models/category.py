@@ -2,9 +2,9 @@
 import emoji
 from peewee import *
 
-import const
-import helpers
-from models.basemodel import BaseModel
+from botlistbot import const
+from botlistbot import helpers
+from botlistbot.models.basemodel import BaseModel
 
 
 class Category(BaseModel):

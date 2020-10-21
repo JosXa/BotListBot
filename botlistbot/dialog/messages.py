@@ -1,11 +1,11 @@
 import random
 
-import captions
-import mdformat
+from botlistbot import captions
+from botlistbot import mdformat
 
 
 # region functions
-from dialog import emojis
+from botlistbot.dialog import emojis
 
 
 def rand_call_to_action():

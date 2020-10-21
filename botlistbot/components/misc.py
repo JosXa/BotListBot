@@ -5,10 +5,10 @@ import os
 from telegram import ParseMode
 from telegram.ext import ConversationHandler
 
-import util
-from models import Statistic, APIAccess
-from models import User, Bot, Notifications
-from util import restricted
+from botlistbot import util
+from botlistbot.models import Statistic, APIAccess
+from botlistbot.models import User, Bot, Notifications
+from botlistbot.util import restricted
 
 
 @restricted(strict=True)

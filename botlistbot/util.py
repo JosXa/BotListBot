@@ -9,10 +9,10 @@ from functools import wraps
 from pprint import pprint
 from typing import List
 
-import appglobals
-import const
-import settings
-from custemoji import Emoji
+from botlistbot import appglobals
+from botlistbot import const
+from botlistbot import settings
+from botlistbot.custemoji import Emoji
 from telegram import ChatAction
 from telegram import ParseMode
 from telegram import TelegramError, ReplyKeyboardRemove
@@ -27,7 +27,7 @@ def stop_banned(update, user):
 
 
 def track_groups(func):
-    from models.group import Group
+    from botlistbot.models.group import Group
     """
     Decorator that stores all groups that the bot has been added to
     """

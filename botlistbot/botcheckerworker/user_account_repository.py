@@ -5,7 +5,7 @@ from logzero import logger as log
 from decouple import config
 from minio import Minio
 
-import appglobals
+from botlistbot import appglobals
 
 BUCKET_NAME = "useraccounts"
 

@@ -6,14 +6,14 @@ from peewee import *
 from playhouse.hybrid import hybrid_property
 from typing import List
 
-import helpers
-import settings
-import util
-from models.basemodel import BaseModel, EnumField
-from models.category import Category
-from models.country import Country
-from models.revision import Revision
-from models.user import User
+from botlistbot import helpers
+from botlistbot import settings
+from botlistbot import util
+from botlistbot.models.basemodel import BaseModel, EnumField
+from botlistbot.models.category import Category
+from botlistbot.models.country import Country
+from botlistbot.models.revision import Revision
+from botlistbot.models.user import User
 
 
 class Bot(BaseModel):
@@ -144,7 +144,7 @@ class Bot(BaseModel):
 
     @property
     def detail_text(self):
-        from models import Keyword
+        from botlistbot.models import Keyword
         keywords = Keyword.select().where(Keyword.entity == self)
         txt = '{}'.format(self.__str__())
         txt += '\n_{}_'.format(util.escape_markdown(self.name)) if self.name else ''
@@ -244,7 +244,7 @@ class Bot(BaseModel):
 
     @property
     def keywords(self):
-        from models.keywordmodel import Keyword
+        from botlistbot.models.keywordmodel import Keyword
         return Keyword.select().where(Keyword.entity == self)
 
     @property

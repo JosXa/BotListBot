@@ -2,12 +2,12 @@
 import inflect
 from peewee import *
 
-import settings
+from botlistbot import settings
 from telegram import User as TelegramUser
 
-import util
-from layouts import Layouts
-from models.basemodel import BaseModel
+from botlistbot import util
+from botlistbot.layouts import Layouts
+from botlistbot.models.basemodel import BaseModel
 
 
 class User(BaseModel):
@@ -40,12 +40,12 @@ class User(BaseModel):
 
     @property
     def has_favorites(self):
-        from models import Favorite
+        from botlistbot.models import Favorite
         return Favorite.select().where(Favorite.user == self).count() > 0
 
     @property
     def num_contributions(self):
-        from models import Bot
+        from botlistbot.models import Bot
         return Bot.select().where(Bot.submitted_by == self).count()
 
     @property
