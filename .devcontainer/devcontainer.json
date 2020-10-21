@@ -1,13 +1,10 @@
-// For format details, see https://aka.ms/vscode-remote/devcontainer.json or this file's README at:
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.134.0/containers/python-3
 {
 	"name": "Python 3",
-	"build": {
-		"dockerfile": "Dockerfile",
-		"context": "..",
-	},
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "app",
+	"workspaceFolder": "/workspace",
 
-	// Set *default* container specific settings.json values on container create.
 	"settings": { 
 		"terminal.integrated.shell.linux": "/bin/bash",
 		"python.pythonPath": "/usr/local/bin/python",
@@ -24,11 +21,12 @@
 		"python.linting.pylintPath": "/usr/local/py-utils/bin/pylint"
 	},
 
-	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
-		"ms-python.python"
+		"ms-python.python",
+		"ms-azuretools.vscode-docker",
+		"ckolkman.vscode-postgres"
 	],
 
-	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "pipenv install"
+    // Use dependency manager to install packages using the container's python version
+	"postCreateCommand": "pipenv install --dev --python /usr/local/bin/python"
 }
