@@ -3,6 +3,9 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
+[scripts]
+start = "python -m botlistbot.main"
+
 [packages]
 logzero = "*"
 inflect = "*"
