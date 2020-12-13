@@ -29,7 +29,28 @@ JosXa/BotListBot is licensed under the MIT License.
 ### Development Setup
 
 <details>
+<summary>Using GitHub codespaces and VSCode (<b>recommended</b>)</summary>
+
+<i>Recommended because it is the fastest option to get you started.</i>
+
+1. On [GitHub Codespaces](https://github.com/codespaces), enter "`JosXa/BotListBot`" and create your dev container.
+1. Modify the variables in `template.env` and save the file as just `.env` in the root folder of the checkout.
+1. Run the project via `pipenv run python -m botlistbot.main`
+
+</details>  
+
+<details>
+
 <summary>Using PyCharm...</summary>
+
+##### Set up a PostgreSQL database instance with Docker
+
+1. Install Docker
+1. Run `docker-compose up -d`
+1. Create and seed the database via `pipenv run python scripts/initialize_database.py seed`
+1. To stop the database, run `docker-compose down`
+
+##### Set up BotListBot
     
 1. VCS -> Get from Version Control... -> `https://github.com/JosXa/BotListBot` (or your own fork)
 1. Add a new project Interpreter using Pipenv (**not virtualenv**) and let PyCharm install the packages for you
@@ -42,22 +63,21 @@ arguments list, and run it again. This will fill the database with some initial,
 <details>
 <summary>Not using PyCharm...</summary>
 
-1. Clone from GitHub: `git clone https://github.com/JosXa/BotListBot` (or your own fork)
-1. Run `pipenv install`
-1. Modify the variables in `template.env` and save the file as just `.env` in the root folder of the checkout.
-1. Create and seed the database via `pipenv run python scripts/initialize_database.py seed`
-1. Run the project via `pipenv run python botlistbot/main.py`
-</details>  
-
-<details>
-<summary>Setup a PostgreSQL database instance with Docker</summary>
+##### Set up a PostgreSQL database instance with Docker
 
 1. Install Docker
 1. Run `docker-compose up -d`
 1. Create and seed the database via `pipenv run python scripts/initialize_database.py seed`
 1. To stop the database, run `docker-compose down`
-</details>
 
+##### Set up BotListBot
+
+1. Clone from GitHub: `git clone https://github.com/JosXa/BotListBot` (or your own fork)
+1. Run `pipenv install`
+1. Modify the variables in `template.env` and save the file as just `.env` in the root folder of the checkout.
+1. Create and seed the database via `pipenv run python scripts/initialize_database.py seed`
+1. Run the project via `pipenv run python -m botlistbot.main`
+</details>  
 
 #### Further details on configuration
 
