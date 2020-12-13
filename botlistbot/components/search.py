@@ -32,6 +32,9 @@ def search_query(bot, update: Update, chat_data, query, send_errors=True):
     user: User = User.from_update(update)
     is_admin: bool = cid in settings.MODERATORS
     replied_to_message_id: Optional[int] = util.original_reply_id(update)
+    is_suggestion_by_other: bool = (
+        update.effective_chat and update.effective_chat.id == settings.BOTLISTCHAT_ID
+    )
 
     results = search.search_bots(query)
 
@@ -43,8 +46,13 @@ def search_query(bot, update: Update, chat_data, query, send_errors=True):
     if results:
         if len(results) == 1:
             update.effective_message.delete()
-            header = f"{user.markdown_short} found the following bot for you:"
-            return send_bot_details(bot, update, chat_data, results[0], header_msg=header)
+            if is_suggestion_by_other:
+                header = f"{user.markdown_short} found the following bot for you:"
+            else:
+                header = "I found the following bot for you:"
+            return send_bot_details(
+                bot, update, chat_data, results[0], header_msg=header
+            )
         too_many_results = len(results) > settings.MAX_SEARCH_RESULTS
 
         bots_list = ""
@@ -96,7 +104,7 @@ def search_query(bot, update: Update, chat_data, query, send_errors=True):
                 )
             return ConversationHandler.END
 
-        if update.effective_chat and update.effective_chat.id == settings.BOTLISTCHAT_ID and replied_to_message_id:
+        if is_suggestion_by_other and replied_to_message_id:
             bots_list = f"{user.markdown_short} suggests to search and {bots_list}"
 
         bot.formatter.send_message(
@@ -160,7 +168,9 @@ def search_handler(bot, update, chat_data, args=None):
                     ]
                 ),
             )
-            try_delete_after(appglobals.job_queue, [sent_msg, update.effective_message], delay=10)
+            try_delete_after(
+                appglobals.job_queue, [sent_msg, update.effective_message], delay=10
+            )
         else:
             update.message.reply_text(
                 messages.SEARCH_MESSAGE, reply_markup=ForceReply(selective=True)
