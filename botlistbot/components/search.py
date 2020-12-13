@@ -96,7 +96,7 @@ def search_query(bot, update: Update, chat_data, query, send_errors=True):
                 )
             return ConversationHandler.END
 
-        if replied_to_message_id:
+        if update.effective_chat and update.effective_chat.id == settings.BOTLISTCHAT_ID and replied_to_message_id:
             bots_list = f"{user.markdown_short} suggests to search and {bots_list}"
 
         bot.formatter.send_message(
