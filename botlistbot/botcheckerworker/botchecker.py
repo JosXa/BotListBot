@@ -13,7 +13,7 @@ import time
 import traceback
 from datetime import datetime, timedelta
 from logzero import logger as log
-from pyrogram.api.functions.contacts from botlistbot import search
+from pyrogram.api.functions.contacts import search
 from pyrogram.api.functions.messages import DeleteHistory
 from pyrogram.api.functions.users import GetUsers
 from pyrogram.api.types import InputPeerUser
