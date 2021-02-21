@@ -67,7 +67,7 @@ def delete_models():
     if sure == "y":
         for m in delete_order:
             m.drop_table(safe=True)
-        print("All models drop.")
+        print("All models dropped.")
     else:
         print("Nothing deleted.")
 
