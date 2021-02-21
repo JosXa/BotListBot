@@ -27,7 +27,7 @@ cryptography = "*"
 tornado = "*"
 sentry-sdk = "==0.7.11"
 ordered-set = "*"
-Pyrogram = {file = "https://github.com/pyrogram/pyrogram/archive/asyncio.zip"}
+Pyrogram = "*"
 minio = "*"
 
 [dev-packages]
